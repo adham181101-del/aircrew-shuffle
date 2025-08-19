@@ -43,7 +43,7 @@ export const signUp = async (email: string, password: string, staffNumber: strin
     .from('staff')
     .select('id')
     .eq('staff_number', staffNumber)
-    .single()
+    .maybeSingle()
 
   if (existingStaff) {
     throw new Error('Staff number already registered')
@@ -53,6 +53,7 @@ export const signUp = async (email: string, password: string, staffNumber: strin
     email,
     password,
     options: {
+      emailRedirectTo: `${window.location.origin}/dashboard`,
       data: {
         staff_number: staffNumber,
         base_location: baseLocation,
@@ -63,21 +64,7 @@ export const signUp = async (email: string, password: string, staffNumber: strin
 
   if (error) throw error
 
-  // Create staff profile
-  if (data.user) {
-    const { error: profileError } = await supabase
-      .from('staff')
-      .insert({
-        id: data.user.id,
-        email,
-        staff_number: staffNumber,
-        base_location: baseLocation,
-        can_work_doubles: canWorkDoubles
-      })
-
-    if (profileError) throw profileError
-  }
-
+  // Staff profile will be created automatically via database trigger
   return data
 }
 
