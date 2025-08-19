@@ -33,10 +33,15 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
       setUser(currentUser)
       const userShifts = await getUserShifts(currentUser.id)
       setShifts(userShifts)
+      
+      if (userShifts.length === 0) {
+        console.log('No shifts found for user:', currentUser.id)
+      }
     } catch (error) {
+      console.error('Error loading shifts:', error)
       toast({
         title: "Error loading shifts",
-        description: "Failed to load your shifts",
+        description: error instanceof Error ? error.message : "Failed to load your shifts",
         variant: "destructive"
       })
     } finally {
@@ -211,6 +216,28 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                   </div>
                 )
               })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {shifts.length === 0 && !loading && (
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <div className="space-y-4">
+              <CalendarIcon className="h-12 w-12 mx-auto text-muted-foreground" />
+              <div>
+                <p className="text-lg font-medium mb-2">No shifts found</p>
+                <p className="text-muted-foreground mb-4">
+                  You don't have any shifts in your calendar yet. Add shifts by uploading a roster PDF or creating them manually.
+                </p>
+                {onCreateShift && (
+                  <Button onClick={onCreateShift} variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Shift
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
