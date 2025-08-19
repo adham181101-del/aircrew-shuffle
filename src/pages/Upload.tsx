@@ -42,23 +42,32 @@ const UploadPage = () => {
   };
 
   const processPDFFile = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const arrayBuffer = reader.result as ArrayBuffer;
-          const uint8Array = new Uint8Array(arrayBuffer);
-          
-          // For now, we'll extract text using a simple approach
-          // In a real implementation, you'd use a proper PDF parsing library
-          const text = new TextDecoder().decode(uint8Array);
-          resolve(text);
-        } catch (error) {
-          reject(new Error('Failed to extract text from PDF'));
+    return new Promise(async (resolve, reject) => {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        
+        // Use pdf.js to extract text properly
+        const pdfjsLib = await import('pdfjs-dist');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+        
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = '';
+        
+        // Extract text from all pages
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items
+            .map((item: any) => item.str)
+            .join(' ');
+          fullText += pageText + '\n';
         }
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsArrayBuffer(file);
+        
+        resolve(fullText);
+      } catch (error) {
+        console.error('PDF processing error:', error);
+        reject(new Error('Failed to extract text from PDF'));
+      }
     });
   };
 

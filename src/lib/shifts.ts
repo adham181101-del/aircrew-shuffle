@@ -146,55 +146,78 @@ export const deleteShift = async (shiftId: string, staffId: string): Promise<voi
   if (error) throw error
 }
 
-// Parse PDF content to extract shifts (client-side parsing)
+// Parse PDF content to extract shifts
 export const parseShiftsFromText = (text: string): Array<{date: string, time: string}> => {
   const shifts: Array<{date: string, time: string}> = []
   const seenDates = new Set<string>()
   
-  // Date summary pattern: DD-Mon-YYYY - HH:MM - HH:MM
-  const datePattern = /^\s*(\d{2})-([A-Za-z]{3})-(\d{4})\s*-\s*(?:(OFF|LV\s+LEAVE)|(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2}))/gim
+  console.log('Parsing text:', text.substring(0, 500) + '...')
+  
+  // Multiple patterns to catch different PDF formats
+  const patterns = [
+    // Pattern 1: DD-Mon-YYYY - HH:MM - HH:MM
+    /(\d{1,2})-([A-Za-z]{3})-(\d{4})\s*-\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/gi,
+    // Pattern 2: DD/MM/YYYY HH:MM-HH:MM
+    /(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{2}:\d{2})-(\d{2}:\d{2})/gi,
+    // Pattern 3: DD Mon YYYY HH:MM - HH:MM
+    /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/gi,
+    // Pattern 4: Mon DD, YYYY HH:MM-HH:MM
+    /([A-Za-z]{3})\s+(\d{1,2}),?\s+(\d{4})\s+(\d{2}:\d{2})-(\d{2}:\d{2})/gi
+  ]
   
   const monthMap: Record<string, number> = {
     jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
     jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
   }
   
-  const lines = text.split('\n')
-  
-  for (const line of lines) {
-    const match = datePattern.exec(line)
-    if (match) {
-      const [, day, month, year, offOrLeave, startTime, endTime] = match
-      
-      // Skip OFF days and LEAVE
-      if (offOrLeave) continue
-      
-      // Skip 00:00-00:00 shifts
-      if (startTime === '00:00' && endTime === '00:00') continue
-      
-      if (startTime && endTime) {
-        try {
-          const monthNum = monthMap[month.toLowerCase()]
+  // Try each pattern
+  for (const pattern of patterns) {
+    let match
+    while ((match = pattern.exec(text)) !== null) {
+      try {
+        let day: string, month: string | number, year: string, startTime: string, endTime: string
+        
+        if (pattern === patterns[0] || pattern === patterns[2]) {
+          // DD-Mon-YYYY or DD Mon YYYY format
+          [, day, month, year, startTime, endTime] = match
+          const monthNum = monthMap[(month as string).toLowerCase()]
           if (!monthNum) continue
-          
-          const date = new Date(parseInt(year), monthNum - 1, parseInt(day))
-          const isoDate = date.toISOString().split('T')[0]
-          
-          if (!seenDates.has(isoDate)) {
-            seenDates.add(isoDate)
-            shifts.push({
-              date: isoDate,
-              time: `${startTime}-${endTime}`
-            })
-          }
-        } catch (e) {
-          console.warn('Failed to parse date:', match[0])
+          month = monthNum
+        } else if (pattern === patterns[1]) {
+          // DD/MM/YYYY format
+          [, day, month, year, startTime, endTime] = match
+          month = parseInt(month as string)
+        } else if (pattern === patterns[3]) {
+          // Mon DD, YYYY format
+          [, month, day, year, startTime, endTime] = match
+          const monthNum = monthMap[(month as string).toLowerCase()]
+          if (!monthNum) continue
+          month = monthNum
+        } else {
+          continue
         }
+        
+        // Skip invalid times
+        if (startTime === '00:00' && endTime === '00:00') continue
+        
+        const date = new Date(parseInt(year), (month as number) - 1, parseInt(day))
+        const isoDate = date.toISOString().split('T')[0]
+        
+        if (!seenDates.has(isoDate)) {
+          seenDates.add(isoDate)
+          shifts.push({
+            date: isoDate,
+            time: `${startTime}-${endTime}`
+          })
+          console.log('Found shift:', { date: isoDate, time: `${startTime}-${endTime}` })
+        }
+      } catch (e) {
+        console.warn('Failed to parse date:', match[0], e)
       }
     }
-    // Reset lastIndex for global regex
-    datePattern.lastIndex = 0
+    pattern.lastIndex = 0
   }
   
+  console.log('Total shifts found:', shifts.length)
   return shifts
 }
