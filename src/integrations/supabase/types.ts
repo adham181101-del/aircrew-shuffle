@@ -14,7 +14,133 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      shifts: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          is_swapped: boolean
+          staff_id: string
+          time: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          is_swapped?: boolean
+          staff_id: string
+          time: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          is_swapped?: boolean
+          staff_id?: string
+          time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff: {
+        Row: {
+          base_location: string
+          can_work_doubles: boolean
+          created_at: string
+          email: string
+          id: string
+          staff_number: string
+        }
+        Insert: {
+          base_location: string
+          can_work_doubles?: boolean
+          created_at?: string
+          email: string
+          id?: string
+          staff_number: string
+        }
+        Update: {
+          base_location?: string
+          can_work_doubles?: boolean
+          created_at?: string
+          email?: string
+          id?: string
+          staff_number?: string
+        }
+        Relationships: []
+      }
+      swap_requests: {
+        Row: {
+          accepter_id: string | null
+          accepter_shift_id: string | null
+          created_at: string
+          id: string
+          message: string | null
+          repay_date: string | null
+          requester_id: string
+          requester_shift_id: string
+          status: string
+        }
+        Insert: {
+          accepter_id?: string | null
+          accepter_shift_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          repay_date?: string | null
+          requester_id: string
+          requester_shift_id: string
+          status?: string
+        }
+        Update: {
+          accepter_id?: string | null
+          accepter_shift_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          repay_date?: string | null
+          requester_id?: string
+          requester_shift_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swap_requests_accepter_id_fkey"
+            columns: ["accepter_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_accepter_shift_id_fkey"
+            columns: ["accepter_shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_requester_shift_id_fkey"
+            columns: ["requester_shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
