@@ -119,13 +119,20 @@ export const createShift = async (date: string, time: string, staffId: string): 
 }
 
 export const getUserShifts = async (staffId: string): Promise<Shift[]> => {
+  console.log('Fetching shifts for staff ID:', staffId)
+  
   const { data, error } = await supabase
     .from('shifts')
     .select('*')
     .eq('staff_id', staffId)
     .order('date', { ascending: true })
 
-  if (error) throw error
+  if (error) {
+    console.error('Error fetching user shifts:', error)
+    throw error
+  }
+  
+  console.log('Fetched shifts:', data?.length || 0, 'shifts')
   return data || []
 }
 

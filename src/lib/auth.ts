@@ -88,11 +88,16 @@ export const getCurrentUser = async (): Promise<Staff | null> => {
   
   if (!user) return null
 
-  const { data: staff } = await supabase
+  const { data: staff, error } = await supabase
     .from('staff')
     .select('*')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
+
+  if (error) {
+    console.error('Error fetching staff profile:', error)
+    return null
+  }
 
   return staff || null
 }
