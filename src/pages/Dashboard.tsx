@@ -177,6 +177,15 @@ const Dashboard = () => {
           </Button>
           
           <Button
+            onClick={() => navigate('/swaps/create')}
+            variant="outline"
+            className="flex items-center justify-center h-16"
+          >
+            <ArrowRightLeft className="h-5 w-5 mr-2" />
+            Request Swap
+          </Button>
+          
+          <Button
             onClick={() => navigate('/swaps')}
             variant="outline"
             className="flex items-center justify-center h-16"

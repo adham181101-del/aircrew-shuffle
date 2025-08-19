@@ -1,14 +1,20 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, AlertCircle } from "lucide-react";
+import { Upload, FileText, AlertCircle, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { createShift, parseShiftsFromText } from "@/lib/shifts";
+import { getCurrentUser } from "@/lib/auth";
 
 const UploadPage = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [extractedShifts, setExtractedShifts] = useState<Array<{date: string, time: string}>>([]);
+  const [processingStep, setProcessingStep] = useState<'upload' | 'extract' | 'save' | 'complete'>('upload');
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -35,16 +41,108 @@ const UploadPage = () => {
     }
   };
 
+  const processPDFFile = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const arrayBuffer = reader.result as ArrayBuffer;
+          const uint8Array = new Uint8Array(arrayBuffer);
+          
+          // For now, we'll extract text using a simple approach
+          // In a real implementation, you'd use a proper PDF parsing library
+          const text = new TextDecoder().decode(uint8Array);
+          resolve(text);
+        } catch (error) {
+          reject(new Error('Failed to extract text from PDF'));
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
   const handleUpload = async () => {
     if (!selectedFile) return;
     
     setUploading(true);
-    // TODO: Implement actual file upload and processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setUploading(false);
-    setSelectedFile(null);
-    // Redirect to dashboard after successful upload
-    navigate('/dashboard');
+    setProcessingStep('extract');
+    
+    try {
+      const user = await getCurrentUser();
+      if (!user) {
+        toast({
+          title: "Authentication Error",
+          description: "Please log in to upload rosters",
+          variant: "destructive"
+        });
+        navigate('/login');
+        return;
+      }
+
+      // Extract text from PDF
+      toast({
+        title: "Processing...",
+        description: "Extracting text from PDF",
+      });
+      
+      const pdfText = await processPDFFile(selectedFile);
+      
+      // Parse shifts from text
+      setProcessingStep('save');
+      toast({
+        title: "Processing...",
+        description: "Parsing shifts from roster",
+      });
+      
+      const shifts = parseShiftsFromText(pdfText);
+      setExtractedShifts(shifts);
+      
+      if (shifts.length === 0) {
+        toast({
+          title: "No Shifts Found",
+          description: "Could not extract any shifts from the PDF. Please check the format or add shifts manually.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Save shifts to database
+      toast({
+        title: "Processing...",
+        description: `Saving ${shifts.length} shifts to your calendar`,
+      });
+
+      let savedCount = 0;
+      for (const shift of shifts) {
+        try {
+          await createShift(shift.date, shift.time, user.id);
+          savedCount++;
+        } catch (error) {
+          console.warn('Failed to save shift:', shift, error);
+        }
+      }
+
+      setProcessingStep('complete');
+      toast({
+        title: "Success!",
+        description: `Successfully imported ${savedCount} shifts from your roster`,
+      });
+      
+      // Redirect to dashboard after 2 seconds
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to process PDF",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -122,8 +220,59 @@ const UploadPage = () => {
                         disabled={uploading}
                         className="ml-4"
                       >
-                        {uploading ? 'Uploading...' : 'Upload & Process'}
+                        {uploading ? 'Processing...' : 'Upload & Process'}
                       </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Processing Status */}
+              {uploading && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        <div>
+                          <p className="font-medium">Processing PDF...</p>
+                          <p className="text-sm text-muted-foreground">
+                            {processingStep === 'extract' && 'Extracting text from PDF'}
+                            {processingStep === 'save' && 'Parsing and saving shifts'}
+                            {processingStep === 'complete' && 'Finalizing...'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Extracted Shifts Preview */}
+              {extractedShifts.length > 0 && processingStep === 'complete' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      Extracted Shifts
+                    </CardTitle>
+                    <CardDescription>
+                      Found {extractedShifts.length} shifts in your roster
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {extractedShifts.slice(0, 10).map((shift, index) => (
+                        <div key={index} className="flex justify-between items-center p-2 bg-muted rounded">
+                          <span className="font-medium">{new Date(shift.date).toLocaleDateString()}</span>
+                          <span className="text-sm">{shift.time}</span>
+                        </div>
+                      ))}
+                      {extractedShifts.length > 10 && (
+                        <p className="text-sm text-muted-foreground text-center">
+                          ... and {extractedShifts.length - 10} more shifts
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

@@ -5,60 +5,161 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeftRight, Clock, MapPin, User, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { getCurrentUser, type Staff } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 
-// Mock data - replace with actual API calls
-const mockSwapRequests = [
-  {
-    id: 1,
-    requesterName: "Sarah Johnson",
-    requesterShift: { date: "2024-01-15", time: "06:00-14:00", location: "LHR" },
-    accepterShift: { date: "2024-01-18", time: "14:00-22:00", location: "LGW" },
-    status: "pending",
-    createdAt: new Date("2024-01-10")
-  },
-  {
-    id: 2,
-    requesterName: "Mike Chen",
-    requesterShift: { date: "2024-01-20", time: "22:00-06:00", location: "LGW" },
-    accepterShift: { date: "2024-01-22", time: "06:00-14:00", location: "LHR" },
-    status: "accepted",
-    createdAt: new Date("2024-01-12")
-  }
-];
-
-const mockMyRequests = [
-  {
-    id: 3,
-    accepterName: "Emma Wilson",
-    myShift: { date: "2024-01-25", time: "14:00-22:00", location: "LHR" },
-    theirShift: { date: "2024-01-28", time: "06:00-14:00", location: "LGW" },
-    status: "pending",
-    createdAt: new Date("2024-01-14")
-  }
-];
+type SwapRequestWithDetails = {
+  id: string;
+  requester_id: string;
+  requester_shift_id: string;
+  accepter_id: string | null;
+  accepter_shift_id: string | null;
+  status: string;
+  message: string | null;
+  created_at: string;
+  requester_staff?: Staff;
+  accepter_staff?: Staff;
+  requester_shift?: any;
+  accepter_shift?: any;
+};
 
 const ManageSwaps = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("incoming");
+  const [user, setUser] = useState<Staff | null>(null);
+  const [incomingRequests, setIncomingRequests] = useState<SwapRequestWithDetails[]>([]);
+  const [myRequests, setMyRequests] = useState<SwapRequestWithDetails[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadUserAndRequests();
+  }, []);
+
+  const loadUserAndRequests = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        navigate('/login');
+        return;
+      }
+      setUser(currentUser);
+      
+      await Promise.all([
+        loadIncomingRequests(currentUser.id),
+        loadMyRequests(currentUser.id)
+      ]);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load swap requests",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadIncomingRequests = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('swap_requests')
+      .select(`
+        *,
+        requester_staff:staff!swap_requests_requester_id_fkey(*),
+        requester_shift:shifts!swap_requests_requester_shift_id_fkey(*)
+      `)
+      .eq('accepter_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading incoming requests:', error);
+      return;
+    }
+
+    setIncomingRequests(data || []);
+  };
+
+  const loadMyRequests = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('swap_requests')
+      .select(`
+        *,
+        accepter_staff:staff!swap_requests_accepter_id_fkey(*),
+        requester_shift:shifts!swap_requests_requester_shift_id_fkey(*),
+        accepter_shift:shifts!swap_requests_accepter_shift_id_fkey(*)
+      `)
+      .eq('requester_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading my requests:', error);
+      return;
+    }
+
+    setMyRequests(data || []);
+  };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
       pending: "secondary",
       accepted: "default",
-      rejected: "destructive"
+      declined: "destructive"
     };
     return variants[status] || "secondary";
   };
 
-  const handleAcceptSwap = (swapId: number) => {
-    // TODO: Implement swap acceptance
-    console.log("Accepting swap:", swapId);
+  const handleAcceptSwap = async (swapId: string) => {
+    try {
+      const { error } = await supabase
+        .from('swap_requests')
+        .update({ status: 'accepted' })
+        .eq('id', swapId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Swap Accepted",
+        description: "You have accepted the swap request",
+      });
+
+      if (user) {
+        await loadIncomingRequests(user.id);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to accept swap request",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleRejectSwap = (swapId: number) => {
-    // TODO: Implement swap rejection
-    console.log("Rejecting swap:", swapId);
+  const handleRejectSwap = async (swapId: string) => {
+    try {
+      const { error } = await supabase
+        .from('swap_requests')
+        .update({ status: 'declined' })
+        .eq('id', swapId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Swap Rejected",
+        description: "You have declined the swap request",
+      });
+
+      if (user) {
+        await loadIncomingRequests(user.id);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject swap request",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -67,209 +168,175 @@ const ManageSwaps = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Manage Swaps</h1>
-            <Button variant="outline" onClick={() => navigate('/dashboard')}>
-              Back to Dashboard
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate('/swaps/create')}>
+                Create Swap Request
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/dashboard')}>
+                Back to Dashboard
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="incoming">Incoming Requests</TabsTrigger>
-              <TabsTrigger value="my-requests">My Requests</TabsTrigger>
-            </TabsList>
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="incoming">
+                  Incoming ({incomingRequests.length})
+                </TabsTrigger>
+                <TabsTrigger value="my-requests">
+                  My Requests ({myRequests.length})
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="incoming" className="space-y-4">
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-semibold mb-2">Swap Requests for You</h2>
-                <p className="text-muted-foreground">
-                  Review and respond to shift swap requests from other crew members
-                </p>
-              </div>
-
-              {mockSwapRequests.length === 0 ? (
-                <Card>
-                  <CardContent className="pt-6 text-center">
-                    <ArrowLeftRight className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-lg font-medium mb-2">No incoming requests</p>
-                    <p className="text-muted-foreground">
-                      You don't have any pending swap requests at the moment.
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {mockSwapRequests.map((request) => (
-                    <Card key={request.id}>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="flex items-center gap-2">
-                            <User className="h-5 w-5" />
-                            Swap Request from {request.requesterName}
-                          </CardTitle>
-                          <Badge variant={getStatusBadge(request.status)}>
-                            {request.status}
-                          </Badge>
-                        </div>
-                        <CardDescription>
-                          Requested {format(request.createdAt, 'MMM d, yyyy')}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <h4 className="font-medium text-sm text-muted-foreground">
-                              THEY GIVE YOU
-                            </h4>
-                            <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Calendar className="h-4 w-4" />
-                                <span className="font-medium">{request.requesterShift.date}</span>
-                              </div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <Clock className="h-4 w-4" />
-                                <span>{request.requesterShift.time}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4" />
-                                <span>{request.requesterShift.location}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <h4 className="font-medium text-sm text-muted-foreground">
-                              YOU GIVE THEM
-                            </h4>
-                            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Calendar className="h-4 w-4" />
-                                <span className="font-medium">{request.accepterShift.date}</span>
-                              </div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <Clock className="h-4 w-4" />
-                                <span>{request.accepterShift.time}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4" />
-                                <span>{request.accepterShift.location}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {request.status === "pending" && (
-                          <div className="flex gap-2 pt-2">
-                            <Button 
-                              onClick={() => handleAcceptSwap(request.id)}
-                              className="flex-1"
-                            >
-                              Accept Swap
-                            </Button>
-                            <Button 
-                              variant="outline"
-                              onClick={() => handleRejectSwap(request.id)}
-                              className="flex-1"
-                            >
-                              Decline
-                            </Button>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
+              <TabsContent value="incoming" className="space-y-4">
+                <div className="text-center mb-6">
+                  <h2 className="text-xl font-semibold mb-2">Swap Requests for You</h2>
+                  <p className="text-muted-foreground">
+                    Review and respond to shift swap requests from other crew members
+                  </p>
                 </div>
-              )}
-            </TabsContent>
 
-            <TabsContent value="my-requests" className="space-y-4">
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-semibold mb-2">Your Swap Requests</h2>
-                <p className="text-muted-foreground">
-                  Track the status of swap requests you've sent to other crew members
-                </p>
-              </div>
-
-              {mockMyRequests.length === 0 ? (
-                <Card>
-                  <CardContent className="pt-6 text-center">
-                    <ArrowLeftRight className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-lg font-medium mb-2">No active requests</p>
-                    <p className="text-muted-foreground">
-                      You haven't sent any swap requests recently.
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {mockMyRequests.map((request) => (
-                    <Card key={request.id}>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="flex items-center gap-2">
-                            <User className="h-5 w-5" />
-                            Swap Request to {request.accepterName}
-                          </CardTitle>
-                          <Badge variant={getStatusBadge(request.status)}>
-                            {request.status}
-                          </Badge>
-                        </div>
-                        <CardDescription>
-                          Sent {format(request.createdAt, 'MMM d, yyyy')}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <h4 className="font-medium text-sm text-muted-foreground">
-                              YOU GIVE
-                            </h4>
-                            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
-                              <div className="flex items-center gap-2 mb-1">
+                {incomingRequests.length === 0 ? (
+                  <Card>
+                    <CardContent className="pt-6 text-center">
+                      <ArrowLeftRight className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-lg font-medium mb-2">No incoming requests</p>
+                      <p className="text-muted-foreground">
+                        You don't have any pending swap requests at the moment.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {incomingRequests.map((request) => (
+                      <Card key={request.id}>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="flex items-center gap-2">
+                              <User className="h-5 w-5" />
+                              Request from {request.requester_staff?.staff_number}
+                            </CardTitle>
+                            <Badge variant={getStatusBadge(request.status)}>
+                              {request.status}
+                            </Badge>
+                          </div>
+                          <CardDescription>
+                            {format(new Date(request.created_at), 'MMM d, yyyy')}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
+                            <h4 className="font-medium text-sm mb-2">SHIFT OFFERED TO YOU</h4>
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4" />
-                                <span className="font-medium">{request.myShift.date}</span>
-                              </div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <Clock className="h-4 w-4" />
-                                <span>{request.myShift.time}</span>
+                                <span>{request.requester_shift?.date}</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4" />
-                                <span>{request.myShift.location}</span>
+                                <Clock className="h-4 w-4" />
+                                <span>{request.requester_shift?.time}</span>
                               </div>
                             </div>
                           </div>
 
-                          <div className="space-y-2">
-                            <h4 className="font-medium text-sm text-muted-foreground">
-                              YOU GET
-                            </h4>
-                            <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Calendar className="h-4 w-4" />
-                                <span className="font-medium">{request.theirShift.date}</span>
-                              </div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <Clock className="h-4 w-4" />
-                                <span>{request.theirShift.time}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4" />
-                                <span>{request.theirShift.location}</span>
-                              </div>
+                          {request.message && (
+                            <div className="bg-muted p-3 rounded-lg">
+                              <p className="text-sm font-medium mb-1">Message:</p>
+                              <p className="text-sm">{request.message}</p>
                             </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          )}
+
+                          {request.status === "pending" && (
+                            <div className="flex gap-2">
+                              <Button 
+                                onClick={() => handleAcceptSwap(request.id)}
+                                className="flex-1"
+                              >
+                                Accept Swap
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                onClick={() => handleRejectSwap(request.id)}
+                                className="flex-1"
+                              >
+                                Decline
+                              </Button>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="my-requests" className="space-y-4">
+                <div className="text-center mb-6">
+                  <h2 className="text-xl font-semibold mb-2">Your Swap Requests</h2>
+                  <p className="text-muted-foreground">
+                    Track swap requests you've sent to other crew members
+                  </p>
                 </div>
-              )}
-            </TabsContent>
-          </Tabs>
+
+                {myRequests.length === 0 ? (
+                  <Card>
+                    <CardContent className="pt-6 text-center">
+                      <ArrowLeftRight className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-lg font-medium mb-2">No active requests</p>
+                      <p className="text-muted-foreground mb-4">
+                        You haven't sent any swap requests recently.
+                      </p>
+                      <Button onClick={() => navigate('/swaps/create')}>
+                        Create Your First Swap Request
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {myRequests.map((request) => (
+                      <Card key={request.id}>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle>Request to {request.accepter_staff?.staff_number || 'Staff Member'}</CardTitle>
+                            <Badge variant={getStatusBadge(request.status)}>
+                              {request.status}
+                            </Badge>
+                          </div>
+                          <CardDescription>
+                            Sent {format(new Date(request.created_at), 'MMM d, yyyy')}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
+                            <h4 className="font-medium text-sm mb-2">YOUR SHIFT TO SWAP</h4>
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                <span>{request.requester_shift?.date}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                <span>{request.requester_shift?.time}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
       </main>
     </div>
