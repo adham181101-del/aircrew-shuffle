@@ -17,7 +17,7 @@ export const SignUpForm = () => {
     email: '',
     password: '',
     staffNumber: '',
-    baseLocation: '' as BaseLocation,
+    baseLocation: undefined as BaseLocation | undefined,
     canWorkDoubles: false
   })
 
@@ -26,6 +26,10 @@ export const SignUpForm = () => {
     setLoading(true)
 
     try {
+      if (!formData.baseLocation) {
+        throw new Error('Please select a base location')
+      }
+      
       await signUp(
         formData.email,
         formData.password,
@@ -90,7 +94,7 @@ export const SignUpForm = () => {
       <div className="space-y-2">
         <Label htmlFor="baseLocation">Base Location</Label>
         <Select
-          value={formData.baseLocation}
+          value={formData.baseLocation || ""}
           onValueChange={(value: BaseLocation) => setFormData(prev => ({ ...prev, baseLocation: value }))}
           required
         >
