@@ -199,7 +199,7 @@ const CreateSwapRequest = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {userShifts.length === 0 ? (
-                        <SelectItem value="" disabled>No future shifts available</SelectItem>
+                        <SelectItem value="no-shifts" disabled>No future shifts available</SelectItem>
                       ) : (
                         userShifts.map((shift) => (
                           <SelectItem key={shift.id} value={shift.id}>
