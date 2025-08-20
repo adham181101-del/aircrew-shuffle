@@ -151,73 +151,100 @@ export const parseShiftsFromText = (text: string): Array<{date: string, time: st
   const shifts: Array<{date: string, time: string}> = []
   const seenDates = new Set<string>()
   
+  // Valid shift start times as specified by the user
+  const validStartTimes = ['04:15', '05:30', '12:30', '13:15']
+  
   console.log('Parsing text:', text.substring(0, 500) + '...')
   
-  // Multiple patterns to catch different PDF formats
-  const patterns = [
-    // Pattern 1: DD-Mon-YYYY - HH:MM - HH:MM
-    /(\d{1,2})-([A-Za-z]{3})-(\d{4})\s*-\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/gi,
-    // Pattern 2: DD/MM/YYYY HH:MM-HH:MM
-    /(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{2}:\d{2})-(\d{2}:\d{2})/gi,
-    // Pattern 3: DD Mon YYYY HH:MM - HH:MM
-    /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/gi,
-    // Pattern 4: Mon DD, YYYY HH:MM-HH:MM
-    /([A-Za-z]{3})\s+(\d{1,2}),?\s+(\d{4})\s+(\d{2}:\d{2})-(\d{2}:\d{2})/gi
-  ]
+  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
   
-  const monthMap: Record<string, number> = {
-    jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
-    jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
-  }
-  
-  // Try each pattern
-  for (const pattern of patterns) {
-    let match
-    while ((match = pattern.exec(text)) !== null) {
-      try {
-        let day: string, month: string | number, year: string, startTime: string, endTime: string
-        
-        if (pattern === patterns[0] || pattern === patterns[2]) {
-          // DD-Mon-YYYY or DD Mon YYYY format
-          [, day, month, year, startTime, endTime] = match
-          const monthNum = monthMap[(month as string).toLowerCase()]
-          if (!monthNum) continue
-          month = monthNum
-        } else if (pattern === patterns[1]) {
-          // DD/MM/YYYY format
-          [, day, month, year, startTime, endTime] = match
-          month = parseInt(month as string)
-        } else if (pattern === patterns[3]) {
-          // Mon DD, YYYY format
-          [, month, day, year, startTime, endTime] = match
-          const monthNum = monthMap[(month as string).toLowerCase()]
-          if (!monthNum) continue
-          month = monthNum
-        } else {
-          continue
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    
+    // Pattern 1: Date Summary format like "20-Aug-2025 - 05:30 - 14:30"
+    const dateShiftMatch = line.match(/(\d{1,2})-([A-Za-z]{3})-(\d{4})\s*-\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/)
+    
+    if (dateShiftMatch) {
+      const [, day, monthStr, year, startTime, endTime] = dateShiftMatch
+      
+      // Only process if it's a valid shift start time
+      if (validStartTimes.includes(startTime)) {
+        try {
+          const monthMap: Record<string, number> = {
+            jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+            jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+          }
+          
+          const month = monthMap[monthStr.toLowerCase()]
+          if (!month) continue
+          
+          const date = new Date(parseInt(year), month - 1, parseInt(day))
+          const isoDate = date.toISOString().split('T')[0]
+          
+          if (!seenDates.has(isoDate)) {
+            seenDates.add(isoDate)
+            shifts.push({
+              date: isoDate,
+              time: `${startTime}-${endTime}`
+            })
+            console.log('Found shift from date summary:', { date: isoDate, time: `${startTime}-${endTime}` })
+          }
+        } catch (error) {
+          console.error('Error parsing date summary:', dateShiftMatch[0], error)
         }
-        
-        // Skip invalid times
-        if (startTime === '00:00' && endTime === '00:00') continue
-        
-        const date = new Date(parseInt(year), (month as number) - 1, parseInt(day))
-        const isoDate = date.toISOString().split('T')[0]
-        
-        if (!seenDates.has(isoDate)) {
-          seenDates.add(isoDate)
-          shifts.push({
-            date: isoDate,
-            time: `${startTime}-${endTime}`
-          })
-          console.log('Found shift:', { date: isoDate, time: `${startTime}-${endTime}` })
-        }
-      } catch (e) {
-        console.warn('Failed to parse date:', match[0], e)
       }
+      continue
     }
-    pattern.lastIndex = 0
+    
+    // Pattern 2: Table format - Date in one line, times in subsequent lines
+    const tableDateMatch = line.match(/(\d{1,2})-([A-Za-z]{3})-(\d{4})/)
+    if (tableDateMatch && !line.includes('OFF')) {
+      const [, day, monthStr, year] = tableDateMatch
+      
+      // Look for times in the next few lines
+      for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+        const timeLine = lines[j]
+        const timeMatch = timeLine.match(/(\d{2}:\d{2})\s+(\d{2}:\d{2})/)
+        
+        if (timeMatch && validStartTimes.includes(timeMatch[1])) {
+          const [, startTime, endTime] = timeMatch
+          
+          try {
+            const monthMap: Record<string, number> = {
+              jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+              jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+            }
+            
+            const month = monthMap[monthStr.toLowerCase()]
+            if (!month) break
+            
+            const date = new Date(parseInt(year), month - 1, parseInt(day))
+            const isoDate = date.toISOString().split('T')[0]
+            
+            if (!seenDates.has(isoDate)) {
+              seenDates.add(isoDate)
+              shifts.push({
+                date: isoDate,
+                time: `${startTime}-${endTime}`
+              })
+              console.log('Found shift from table:', { date: isoDate, time: `${startTime}-${endTime}` })
+            }
+            break
+          } catch (error) {
+            console.error('Error parsing table date:', tableDateMatch[0], error)
+          }
+        }
+      }
+      continue
+    }
+    
+    // Pattern 3: Skip OFF days explicitly
+    if (line.includes('OFF') || (line.includes('00:00') && line.includes('00:00'))) {
+      console.log('Skipping OFF day:', line)
+      continue
+    }
   }
   
-  console.log('Total shifts found:', shifts.length)
+  console.log('Total valid shifts found:', shifts.length)
   return shifts
 }
