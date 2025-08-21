@@ -47,21 +47,40 @@ const UploadPage = () => {
         const arrayBuffer = await file.arrayBuffer();
         
         // Use pdf.js to extract text properly
-        const pdfjsLib = await import('pdfjs-dist');
-        
-        // Use the worker that matches our pdfjs-dist version (5.4.54)
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.54/pdf.worker.min.js`;
-        
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const pdfjsLib: any = await import('pdfjs-dist');
+
+        // Prefer a same-origin worker URL resolved by Vite to avoid CORS/mixed-content issues
+        try {
+          const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default
+          pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl
+        } catch {
+          // Fallback to CDN if bundler URL resolution fails
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.54/pdf.worker.min.js'
+        }
+
+        let pdf
+        try {
+          pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+        } catch (e) {
+          // Final fallback: disable worker usage
+          console.warn('pdf.js worker failed to initialize, retrying without worker...')
+          pdf = await pdfjsLib.getDocument({ data: arrayBuffer, useWorkerFetch: false }).promise
+        }
         let fullText = '';
         
-        // Extract text from all pages
+        // Extract text from all pages, preserving line breaks when available
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items
-            .map((item: any) => item.str)
-            .join(' ');
+          const textContent: any = await page.getTextContent();
+          const items: any[] = textContent.items || [];
+          const pageText = items
+            .map((item: any) => {
+              const str = item?.str ?? '';
+              const suffix = item?.hasEOL ? '\n' : ' ';
+              return str + suffix;
+            })
+            .join('')
+            .replace(/[ \t]+\n/g, '\n');
           fullText += pageText + '\n';
         }
         
