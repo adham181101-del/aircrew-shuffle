@@ -3,11 +3,29 @@ import Calendar from 'react-calendar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getUserShifts, getShiftTimeOfDay, type Shift } from '@/lib/shifts'
+import { getUserShifts, getShiftTimeOfDay, deleteShift, updateShiftTime, type Shift } from '@/lib/shifts'
 import { useToast } from '@/hooks/use-toast'
 import { getCurrentUser, type Staff } from '@/lib/auth'
 import { Calendar as CalendarIcon, Plus } from 'lucide-react'
 import 'react-calendar/dist/Calendar.css'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface ShiftCalendarProps {
   onShiftClick?: (shift: Shift) => void
@@ -19,6 +37,14 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [user, setUser] = useState<Staff | null>(null)
   const [loading, setLoading] = useState(true)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [shiftPendingDelete, setShiftPendingDelete] = useState<Shift | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [shiftPendingEdit, setShiftPendingEdit] = useState<Shift | null>(null)
+  const [editStart, setEditStart] = useState('')
+  const [editEnd, setEditEnd] = useState('')
+  const [saving, setSaving] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -200,8 +226,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 return (
                   <div
                     key={shift.id}
-                    className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-muted/50"
-                    onClick={() => onShiftClick?.(shift)}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
                   >
                     <div className="flex items-center space-x-3">
                       <Badge variant={getShiftBadgeVariant(timeOfDay, shift.is_swapped)}>
@@ -212,6 +237,36 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                           (Swapped)
                         </span>
                       )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {onShiftClick && (
+                        <Button size="sm" variant="outline" onClick={() => onShiftClick?.(shift)}>
+                          Details
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setShiftPendingEdit(shift)
+                          const [s, e] = shift.time.split('-')
+                          setEditStart(s)
+                          setEditEnd(e)
+                          setEditOpen(true)
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          setShiftPendingDelete(shift)
+                          setDeleteOpen(true)
+                        }}
+                      >
+                        Delete
+                      </Button>
                     </div>
                   </div>
                 )
@@ -282,6 +337,110 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           background-color: hsl(var(--accent));
         }
       `}</style>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this shift?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The selected shift will be permanently removed from your calendar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={async () => {
+                if (!shiftPendingDelete || !user) return
+                setDeleting(true)
+                try {
+                  await deleteShift(shiftPendingDelete.id, user.id)
+                  setShifts((prev) => prev.filter((s) => s.id !== shiftPendingDelete.id))
+                  toast({ title: 'Shift deleted', description: 'The shift was removed from your calendar.' })
+                } catch (error) {
+                  toast({
+                    title: 'Failed to delete shift',
+                    description: error instanceof Error ? error.message : 'Please try again',
+                    variant: 'destructive',
+                  })
+                } finally {
+                  setDeleting(false)
+                  setShiftPendingDelete(null)
+                  setDeleteOpen(false)
+                }
+              }}
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Shift Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit shift time</DialogTitle>
+            <DialogDescription>
+              Update the start and end times for this shift (format HH:MM).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm">Start</label>
+              <input
+                className="mt-1 w-full border rounded px-2 py-2 bg-background"
+                value={editStart}
+                onChange={(e) => setEditStart(e.target.value)}
+                placeholder="HH:MM"
+              />
+            </div>
+            <div>
+              <label className="text-sm">End</label>
+              <input
+                className="mt-1 w-full border rounded px-2 py-2 bg-background"
+                value={editEnd}
+                onChange={(e) => setEditEnd(e.target.value)}
+                placeholder="HH:MM"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditOpen(false)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!shiftPendingEdit || !user) return
+                const time = `${editStart}-${editEnd}`
+                setSaving(true)
+                try {
+                  const updated = await updateShiftTime(shiftPendingEdit.id, user.id, time)
+                  setShifts((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+                  toast({ title: 'Shift updated', description: 'The shift time was saved.' })
+                  setEditOpen(false)
+                  setShiftPendingEdit(null)
+                } catch (error) {
+                  toast({
+                    title: 'Failed to update shift',
+                    description: error instanceof Error ? error.message : 'Please use HH:MM-HH:MM',
+                    variant: 'destructive',
+                  })
+                } finally {
+                  setSaving(false)
+                }
+              }}
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
