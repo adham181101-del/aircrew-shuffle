@@ -14,14 +14,17 @@ import {
   Settings, 
   LogOut,
   Plus,
-  ArrowRightLeft
+  ArrowRightLeft,
+  DollarSign
 } from 'lucide-react'
+import { PremiumCalculator } from '@/components/premium/PremiumCalculator'
 
 const Dashboard = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [user, setUser] = useState<Staff | null>(null)
   const [shifts, setShifts] = useState<Shift[]>([])
+  const [activeTab, setActiveTab] = useState<'calendar' | 'premiums'>('calendar')
   const [stats, setStats] = useState({
     totalShifts: 0,
     pendingSwaps: 0,
@@ -157,8 +160,30 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Navigation Tabs */}
+        <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg max-w-md">
+          <Button
+            variant={activeTab === 'calendar' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('calendar')}
+            className="flex-1"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Calendar
+          </Button>
+          <Button
+            variant={activeTab === 'premiums' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('premiums')}
+            className="flex-1"
+          >
+            <DollarSign className="h-4 w-4 mr-2" />
+            Premiums
+          </Button>
+        </div>
+
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Button
             onClick={() => navigate('/upload')}
             className="flex items-center justify-center h-16 bg-gradient-secondary hover:opacity-90"
@@ -195,11 +220,15 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        {/* Calendar */}
-        <ShiftCalendar 
-          onShiftClick={handleShiftClick}
-          onCreateShift={() => navigate('/shifts/create')}
-        />
+        {/* Content based on active tab */}
+        {activeTab === 'calendar' ? (
+          <ShiftCalendar 
+            onShiftClick={handleShiftClick}
+            onCreateShift={() => navigate('/shifts/create')}
+          />
+        ) : (
+          <PremiumCalculator />
+        )}
       </main>
     </div>
   )
