@@ -6,32 +6,74 @@ export type Staff = {
   staff_number: string
   base_location: string
   can_work_doubles: boolean
+  company_id: string
   created_at: string
 }
 
-export const ALLOWED_BASES = [
-  "Iberia CER",
-  "BA CER", 
-  "Iberia & BA CER",
-  "Iberia IOL",
-  "Iberia IGL",
-  "Baggage For BA",
-  "Drivers For BA",
-] as const
+export type Company = {
+  id: string
+  name: string
+  industry: string
+  email_domain: string
+  config: {
+    bases: string[]
+    features: {
+      premium_calculator?: boolean
+      shift_swapping: boolean
+    }
+  }
+  created_at: string
+  updated_at: string
+}
 
-export type BaseLocation = typeof ALLOWED_BASES[number]
+export const getCompanies = async (): Promise<Company[]> => {
+  const { data, error } = await supabase
+    .from('companies')
+    .select('*')
+    .order('name')
+  
+  if (error) throw error
+  return (data || []) as Company[]
+}
 
-export const validateBAEmail = (email: string): boolean => {
-  return email.toLowerCase().endsWith('@ba.com')
+export const getCompanyByDomain = async (domain: string): Promise<Company | null> => {
+  const { data, error } = await supabase
+    .from('companies')
+    .select('*')
+    .eq('email_domain', domain)
+    .maybeSingle()
+  
+  if (error) throw error
+  return data as Company | null
+}
+
+export const validateEmail = (email: string, companyDomain: string): boolean => {
+  return email.toLowerCase().endsWith(`@${companyDomain}`)
 }
 
 export const validateStaffNumber = (staffNumber: string): boolean => {
   return /^\d{4,10}$/.test(staffNumber)
 }
 
-export const signUp = async (email: string, password: string, staffNumber: string, baseLocation: BaseLocation, canWorkDoubles: boolean) => {
-  if (!validateBAEmail(email)) {
-    throw new Error('Please use your @ba.com email address')
+export const signUp = async (
+  email: string, 
+  password: string, 
+  staffNumber: string, 
+  baseLocation: string, 
+  canWorkDoubles: boolean,
+  companyId: string
+) => {
+  // Get company info to validate email domain
+  const { data: company, error: companyError } = await supabase
+    .from('companies')
+    .select('email_domain')
+    .eq('id', companyId)
+    .single()
+
+  if (companyError) throw new Error('Invalid company selected')
+
+  if (!validateEmail(email, company.email_domain)) {
+    throw new Error(`Please use your @${company.email_domain} email address`)
   }
   
   if (!validateStaffNumber(staffNumber)) {
@@ -43,10 +85,11 @@ export const signUp = async (email: string, password: string, staffNumber: strin
     .from('staff')
     .select('id')
     .eq('staff_number', staffNumber)
+    .eq('company_id', companyId)
     .maybeSingle()
 
   if (existingStaff) {
-    throw new Error('Staff number already registered')
+    throw new Error('Staff number already registered for this company')
   }
 
   const { data, error } = await supabase.auth.signUp({
@@ -57,7 +100,8 @@ export const signUp = async (email: string, password: string, staffNumber: strin
       data: {
         staff_number: staffNumber,
         base_location: baseLocation,
-        can_work_doubles: canWorkDoubles
+        can_work_doubles: canWorkDoubles,
+        company_id: companyId
       }
     }
   })
@@ -83,14 +127,17 @@ export const signOut = async () => {
   if (error) throw error
 }
 
-export const getCurrentUser = async (): Promise<Staff | null> => {
+export const getCurrentUser = async (): Promise<(Staff & { company: Company }) | null> => {
   const { data: { user } } = await supabase.auth.getUser()
   
   if (!user) return null
 
   const { data: staff, error } = await supabase
     .from('staff')
-    .select('*')
+    .select(`
+      *,
+      companies (*)
+    `)
     .eq('id', user.id)
     .maybeSingle()
 
@@ -99,5 +146,10 @@ export const getCurrentUser = async (): Promise<Staff | null> => {
     return null
   }
 
-  return staff || null
+  if (!staff) return null
+
+  return {
+    ...staff,
+    company: staff.companies as Company
+  }
 }
