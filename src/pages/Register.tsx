@@ -4,7 +4,7 @@ import { SignUpForm } from '@/components/auth/SignUpForm'
 const Register = () => {
   return (
     <AuthLayout 
-      title="Join the Crew"
+      title="Join Your Team"
       subtitle="Create your account to manage shifts and swaps"
     >
       <SignUpForm />

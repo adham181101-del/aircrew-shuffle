@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,26 +6,59 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/hooks/use-toast'
-import { signUp, ALLOWED_BASES, BaseLocation } from '@/lib/auth'
-import { Loader2 } from 'lucide-react'
+import { signUp, getCompanies, type Company } from '@/lib/auth'
+import { Loader2, Building2 } from 'lucide-react'
 
 export const SignUpForm = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     staffNumber: '',
-    baseLocation: undefined as BaseLocation | undefined,
-    canWorkDoubles: false
+    baseLocation: '',
+    canWorkDoubles: false,
+    companyId: ''
   })
+
+  useEffect(() => {
+    const loadCompanies = async () => {
+      try {
+        const companiesList = await getCompanies()
+        setCompanies(companiesList)
+      } catch (error) {
+        toast({
+          title: "Failed to load companies",
+          description: "Please refresh the page and try again",
+          variant: "destructive"
+        })
+      }
+    }
+    loadCompanies()
+  }, [toast])
+
+  const handleCompanyChange = (companyId: string) => {
+    const company = companies.find(c => c.id === companyId)
+    setSelectedCompany(company || null)
+    setFormData(prev => ({ 
+      ...prev, 
+      companyId,
+      baseLocation: '' // Reset base location when company changes
+    }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
+      if (!formData.companyId) {
+        throw new Error('Please select a company')
+      }
+      
       if (!formData.baseLocation) {
         throw new Error('Please select a base location')
       }
@@ -35,12 +68,13 @@ export const SignUpForm = () => {
         formData.password,
         formData.staffNumber,
         formData.baseLocation,
-        formData.canWorkDoubles
+        formData.canWorkDoubles,
+        formData.companyId
       )
       
       toast({
         title: "Account created successfully",
-        description: "Welcome to the crew management system!"
+        description: `Welcome to ${selectedCompany?.name}!`
       })
       
       navigate('/dashboard')
@@ -58,11 +92,43 @@ export const SignUpForm = () => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="email">BA Email Address</Label>
+        <Label htmlFor="company">Company</Label>
+        <Select
+          value={formData.companyId}
+          onValueChange={handleCompanyChange}
+          required
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select your company" />
+          </SelectTrigger>
+          <SelectContent>
+            {companies.map((company) => (
+              <SelectItem key={company.id} value={company.id}>
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  <div>
+                    <div className="font-medium">{company.name}</div>
+                    <div className="text-sm text-muted-foreground">{company.industry}</div>
+                  </div>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="email">
+          {selectedCompany ? `${selectedCompany.name} Email` : 'Work Email Address'}
+        </Label>
         <Input
           id="email"
           type="email"
-          placeholder="your.name@ba.com"
+          placeholder={
+            selectedCompany 
+              ? `your.name@${selectedCompany.email_domain}` 
+              : "your.work@email.com"
+          }
           value={formData.email}
           onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
           required
@@ -91,25 +157,27 @@ export const SignUpForm = () => {
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="baseLocation">Base Location</Label>
-        <Select
-          value={formData.baseLocation || ""}
-          onValueChange={(value: BaseLocation) => setFormData(prev => ({ ...prev, baseLocation: value }))}
-          required
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select your base" />
-          </SelectTrigger>
-          <SelectContent>
-            {ALLOWED_BASES.map((base) => (
-              <SelectItem key={base} value={base}>
-                {base}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {selectedCompany && (
+        <div className="space-y-2">
+          <Label htmlFor="baseLocation">Base Location</Label>
+          <Select
+            value={formData.baseLocation}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, baseLocation: value }))}
+            required
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select your base" />
+            </SelectTrigger>
+            <SelectContent>
+              {selectedCompany.config.bases.map((base) => (
+                <SelectItem key={base} value={base}>
+                  {base}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="flex items-center space-x-2">
         <Checkbox
@@ -127,7 +195,7 @@ export const SignUpForm = () => {
       <Button 
         type="submit" 
         className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
-        disabled={loading}
+        disabled={loading || !selectedCompany}
       >
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Create Account

@@ -13,7 +13,7 @@ export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-background rounded-full shadow-elegant mb-4">
-            <div className="text-2xl font-bold text-primary">✈️</div>
+            <div className="text-2xl font-bold text-primary">🏢</div>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">{title}</h1>
           {subtitle && (
@@ -27,7 +27,7 @@ export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
         
         <div className="text-center mt-6">
           <p className="text-white/60 text-sm">
-            BA/Iberia Crew Management System
+            Shift Management System
           </p>
         </div>
       </div>

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ShiftCalendar } from '@/components/calendar/ShiftCalendar'
 import { getUserShifts, type Shift } from '@/lib/shifts'
-import { getCurrentUser, signOut, type Staff } from '@/lib/auth'
+import { getCurrentUser, signOut, type Staff, type Company } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
 import { 
   Calendar, 
@@ -15,14 +15,15 @@ import {
   LogOut,
   Plus,
   ArrowRightLeft,
-  DollarSign
+  DollarSign,
+  Building2
 } from 'lucide-react'
 import { PremiumCalculator } from '@/components/premium/PremiumCalculator'
 
 const Dashboard = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
-  const [user, setUser] = useState<Staff | null>(null)
+  const [user, setUser] = useState<(Staff & { company: Company }) | null>(null)
   const [shifts, setShifts] = useState<Shift[]>([])
   const [activeTab, setActiveTab] = useState<'calendar' | 'premiums'>('calendar')
   const [stats, setStats] = useState({
@@ -97,10 +98,10 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <span className="text-xl">✈️</span>
+                <Building2 className="text-lg text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">Crew Management</h1>
+                <h1 className="text-xl font-bold text-white">{user?.company.name}</h1>
                 <p className="text-white/80 text-sm">
                   Welcome back, {user?.email.split('@')[0]}
                 </p>
@@ -108,6 +109,9 @@ const Dashboard = () => {
             </div>
             
             <div className="flex items-center space-x-2">
+              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                {user?.company.industry}
+              </Badge>
               <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
                 {user?.base_location}
               </Badge>
@@ -171,15 +175,17 @@ const Dashboard = () => {
             <Calendar className="h-4 w-4 mr-2" />
             Calendar
           </Button>
-          <Button
-            variant={activeTab === 'premiums' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setActiveTab('premiums')}
-            className="flex-1"
-          >
-            <DollarSign className="h-4 w-4 mr-2" />
-            Premiums
-          </Button>
+          {user?.company.config.features.premium_calculator && (
+            <Button
+              variant={activeTab === 'premiums' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab('premiums')}
+              className="flex-1"
+            >
+              <DollarSign className="h-4 w-4 mr-2" />
+              Premiums
+            </Button>
+          )}
         </div>
 
         {/* Quick Actions */}
@@ -226,8 +232,12 @@ const Dashboard = () => {
             onShiftClick={handleShiftClick}
             onCreateShift={() => navigate('/shifts/create')}
           />
-        ) : (
+        ) : user?.company.config.features.premium_calculator ? (
           <PremiumCalculator />
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Premium calculator not available for your company.</p>
+          </div>
         )}
       </main>
     </div>

@@ -5,7 +5,7 @@ const Login = () => {
   return (
     <AuthLayout 
       title="Welcome Back"
-      subtitle="Sign in to access your shift schedule"
+      subtitle="Sign in to access your shift management system"
     >
       <SignInForm />
     </AuthLayout>
