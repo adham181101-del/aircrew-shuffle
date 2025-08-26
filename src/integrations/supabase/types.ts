@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      companies: {
+        Row: {
+          config: Json | null
+          created_at: string
+          email_domain: string
+          id: string
+          industry: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string
+          email_domain: string
+          id?: string
+          industry: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string
+          email_domain?: string
+          id?: string
+          industry?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shifts: {
         Row: {
           created_at: string
@@ -53,6 +83,7 @@ export type Database = {
         Row: {
           base_location: string
           can_work_doubles: boolean
+          company_id: string
           created_at: string
           email: string
           id: string
@@ -61,6 +92,7 @@ export type Database = {
         Insert: {
           base_location: string
           can_work_doubles?: boolean
+          company_id: string
           created_at?: string
           email: string
           id?: string
@@ -69,12 +101,21 @@ export type Database = {
         Update: {
           base_location?: string
           can_work_doubles?: boolean
+          company_id?: string
           created_at?: string
           email?: string
           id?: string
           staff_number?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "staff_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       swap_requests: {
         Row: {
