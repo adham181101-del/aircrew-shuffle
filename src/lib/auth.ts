@@ -26,6 +26,38 @@ export type Company = {
   updated_at: string
 }
 
+// Security: Validate email format
+export const validateEmailFormat = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+// Security: Validate password strength
+export const validatePasswordStrength = (password: string): { valid: boolean; message: string } => {
+  if (password.length < 8) {
+    return { valid: false, message: 'Password must be at least 8 characters long' }
+  }
+  
+  if (!/(?=.*[a-z])/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one lowercase letter' }
+  }
+  
+  if (!/(?=.*[A-Z])/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one uppercase letter' }
+  }
+  
+  if (!/(?=.*\d)/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one number' }
+  }
+  
+  return { valid: true, message: 'Password meets security requirements' }
+}
+
+// Security: Sanitize input data
+export const sanitizeInput = (input: string): string => {
+  return input.trim().replace(/[<>]/g, '') // Basic XSS prevention
+}
+
 export const getCompanies = async (): Promise<Company[]> => {
   const { data, error } = await supabase
     .from('companies')
@@ -63,6 +95,21 @@ export const signUp = async (
   canWorkDoubles: boolean,
   companyId: string
 ) => {
+  // Security: Validate inputs
+  if (!validateEmailFormat(email)) {
+    throw new Error('Invalid email format')
+  }
+  
+  const passwordValidation = validatePasswordStrength(password)
+  if (!passwordValidation.valid) {
+    throw new Error(passwordValidation.message)
+  }
+  
+  // Security: Sanitize inputs
+  const sanitizedEmail = sanitizeInput(email)
+  const sanitizedStaffNumber = sanitizeInput(staffNumber)
+  const sanitizedBaseLocation = sanitizeInput(baseLocation)
+  
   // Get company info to validate email domain
   const { data: company, error: companyError } = await supabase
     .from('companies')
@@ -77,7 +124,7 @@ export const signUp = async (
   //   throw new Error(`Please use your @${company.email_domain} email address`)
   // }
   
-  if (!validateStaffNumber(staffNumber)) {
+  if (!validateStaffNumber(sanitizedStaffNumber)) {
     throw new Error('Staff number must be 4-10 digits')
   }
 
@@ -85,7 +132,7 @@ export const signUp = async (
   const { data: existingStaff } = await supabase
     .from('staff')
     .select('id')
-    .eq('staff_number', staffNumber)
+    .eq('staff_number', sanitizedStaffNumber)
     .eq('company_id', companyId)
     .maybeSingle()
 
@@ -94,21 +141,21 @@ export const signUp = async (
   }
 
   console.log('auth.ts: Signing up user with data:', {
-    email,
-    staffNumber,
-    baseLocation,
+    email: sanitizedEmail,
+    staffNumber: sanitizedStaffNumber,
+    baseLocation: sanitizedBaseLocation,
     canWorkDoubles,
     companyId
   })
 
   const { data, error } = await supabase.auth.signUp({
-    email,
+    email: sanitizedEmail,
     password,
     options: {
       emailRedirectTo: `${window.location.origin}/dashboard`,
       data: {
-        staff_number: staffNumber,
-        base_location: baseLocation,
+        staff_number: sanitizedStaffNumber,
+        base_location: sanitizedBaseLocation,
         can_work_doubles: canWorkDoubles,
         company_id: companyId
       }
@@ -127,7 +174,15 @@ export const signUp = async (
 }
 
 export const signIn = async (email: string, password: string) => {
-  console.log('auth.ts: Starting sign in for:', email)
+  // Security: Validate email format
+  if (!validateEmailFormat(email)) {
+    throw new Error('Invalid email format')
+  }
+  
+  // Security: Sanitize email
+  const sanitizedEmail = sanitizeInput(email)
+  
+  console.log('auth.ts: Starting sign in for:', sanitizedEmail)
   console.log('auth.ts: Supabase URL:', import.meta.env.VITE_SUPABASE_URL || 'using fallback')
   
   // Test Supabase connection
@@ -139,7 +194,7 @@ export const signIn = async (email: string, password: string) => {
   }
   
   const { data, error } = await supabase.auth.signInWithPassword({
-    email,
+    email: sanitizedEmail,
     password
   })
 
@@ -211,95 +266,75 @@ export const getCurrentUser = async (): Promise<(Staff & { company: Company }) |
       console.error('auth.ts: Error fetching staff profile:', staffError)
       console.log('auth.ts: Creating fallback user object')
       
-      // Create a fallback user object from Supabase user data
+      // Create a fallback user object from Supabase user metadata
       const fallbackUser = {
         id: user.id,
-        email: user.email!,
-        staff_number: user.user_metadata?.staff_number || '0000',
-        base_location: user.user_metadata?.base_location || 'Unknown',
+        email: user.email || '',
+        staff_number: user.user_metadata?.staff_number || '',
+        base_location: user.user_metadata?.base_location || '',
         can_work_doubles: user.user_metadata?.can_work_doubles || false,
-        company_id: null,
-        created_at: user.created_at,
-        company: null
-      }
-      
-      console.log('auth.ts: Returning fallback user:', fallbackUser)
-      return fallbackUser
-    }
-
-  if (!staff) {
-    console.log('auth.ts: No staff profile found, attempting to create one')
-    
-    // Try to create a staff profile
-    try {
-      const { data: newStaff, error: createError } = await supabase
-        .from('staff')
-        .insert({
-          id: user.id,
-          email: user.email!,
-          staff_number: user.user_metadata?.staff_number || '0000',
-          base_location: user.user_metadata?.base_location || 'Unknown',
-          can_work_doubles: user.user_metadata?.can_work_doubles || false,
-          company_id: null
-        })
-        .select()
-        .single()
-      
-      if (createError) {
-        console.error('auth.ts: Error creating staff profile:', createError)
-        // Return fallback user if creation fails
-        return {
-          id: user.id,
-          email: user.email!,
-          staff_number: user.user_metadata?.staff_number || '0000',
-          base_location: user.user_metadata?.base_location || 'Unknown',
-          can_work_doubles: user.user_metadata?.can_work_doubles || false,
-          company_id: null,
-          created_at: user.created_at,
-          company: null
+        company_id: user.user_metadata?.company_id || '',
+        created_at: user.created_at || new Date().toISOString(),
+        company: {
+          id: user.user_metadata?.company_id || '',
+          name: 'Unknown Company',
+          industry: 'Unknown',
+          email_domain: 'unknown.com',
+          config: {
+            bases: [],
+            features: {
+              shift_swapping: false
+            }
+          },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }
       }
       
-      console.log('auth.ts: Created new staff profile:', newStaff)
-      staff = newStaff
-    } catch (createException) {
-      console.error('auth.ts: Exception creating staff profile:', createException)
-      // Return fallback user if creation fails
-      return {
-        id: user.id,
-        email: user.email!,
-        staff_number: user.user_metadata?.staff_number || '0000',
-        base_location: user.user_metadata?.base_location || 'Unknown',
-        can_work_doubles: user.user_metadata?.can_work_doubles || false,
-        company_id: null,
-        created_at: user.created_at,
-        company: null
-      }
+      return fallbackUser as Staff & { company: Company }
     }
-  }
 
-  // Get company if staff has company_id
-  let company = null
-  if (staff.company_id) {
-    const { data: companyData, error: companyError } = await supabase
+    if (!staff) {
+      console.log('auth.ts: No staff profile found')
+      return null
+    }
+
+    // Fetch company information
+    const { data: company, error: companyError } = await supabase
       .from('companies')
       .select('*')
       .eq('id', staff.company_id)
-      .maybeSingle()
+      .single()
 
-    if (!companyError) {
-      company = companyData
+    if (companyError) {
+      console.error('auth.ts: Error fetching company:', companyError)
+      return null
     }
-  }
 
-  const result = {
-    ...staff,
-    company: company as Company
-  }
-  
-  return result
+    return {
+      ...staff,
+      company
+    }
   } catch (error) {
     console.error('auth.ts: Error in getCurrentUser:', error)
+    return null
+  }
+}
+
+// Security: Function to verify data integrity
+export const verifyDataIntegrity = async () => {
+  try {
+    const { data, error } = await supabase
+      .rpc('verify_data_integrity')
+    
+    if (error) {
+      console.error('Error verifying data integrity:', error)
+      return null
+    }
+    
+    return data
+  } catch (error) {
+    console.error('Error in verifyDataIntegrity:', error)
     return null
   }
 }

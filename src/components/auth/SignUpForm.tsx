@@ -6,8 +6,8 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/hooks/use-toast'
-import { signUp, getCompanies, type Company } from '@/lib/auth'
-import { Loader2, Building2 } from 'lucide-react'
+import { signUp, getCompanies, validatePasswordStrength, type Company } from '@/lib/auth'
+import { Loader2, Building2, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react'
 
 export const SignUpForm = () => {
   const navigate = useNavigate()
@@ -23,6 +23,8 @@ export const SignUpForm = () => {
     canWorkDoubles: false,
     companyId: ''
   })
+  const [showPassword, setShowPassword] = useState(false)
+  const [passwordValidation, setPasswordValidation] = useState({ valid: false, message: '' })
 
   useEffect(() => {
     const loadCompanies = async () => {
@@ -136,13 +138,36 @@ export const SignUpForm = () => {
 
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          type="password"
-          value={formData.password}
-          onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-          required
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            value={formData.password}
+            onChange={(e) => {
+              const password = e.target.value
+              setFormData(prev => ({ ...prev, password }))
+              setPasswordValidation(validatePasswordStrength(password))
+            }}
+            required
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </Button>
+        </div>
+        {formData.password && (
+          <div className="space-y-1">
+            <div className={`flex items-center gap-2 text-sm ${passwordValidation.valid ? 'text-green-600' : 'text-red-600'}`}>
+              {passwordValidation.valid ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+              {passwordValidation.message}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -194,7 +219,7 @@ export const SignUpForm = () => {
       <Button 
         type="submit" 
         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 transition-colors"
-        disabled={loading || !selectedCompany}
+        disabled={loading || !selectedCompany || !passwordValidation.valid}
       >
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Create Account
