@@ -1,7 +1,7 @@
 -- Add test account for Shaheeen Amin
 -- Run this script in Supabase SQL Editor
 
--- First, create the auth user
+-- First, create the auth user (skip email verification)
 INSERT INTO auth.users (
   id,
   email,
@@ -14,7 +14,9 @@ INSERT INTO auth.users (
   confirmation_token,
   email_change,
   email_change_token_new,
-  recovery_token
+  recovery_token,
+  aud,
+  role
 ) VALUES (
   'shaheeen-amin-id'::uuid,
   'shaheeen.amin@ba.com',
@@ -27,7 +29,9 @@ INSERT INTO auth.users (
   '',
   '',
   '',
-  ''
+  '',
+  'authenticated',
+  'authenticated'
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Create staff profile
