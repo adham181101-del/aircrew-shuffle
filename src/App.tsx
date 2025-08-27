@@ -23,14 +23,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   console.log('ProtectedRoute: user=', user, 'loading=', loading);
   
-  // Show loading for a bit longer to ensure auth state is properly initialized
+  // Only show loading for a very short time
   if (loading) {
     console.log('ProtectedRoute: Showing loading spinner');
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="mt-4 text-muted-foreground">Loading your dashboard...</p>
-        <p className="text-sm text-muted-foreground">Please wait while we verify your authentication</p>
       </div>
     );
   }

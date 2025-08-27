@@ -33,14 +33,8 @@ export const useAuthState = () => {
       try {
         console.log('useAuthState: Starting initialization...')
         
-        // Check if we're in Safari
-        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-        console.log('useAuthState: Safari detected:', isSafari)
-        
-        // Add longer delay for Safari
-        if (isSafari) {
-          await new Promise(resolve => setTimeout(resolve, 500))
-        }
+        // Reduced delay for faster loading
+        await new Promise(resolve => setTimeout(resolve, 100))
         
         if (!mounted) return
         
@@ -50,21 +44,19 @@ export const useAuthState = () => {
         if (mounted) {
           setUser(currentUser)
           setInitialized(true)
+          setLoading(false)
         }
       } catch (error) {
         console.error('useAuthState: Error during initialization:', error)
         if (mounted) {
           setUser(null)
           setInitialized(true)
-        }
-      } finally {
-        if (mounted) {
           setLoading(false)
         }
       }
     }
 
-    // Set up Supabase auth listener
+    // Set up Supabase auth listener with reduced frequency
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('useAuthState: Auth state change:', event, session)
@@ -73,7 +65,10 @@ export const useAuthState = () => {
         
         if (event === 'SIGNED_IN' && session) {
           console.log('useAuthState: User signed in, refreshing user data')
+          // Only set loading briefly for sign in
           setLoading(true)
+          setTimeout(() => setLoading(false), 500)
+          
           try {
             const currentUser = await getCurrentUser()
             console.log('useAuthState: Updated user data:', currentUser)
@@ -83,8 +78,6 @@ export const useAuthState = () => {
             console.error('useAuthState: Error updating user data:', error)
             setUser(null)
             setInitialized(true)
-          } finally {
-            setLoading(false)
           }
         } else if (event === 'SIGNED_OUT') {
           console.log('useAuthState: User signed out')
