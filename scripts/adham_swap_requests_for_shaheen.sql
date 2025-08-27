@@ -11,7 +11,7 @@ SELECT
   staff_number,
   base_location
 FROM public.staff
-WHERE email IN ('adham.fati.el.hamzaouy@ba.com', 'shaheen.amin@ba.com')
+WHERE email IN ('adham.fati.el.hamzaouy@ba.com', 'shaheenamin09@ba.com')
 ORDER BY email;
 
 -- Check what data exists in the shifts table
@@ -50,7 +50,7 @@ SELECT
   st.staff_number
 FROM public.shifts s
 JOIN public.staff st ON s.staff_id = st.id
-WHERE st.email = 'shaheen.amin@ba.com'
+WHERE st.email = 'shaheenamin09@ba.com'
 ORDER BY s.date DESC, s.time;
 
 -- Find Adham's shifts where Shaheen is OFF (Shaheen will be available for swap) - ALL MONTHS
@@ -71,7 +71,7 @@ FROM (
 WHERE NOT EXISTS (
   SELECT 1 FROM public.shifts s2
   JOIN public.staff st2 ON s2.staff_id = st2.id
-  WHERE st2.email = 'shaheen.amin@ba.com'
+  WHERE st2.email = 'shaheenamin09@ba.com'
   AND s2.date = adham_shifts.date
 )
 ORDER BY adham_shifts.date DESC, adham_shifts.time;
@@ -94,7 +94,7 @@ FROM (
 WHERE EXISTS (
   SELECT 1 FROM public.shifts s2
   JOIN public.staff st2 ON s2.staff_id = st2.id
-  WHERE st2.email = 'shaheen.amin@ba.com'
+  WHERE st2.email = 'shaheenamin09@ba.com'
   AND s2.date = adham_shifts.date
 )
 ORDER BY adham_shifts.date DESC, adham_shifts.time;
@@ -112,7 +112,7 @@ FROM (
   AND NOT EXISTS (
     SELECT 1 FROM public.shifts s2
     JOIN public.staff st2 ON s2.staff_id = st2.id
-    WHERE st2.email = 'shaheen.amin@ba.com'
+    WHERE st2.email = 'shaheenamin09@ba.com'
     AND s2.date = s.date
   )
 ) adham_only_shifts
@@ -130,7 +130,7 @@ FROM (
   AND EXISTS (
     SELECT 1 FROM public.shifts s2
     JOIN public.staff st2 ON s2.staff_id = st2.id
-    WHERE st2.email = 'shaheen.amin@ba.com'
+    WHERE st2.email = 'shaheenamin09@ba.com'
     AND s2.date = s.date
   )
 ) both_working_shifts;
@@ -150,7 +150,7 @@ WHERE st.email = 'adham.fati.el.hamzaouy@ba.com'
 AND NOT EXISTS (
   SELECT 1 FROM public.shifts s2
   JOIN public.staff st2 ON s2.staff_id = st2.id
-  WHERE st2.email = 'shaheen.amin@ba.com'
+  WHERE st2.email = 'shaheenamin09@ba.com'
   AND s2.date = s.date
 )
 ORDER BY s.date DESC, s.time
@@ -186,4 +186,4 @@ SELECT
   COUNT(*) as count
 FROM public.shifts s
 JOIN public.staff st ON s.staff_id = st.id
-WHERE st.email = 'shaheen.amin@ba.com';
+WHERE st.email = 'shaheenamin09@ba.com';
