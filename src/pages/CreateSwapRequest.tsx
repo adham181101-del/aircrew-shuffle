@@ -63,6 +63,12 @@ const CreateSwapRequest = () => {
       const shift = userShifts.find(s => s.id === selectedShift);
       if (!shift) return;
 
+      console.log(`=== SWAP REQUEST DEBUG ===`);
+      console.log(`Selected shift:`, shift);
+      console.log(`Your user ID: ${user.id}`);
+      console.log(`Your base location: ${user.base_location}`);
+      console.log(`Looking for staff who are OFF on ${shift.date}`);
+
       // Find staff at the same base
       const { data: baseStaff, error } = await supabase
         .from('staff')
@@ -70,27 +76,36 @@ const CreateSwapRequest = () => {
         .eq('base_location', user.base_location)
         .neq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching base staff:', error);
+        throw error;
+      }
 
       console.log(`Found ${baseStaff?.length || 0} staff members at ${user.base_location}`);
-      console.log(`Looking for staff who are OFF on ${shift.date}`);
-      console.log(`Your base location: ${user.base_location}`);
+      console.log(`Base staff:`, baseStaff?.map(s => ({ email: s.email, staff_number: s.staff_number, id: s.id })));
       
       // Check who's available on that date
       const eligibleList: Staff[] = [];
       
       if (!baseStaff || baseStaff.length === 0) {
-        console.log('No staff found at your base location');
+        console.log('❌ No staff found at your base location');
         setEligibleStaff([]);
         return;
       }
       
       for (const staff of baseStaff) {
-        const { data: staffShifts } = await supabase
+        console.log(`\n--- Checking ${staff.email} (${staff.staff_number}) ---`);
+        
+        const { data: staffShifts, error: shiftsError } = await supabase
           .from('shifts')
           .select('*')
           .eq('staff_id', staff.id)
           .eq('date', shift.date);
+
+        if (shiftsError) {
+          console.error(`Error fetching shifts for ${staff.email}:`, shiftsError);
+          continue;
+        }
 
         const hasShiftOnDate = (staffShifts?.length || 0) > 0;
         
@@ -98,6 +113,8 @@ const CreateSwapRequest = () => {
         
         if (hasShiftOnDate) {
           console.log(`  - Working shifts:`, staffShifts);
+        } else {
+          console.log(`  - No shifts found for this date`);
         }
         
         // Staff is eligible if they DON'T have a shift that day (they are OFF)
@@ -122,10 +139,18 @@ const CreateSwapRequest = () => {
         }
       }
 
-      console.log(`=== FINAL RESULTS ===`);
+      console.log(`\n=== FINAL RESULTS ===`);
       console.log(`Total staff at ${user.base_location}: ${baseStaff?.length || 0}`);
       console.log(`Eligible staff (OFF + WHL compliant): ${eligibleList.length}`);
       console.log(`Eligible staff:`, eligibleList.map(s => s.email));
+      
+      if (eligibleList.length === 0) {
+        console.log(`❌ NO ELIGIBLE STAFF FOUND!`);
+        console.log(`This could mean:`);
+        console.log(`1. All staff are working on ${shift.date}`);
+        console.log(`2. There are no other staff at your base location`);
+        console.log(`3. Database query issues`);
+      }
       
       setEligibleStaff(eligibleList);
     } catch (error) {
