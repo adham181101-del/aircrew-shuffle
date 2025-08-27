@@ -40,6 +40,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       await signOut()
       setUser(null)
+      // Force a page reload to clear any cached state
+      window.location.href = '/login'
     } catch (error) {
       console.error('Error signing out:', error)
     }

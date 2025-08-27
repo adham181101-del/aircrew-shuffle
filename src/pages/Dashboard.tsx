@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ShiftCalendar } from '@/components/calendar/ShiftCalendar'
 import { getUserShifts, deleteAllShifts, type Shift } from '@/lib/shifts'
-import { getCurrentUser, signOut, type Staff, type Company } from '@/lib/auth'
+import { getCurrentUser, type Staff, type Company } from '@/lib/auth'
+import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { 
   Calendar, 
@@ -35,7 +36,7 @@ import {
 const Dashboard = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
-  const [user, setUser] = useState<(Staff & { company: Company }) | null>(null)
+  const { user, signOut } = useAuth()
   const [shifts, setShifts] = useState<Shift[]>([])
   const [activeTab, setActiveTab] = useState<'calendar' | 'premiums' | 'team'>('calendar')
   const [stats, setStats] = useState({
@@ -59,7 +60,7 @@ const Dashboard = () => {
         return
       }
 
-      setUser(currentUser)
+      // User is managed by AuthContext
       
       const userShifts = await getUserShifts(currentUser.id)
       setShifts(userShifts)
@@ -83,7 +84,8 @@ const Dashboard = () => {
   const handleSignOut = async () => {
     try {
       await signOut()
-      navigate('/login')
+      // The AuthContext will handle clearing the user state
+      // Navigation will be handled by the ProtectedRoute component
     } catch (error) {
       toast({
         title: "Error signing out",
