@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,21 +10,9 @@ import {
   Clock,
   Building2
 } from 'lucide-react'
-import { getCurrentUser } from '@/lib/auth'
 
 const Index = () => {
   const navigate = useNavigate()
-
-  useEffect(() => {
-    checkAuth()
-  }, [])
-
-  const checkAuth = async () => {
-    const user = await getCurrentUser()
-    if (user) {
-      navigate('/dashboard')
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gradient-hero">
