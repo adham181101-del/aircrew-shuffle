@@ -27,9 +27,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (loading) {
     console.log('ProtectedRoute: Showing loading spinner');
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="mt-4 text-muted-foreground">Loading...</p>
+        <p className="mt-4 text-muted-foreground">Loading your dashboard...</p>
+        <p className="text-sm text-muted-foreground">Please wait while we verify your authentication</p>
       </div>
     );
   }
