@@ -164,47 +164,103 @@ export const getAllStaff = async (): Promise<Staff[]> => {
 
 export const getCurrentUser = async (): Promise<(Staff & { company: Company }) | null> => {
   try {
+    console.log('auth.ts: Getting current user...')
     const { data: { session } } = await supabase.auth.getSession()
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!session || !user) {
+      console.log('auth.ts: No session or user found')
       return null
     }
     
-    // Try to fetch staff profile
-    const { data: staff, error: staffError } = await supabase
-      .from('staff')
-      .select('id, email, staff_number, base_location, can_work_doubles, company_id, created_at')
-      .eq('id', user.id)
-      .maybeSingle()
-
-  if (staffError) {
-    console.error('auth.ts: Error fetching staff profile:', staffError)
+    console.log('auth.ts: User found:', user.id)
     
-    // If we can't fetch the staff profile, try to create a basic user object
-    return {
-      id: user.id,
-      email: user.email!,
-      staff_number: user.user_metadata?.staff_number || '0000',
-      base_location: user.user_metadata?.base_location || 'Unknown',
-      can_work_doubles: user.user_metadata?.can_work_doubles || false,
-      company_id: null,
-      created_at: user.created_at,
-      company: null
+    // Try to fetch staff profile with better error handling
+    let staff = null
+    let staffError = null
+    
+    try {
+      const { data, error } = await supabase
+        .from('staff')
+        .select('id, email, staff_number, base_location, can_work_doubles, company_id, created_at')
+        .eq('id', user.id)
+        .maybeSingle()
+      
+      staff = data
+      staffError = error
+    } catch (fetchError) {
+      console.error('auth.ts: Exception during staff fetch:', fetchError)
+      staffError = fetchError
     }
-  }
+
+    if (staffError) {
+      console.error('auth.ts: Error fetching staff profile:', staffError)
+      console.log('auth.ts: Creating fallback user object')
+      
+      // Create a fallback user object from Supabase user data
+      const fallbackUser = {
+        id: user.id,
+        email: user.email!,
+        staff_number: user.user_metadata?.staff_number || '0000',
+        base_location: user.user_metadata?.base_location || 'Unknown',
+        can_work_doubles: user.user_metadata?.can_work_doubles || false,
+        company_id: null,
+        created_at: user.created_at,
+        company: null
+      }
+      
+      console.log('auth.ts: Returning fallback user:', fallbackUser)
+      return fallbackUser
+    }
 
   if (!staff) {
-    // Return basic user object if no staff profile exists
-    return {
-      id: user.id,
-      email: user.email!,
-      staff_number: user.user_metadata?.staff_number || '0000',
-      base_location: user.user_metadata?.base_location || 'Unknown',
-      can_work_doubles: user.user_metadata?.can_work_doubles || false,
-      company_id: null,
-      created_at: user.created_at,
-      company: null
+    console.log('auth.ts: No staff profile found, attempting to create one')
+    
+    // Try to create a staff profile
+    try {
+      const { data: newStaff, error: createError } = await supabase
+        .from('staff')
+        .insert({
+          id: user.id,
+          email: user.email!,
+          staff_number: user.user_metadata?.staff_number || '0000',
+          base_location: user.user_metadata?.base_location || 'Unknown',
+          can_work_doubles: user.user_metadata?.can_work_doubles || false,
+          company_id: null
+        })
+        .select()
+        .single()
+      
+      if (createError) {
+        console.error('auth.ts: Error creating staff profile:', createError)
+        // Return fallback user if creation fails
+        return {
+          id: user.id,
+          email: user.email!,
+          staff_number: user.user_metadata?.staff_number || '0000',
+          base_location: user.user_metadata?.base_location || 'Unknown',
+          can_work_doubles: user.user_metadata?.can_work_doubles || false,
+          company_id: null,
+          created_at: user.created_at,
+          company: null
+        }
+      }
+      
+      console.log('auth.ts: Created new staff profile:', newStaff)
+      staff = newStaff
+    } catch (createException) {
+      console.error('auth.ts: Exception creating staff profile:', createException)
+      // Return fallback user if creation fails
+      return {
+        id: user.id,
+        email: user.email!,
+        staff_number: user.user_metadata?.staff_number || '0000',
+        base_location: user.user_metadata?.base_location || 'Unknown',
+        can_work_doubles: user.user_metadata?.can_work_doubles || false,
+        company_id: null,
+        created_at: user.created_at,
+        company: null
+      }
     }
   }
 
