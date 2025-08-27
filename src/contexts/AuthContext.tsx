@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { getCurrentUser, signOut, type Staff, type Company } from '@/lib/auth'
+import { createContext, useContext, ReactNode } from 'react'
+import { signOut, type Staff, type Company } from '@/lib/auth'
+import { useAuthState } from '@/hooks/useAuthState'
 
 interface AuthContextType {
   user: (Staff & { company: Company }) | null
@@ -23,67 +24,27 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<(Staff & { company: Company }) | null>(null)
-  const [loading, setLoading] = useState(true)
-  
-  // Fallback to prevent infinite loading
-  useEffect(() => {
-    const fallbackTimer = setTimeout(() => {
-      console.log('AuthContext: Fallback timer - forcing loading to false')
-      setLoading(false)
-    }, 15000) // 15 seconds fallback
-    
-    return () => clearTimeout(fallbackTimer)
-  }, [])
-
-  const refreshUser = async () => {
-    try {
-      console.log('AuthContext: Starting refreshUser...')
-      const currentUser = await getCurrentUser()
-      console.log('AuthContext: getCurrentUser result:', currentUser)
-      setUser(currentUser)
-      console.log('AuthContext: User state updated')
-    } catch (error) {
-      console.error('AuthContext: Error refreshing user:', error)
-      setUser(null)
-    }
-  }
+  const { user, loading, initialized } = useAuthState()
 
   const handleSignOut = async () => {
     try {
       await signOut()
-      setUser(null)
-      // The ProtectedRoute will handle the redirect automatically
+      // Force a page reload to clear all state
+      window.location.href = '/login'
     } catch (error) {
       console.error('Error signing out:', error)
     }
   }
 
-  useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        // Add timeout to prevent infinite loading
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Auth initialization timeout')), 10000)
-        )
-        
-        const refreshPromise = refreshUser()
-        await Promise.race([refreshPromise, timeoutPromise])
-      } catch (error) {
-        console.error('AuthContext: Initialization error:', error)
-        setUser(null)
-      } finally {
-        setLoading(false)
-      }
-    }
-    
-    initializeAuth()
-  }, [])
+  const refreshUser = async () => {
+    // This will be handled by the useAuthState hook
+    console.log('AuthContext: refreshUser called')
+  }
 
   return (
     <AuthContext.Provider value={{
       user,
-      loading,
+      loading: loading || !initialized,
       signOut: handleSignOut,
       refreshUser
     }}>
