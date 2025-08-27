@@ -68,6 +68,8 @@ const CreateSwapRequest = () => {
       console.log(`Your user ID: ${user.id}`);
       console.log(`Your base location: ${user.base_location}`);
       console.log(`Looking for staff who are OFF on ${shift.date}`);
+      console.log(`Shift date type: ${typeof shift.date}`);
+      console.log(`Shift date value: "${shift.date}"`);
 
       // Fetch all staff at the same base location
       console.log('Fetching staff from database...');
@@ -94,6 +96,7 @@ const CreateSwapRequest = () => {
 
       // Get all shifts for the selected date to see who's working
       console.log('Fetching shifts for the selected date...');
+      console.log(`Querying for date: "${shift.date}"`);
       
       const { data: shiftsOnDate, error: shiftsError } = await supabase
         .from('shifts')
@@ -113,6 +116,17 @@ const CreateSwapRequest = () => {
 
       console.log(`Found ${shiftsOnDate?.length || 0} shifts on ${shift.date}`);
       console.log(`Shifts on date:`, shiftsOnDate);
+
+      // Also try a broader query to see all shifts
+      console.log('Fetching ALL shifts to debug date format...');
+      const { data: allShifts, error: allShiftsError } = await supabase
+        .from('shifts')
+        .select('date, staff_id')
+        .limit(10);
+      
+      if (!allShiftsError) {
+        console.log('Sample shifts in database:', allShifts);
+      }
 
       // Create a set of staff IDs who are working on this date
       const workingStaffIds = new Set(shiftsOnDate?.map(s => s.staff_id) || []);
