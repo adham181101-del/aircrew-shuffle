@@ -46,8 +46,8 @@ export const SignInForm = () => {
       })
       
       console.log('SignInForm: Navigating to dashboard...')
-      // Use window.location for immediate redirect
-      window.location.href = '/dashboard'
+      // Use React Router navigation
+      navigate('/dashboard', { replace: true })
     } catch (error) {
       console.error('SignInForm: Login error:', error)
       

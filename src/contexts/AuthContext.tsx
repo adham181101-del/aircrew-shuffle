@@ -40,8 +40,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       await signOut()
       setUser(null)
-      // Force a page reload to clear any cached state
-      window.location.href = '/login'
+      // The ProtectedRoute will handle the redirect automatically
     } catch (error) {
       console.error('Error signing out:', error)
     }
