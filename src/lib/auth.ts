@@ -93,6 +93,14 @@ export const signUp = async (
     throw new Error('Staff number already registered for this company')
   }
 
+  console.log('auth.ts: Signing up user with data:', {
+    email,
+    staffNumber,
+    baseLocation,
+    canWorkDoubles,
+    companyId
+  })
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -107,7 +115,12 @@ export const signUp = async (
     }
   })
 
-  if (error) throw error
+  if (error) {
+    console.error('auth.ts: Sign up error:', error)
+    throw error
+  }
+
+  console.log('auth.ts: Sign up successful, data:', data)
 
   // Staff profile will be created automatically via database trigger
   return data
