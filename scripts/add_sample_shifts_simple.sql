@@ -139,8 +139,8 @@ SELECT
 FROM public.shifts s
 JOIN public.staff st ON s.staff_id = st.id
 WHERE st.base_location = 'Iberia CER'
-  AND s.date >= CURRENT_DATE
-  AND s.date <= CURRENT_DATE + INTERVAL '6 days'
+  AND s.date::date >= CURRENT_DATE
+  AND s.date::date <= CURRENT_DATE + INTERVAL '6 days'
 ORDER BY s.date, s.time;
 
 -- Show availability for the next 7 days
@@ -160,7 +160,7 @@ staff_dates AS (
     END as status
   FROM public.staff st
   CROSS JOIN dates d
-  LEFT JOIN public.shifts s ON s.staff_id = st.id AND s.date = d.date
+  LEFT JOIN public.shifts s ON s.staff_id = st.id AND s.date::date = d.date
   WHERE st.base_location = 'Iberia CER'
 )
 SELECT 
@@ -174,7 +174,7 @@ ORDER BY date, email;
 -- Show swap opportunities for today
 SELECT '=== SWAP OPPORTUNITIES FOR TODAY ===' as info;
 WITH today_shifts AS (
-  SELECT staff_id FROM public.shifts WHERE date = CURRENT_DATE
+  SELECT staff_id FROM public.shifts WHERE date::date = CURRENT_DATE
 ),
 today_staff AS (
   SELECT 
