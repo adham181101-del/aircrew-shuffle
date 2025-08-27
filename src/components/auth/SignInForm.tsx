@@ -34,16 +34,9 @@ export const SignInForm = () => {
       await Promise.race([signInPromise, timeoutPromise])
       console.log('SignInForm: signIn successful')
       
-      toast({
-        title: "Welcome back!",
-        description: "Successfully signed in"
-      })
-      
-      // Wait for auth state to update, then redirect
-      setTimeout(() => {
-        console.log('SignInForm: Redirecting to dashboard...')
-        window.location.href = '/dashboard'
-      }, 1500)
+      // Immediate redirect without toast to avoid interference
+      console.log('SignInForm: Redirecting to dashboard...')
+      window.location.href = '/dashboard'
     } catch (error) {
       console.error('SignInForm: Login error:', error)
       
@@ -65,7 +58,8 @@ export const SignInForm = () => {
         description: errorMessage,
         variant: "destructive"
       })
-    } finally {
+      
+      // Only set loading to false on error
       setLoading(false)
     }
   }

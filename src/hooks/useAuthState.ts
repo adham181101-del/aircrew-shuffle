@@ -78,9 +78,11 @@ export const useAuthState = () => {
             const currentUser = await getCurrentUser()
             console.log('useAuthState: Updated user data:', currentUser)
             setUser(currentUser)
+            setInitialized(true)
           } catch (error) {
             console.error('useAuthState: Error updating user data:', error)
             setUser(null)
+            setInitialized(true)
           } finally {
             setLoading(false)
           }
@@ -88,6 +90,7 @@ export const useAuthState = () => {
           console.log('useAuthState: User signed out')
           setUser(null)
           setLoading(false)
+          setInitialized(true)
         }
       }
     )
