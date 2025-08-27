@@ -127,7 +127,7 @@ SELECT
   s.time,
   st.email,
   st.staff_number,
-  CASE EXTRACT(DOW FROM s.date)
+  CASE EXTRACT(DOW FROM s.date::date)
     WHEN 0 THEN 'Sunday'
     WHEN 1 THEN 'Monday'
     WHEN 2 THEN 'Tuesday'
