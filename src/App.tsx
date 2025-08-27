@@ -21,7 +21,10 @@ const queryClient = new QueryClient();
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
+  console.log('ProtectedRoute: user=', user, 'loading=', loading);
+  
   if (loading) {
+    console.log('ProtectedRoute: Showing loading spinner');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -30,9 +33,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   if (!user) {
+    console.log('ProtectedRoute: No user, redirecting to login');
     return <Navigate to="/login" replace />;
   }
   
+  console.log('ProtectedRoute: User authenticated, showing children');
   return <>{children}</>;
 };
 
@@ -40,7 +45,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
+  console.log('PublicRoute: user=', user, 'loading=', loading);
+  
   if (loading) {
+    console.log('PublicRoute: Showing loading spinner');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -49,9 +57,11 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   if (user) {
+    console.log('PublicRoute: User found, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
   
+  console.log('PublicRoute: No user, showing login form');
   return <>{children}</>;
 };
 

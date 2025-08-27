@@ -113,7 +113,16 @@ export const signUp = async (
 }
 
 export const signIn = async (email: string, password: string) => {
-  console.log('auth.ts: Attempting sign in for email:', email)
+  console.log('auth.ts: Starting sign in for:', email)
+  console.log('auth.ts: Supabase URL:', import.meta.env.VITE_SUPABASE_URL || 'using fallback')
+  
+  // Test Supabase connection
+  try {
+    const { data: testData, error: testError } = await supabase.auth.getSession()
+    console.log('auth.ts: Connection test result:', testData, testError)
+  } catch (connectionError) {
+    console.error('auth.ts: Connection test failed:', connectionError)
+  }
   
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
