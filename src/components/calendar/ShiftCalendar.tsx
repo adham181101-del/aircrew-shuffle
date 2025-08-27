@@ -76,7 +76,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   }
 
   const getShiftsForDate = (date: Date): Shift[] => {
-    const dateStr = date.toISOString().split('T')[0]
+    const dateStr = date.toLocaleDateString('en-CA') // YYYY-MM-DD format in local timezone
     return shifts.filter(shift => shift.date === dateStr)
   }
 
@@ -103,8 +103,8 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
         return 'bg-calendar-shift-morning'
       case 'afternoon':
         return 'bg-calendar-shift-afternoon'
-      case 'evening':
-        return 'bg-calendar-shift-evening'
+      case 'night':
+        return 'bg-calendar-shift-evening' // Using existing evening color for night shifts
       default:
         return 'bg-muted'
     }
@@ -120,7 +120,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
       <div className="flex flex-col items-center mt-1 space-y-1">
         {dayShifts.map((shift) => {
           const timeOfDay = getShiftTimeOfDay(shift.time)
-          const startTime = shift.time.split('-')[0]
+          const [startTime, endTime] = shift.time.split('-')
           
           return (
             <div
@@ -133,8 +133,10 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 e.stopPropagation()
                 onShiftClick?.(shift)
               }}
+              title={`${startTime}-${endTime}`}
             >
-              {startTime}
+              <span className="hidden sm:inline">{startTime}-{endTime}</span>
+              <span className="sm:hidden">{startTime}</span>
             </div>
           )
         })}
@@ -194,15 +196,15 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           <div className="flex flex-wrap gap-2 mt-4">
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 rounded bg-calendar-shift-morning"></div>
-              <span className="text-sm">Morning (04:15)</span>
+              <span className="text-sm">Morning</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 rounded bg-calendar-shift-afternoon"></div>
-              <span className="text-sm">Afternoon (13:15)</span>
+              <span className="text-sm">Afternoon</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 rounded bg-calendar-shift-evening"></div>
-              <span className="text-sm">Evening</span>
+              <span className="text-sm">Night</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 rounded bg-calendar-shift-swapped"></div>

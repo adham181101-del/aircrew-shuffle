@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ArrowRightLeft, Calendar, Clock, MapPin, Users } from "lucide-react";
-import { getUserShifts, type Shift } from "@/lib/shifts";
+import { getUserShifts, validateWHL, type Shift } from "@/lib/shifts";
 import { getCurrentUser, type Staff } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -88,7 +88,14 @@ const CreateSwapRequest = () => {
         // 1. They don't have a shift that day (OFF)
         // 2. OR they can work doubles and have a compatible shift
         if (!hasShiftOnDate || staff.can_work_doubles) {
-          eligibleList.push(staff);
+          // Check WHL compliance for the potential new shift
+          const whlValidation = await validateWHL(staff.id, shift.date, shift.time);
+          
+          if (whlValidation.isValid) {
+            eligibleList.push(staff);
+          } else {
+            console.log(`Staff ${staff.email} excluded due to WHL violations:`, whlValidation.violations);
+          }
         }
       }
 

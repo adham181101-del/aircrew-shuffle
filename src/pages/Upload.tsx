@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, FileText, AlertCircle, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { createShift, parseShiftsFromText } from "@/lib/shifts";
+import { upsertShift, parseShiftsFromText } from "@/lib/shifts";
 import { getCurrentUser } from "@/lib/auth";
 
 const UploadPage = () => {
@@ -137,26 +137,46 @@ const UploadPage = () => {
         return;
       }
 
-      // Save shifts to database
+      // Save shifts to database with smart upserting
       toast({
         title: "Processing...",
-        description: `Saving ${shifts.length} shifts to your calendar`,
+        description: `Processing ${shifts.length} shifts from your roster`,
       });
 
-      let savedCount = 0;
+      let createdCount = 0;
+      let updatedCount = 0;
+      let skippedCount = 0;
+
       for (const shift of shifts) {
         try {
-          await createShift(shift.date, shift.time, user.id);
-          savedCount++;
+          const result = await upsertShift(shift.date, shift.time, user.id);
+          switch (result.action) {
+            case 'created':
+              createdCount++;
+              break;
+            case 'updated':
+              updatedCount++;
+              break;
+            case 'skipped':
+              skippedCount++;
+              break;
+          }
         } catch (error) {
-          console.warn('Failed to save shift:', shift, error);
+          console.warn('Failed to process shift:', shift, error);
         }
       }
 
       setProcessingStep('complete');
+      
+      const totalProcessed = createdCount + updatedCount + skippedCount;
+      let description = `Processed ${totalProcessed} shifts: `;
+      if (createdCount > 0) description += `${createdCount} new, `;
+      if (updatedCount > 0) description += `${updatedCount} updated, `;
+      if (skippedCount > 0) description += `${skippedCount} unchanged`;
+      
       toast({
         title: "Success!",
-        description: `Successfully imported ${savedCount} shifts from your roster`,
+        description: description,
       });
       
       // Redirect to dashboard after 2 seconds

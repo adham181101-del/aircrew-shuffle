@@ -124,11 +124,7 @@ export const SignUpForm = () => {
         <Input
           id="email"
           type="email"
-          placeholder={
-            selectedCompany 
-              ? `your.name@${selectedCompany.email_domain}` 
-              : "your.work@email.com"
-          }
+          placeholder="your.name@company.com"
           value={formData.email}
           onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
           required
@@ -194,7 +190,7 @@ export const SignUpForm = () => {
 
       <Button 
         type="submit" 
-        className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 transition-colors"
         disabled={loading || !selectedCompany}
       >
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/contexts/AuthContext'
 import { signIn } from '@/lib/auth'
 import { Loader2 } from 'lucide-react'
 
 export const SignInForm = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { refreshUser } = useAuth()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
@@ -19,17 +21,28 @@ export const SignInForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    console.log('SignInForm: Starting login process...')
 
     try {
+      console.log('SignInForm: Calling signIn...')
       await signIn(formData.email, formData.password)
+      console.log('SignInForm: signIn successful')
+      
+      // Refresh the auth state to get the current user
+      console.log('SignInForm: Refreshing user...')
+      await refreshUser()
+      console.log('SignInForm: User refreshed')
       
       toast({
         title: "Welcome back!",
         description: "Successfully signed in"
       })
       
-      navigate('/dashboard')
+      console.log('SignInForm: Navigating to dashboard...')
+      // Use window.location for immediate redirect
+      window.location.href = '/dashboard'
     } catch (error) {
+      console.error('SignInForm: Login error:', error)
       toast({
         title: "Sign in failed",
         description: error instanceof Error ? error.message : "Please check your credentials",
@@ -67,7 +80,7 @@ export const SignInForm = () => {
 
       <Button 
         type="submit" 
-        className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 transition-colors"
         disabled={loading}
       >
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

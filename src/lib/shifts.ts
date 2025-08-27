@@ -38,22 +38,22 @@ const getStartMinutesFromRange = (timeRange: string): number | null => {
 export const isMorningShift = (timeRange: string): boolean => {
   const minutes = getStartMinutesFromRange(timeRange)
   if (minutes === null) return false
-  // Morning shifts roughly from 04:00 to 11:59 (covers 04:15, 05:30, 06:30, etc.)
+  // Morning shifts: 04:15, 05:30, 05:40, etc. (04:00 to 11:59)
   return minutes >= 4 * 60 && minutes < 12 * 60
 }
 
 export const isAfternoonShift = (timeRange: string): boolean => {
   const minutes = getStartMinutesFromRange(timeRange)
   if (minutes === null) return false
-  // Afternoon shifts from 12:00 to 16:59 (covers 12:30, 13:15)
-  return minutes >= 12 * 60 && minutes < 17 * 60
+  // Afternoon shifts: 12:30, 13:15, etc. (12:00 to 23:59)
+  return minutes >= 12 * 60 && minutes < 24 * 60
 }
 
-export const isEveningShift = (timeRange: string): boolean => {
+export const isNightShift = (timeRange: string): boolean => {
   const minutes = getStartMinutesFromRange(timeRange)
   if (minutes === null) return false
-  // Evening shifts from 17:00 onward (covers 19:00, 21:30, etc.)
-  return minutes >= 17 * 60
+  // Night shifts: after 23:59 (00:00 to 03:59)
+  return minutes >= 0 && minutes < 4 * 60
 }
 
 export const isValidDouble = (shift1Time: string, shift2Time: string): boolean => {
@@ -61,10 +61,10 @@ export const isValidDouble = (shift1Time: string, shift2Time: string): boolean =
          (isAfternoonShift(shift1Time) && isMorningShift(shift2Time))
 }
 
-export const getShiftTimeOfDay = (timeRange: string): 'morning' | 'afternoon' | 'evening' | 'other' => {
+export const getShiftTimeOfDay = (timeRange: string): 'morning' | 'afternoon' | 'night' | 'other' => {
   if (isMorningShift(timeRange)) return 'morning'
   if (isAfternoonShift(timeRange)) return 'afternoon'
-  if (isEveningShift(timeRange)) return 'evening'
+  if (isNightShift(timeRange)) return 'night'
   return 'other'
 }
 
@@ -136,6 +136,55 @@ export const createShift = async (date: string, time: string, staffId: string): 
   return data
 }
 
+export const upsertShift = async (date: string, time: string, staffId: string): Promise<{ action: 'created' | 'updated' | 'skipped'; shift?: Shift }> => {
+  if (!isValidTimeRange(time)) {
+    throw new Error('Invalid time format. Use HH:MM-HH:MM')
+  }
+
+  // Check if a shift already exists for this date
+  const { data: existingShift, error: fetchError } = await supabase
+    .from('shifts')
+    .select('*')
+    .eq('staff_id', staffId)
+    .eq('date', date)
+    .maybeSingle()
+
+  if (fetchError) throw fetchError
+
+  if (!existingShift) {
+    // No existing shift, create new one
+    const { data, error } = await supabase
+      .from('shifts')
+      .insert({
+        date,
+        time,
+        staff_id: staffId
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return { action: 'created', shift: data }
+  } else {
+    // Shift exists, check if it's different
+    if (existingShift.time === time) {
+      // Same time, skip
+      return { action: 'skipped', shift: existingShift }
+    } else {
+      // Different time, update
+      const { data, error } = await supabase
+        .from('shifts')
+        .update({ time })
+        .eq('id', existingShift.id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return { action: 'updated', shift: data }
+    }
+  }
+}
+
 export const getUserShifts = async (staffId: string): Promise<Shift[]> => {
   console.log('Fetching shifts for staff ID:', staffId)
   
@@ -185,13 +234,206 @@ export const updateShiftTime = async (
   return data
 }
 
+export const deleteAllShifts = async (staffId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('shifts')
+    .delete()
+    .eq('staff_id', staffId)
+
+  if (error) throw error
+}
+
+// Working Hours Limitations (WHL) validation functions
+export interface WHLValidationResult {
+  isValid: boolean
+  violations: string[]
+}
+
+// Calculate shift hours from time range
+const calculateShiftHours = (timeRange: string): number => {
+  const [start, end] = timeRange.split('-')
+  const startTime = new Date(`2000-01-01 ${start}:00`)
+  const endTime = new Date(`2000-01-01 ${end}:00`)
+  
+  // Handle overnight shifts
+  if (endTime < startTime) {
+    endTime.setDate(endTime.getDate() + 1)
+  }
+  
+  return (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)
+}
+
+// Get shifts within a date range
+const getShiftsInRange = (shifts: Shift[], startDate: string, endDate: string): Shift[] => {
+  return shifts.filter(shift => {
+    const shiftDate = new Date(shift.date)
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    return shiftDate >= start && shiftDate <= end
+  })
+}
+
+// Check 28-day period (256 hours max)
+const check28DayLimit = (shifts: Shift[], targetDate: string): { isValid: boolean; hours: number } => {
+  const target = new Date(targetDate)
+  const startDate = new Date(target)
+  startDate.setDate(target.getDate() - 27) // 28-day period
+  
+  const periodShifts = getShiftsInRange(shifts, startDate.toISOString().split('T')[0], targetDate)
+  const totalHours = periodShifts.reduce((sum, shift) => sum + calculateShiftHours(shift.time), 0)
+  
+  return { isValid: totalHours <= 256, hours: totalHours }
+}
+
+// Check 24-hour period (16 hours max)
+const check24HourLimit = (shifts: Shift[], targetDate: string): { isValid: boolean; hours: number } => {
+  const target = new Date(targetDate)
+  const startDate = new Date(target)
+  startDate.setDate(target.getDate() - 1) // 24-hour period
+  
+  const periodShifts = getShiftsInRange(shifts, startDate.toISOString().split('T')[0], targetDate)
+  const totalHours = periodShifts.reduce((sum, shift) => sum + calculateShiftHours(shift.time), 0)
+  
+  return { isValid: totalHours <= 16, hours: totalHours }
+}
+
+// Check consecutive days (max 9 days)
+const checkConsecutiveDays = (shifts: Shift[], targetDate: string): { isValid: boolean; days: number } => {
+  const target = new Date(targetDate)
+  let consecutiveDays = 0
+  const currentDate = new Date(target)
+  
+  // Count backwards to find consecutive working days
+  while (true) {
+    const dateStr = currentDate.toISOString().split('T')[0]
+    const hasShift = shifts.some(shift => shift.date === dateStr)
+    
+    if (hasShift) {
+      consecutiveDays++
+      currentDate.setDate(currentDate.getDate() - 1)
+    } else {
+      break
+    }
+  }
+  
+  return { isValid: consecutiveDays <= 9, days: consecutiveDays }
+}
+
+// Check 14-day period (at least 2 consecutive days off)
+const check14DayBreak = (shifts: Shift[], targetDate: string): { isValid: boolean; hasBreak: boolean } => {
+  const target = new Date(targetDate)
+  const startDate = new Date(target)
+  startDate.setDate(target.getDate() - 13) // 14-day period
+  
+  const periodShifts = getShiftsInRange(shifts, startDate.toISOString().split('T')[0], targetDate)
+  const workingDates = new Set(periodShifts.map(shift => shift.date))
+  
+  // Check for at least 2 consecutive days off
+  let hasConsecutiveBreak = false
+  for (let i = 0; i < 13; i++) {
+    const checkDate = new Date(startDate)
+    checkDate.setDate(startDate.getDate() + i)
+    const dateStr = checkDate.toISOString().split('T')[0]
+    
+    const nextDate = new Date(checkDate)
+    nextDate.setDate(checkDate.getDate() + 1)
+    const nextDateStr = nextDate.toISOString().split('T')[0]
+    
+    if (!workingDates.has(dateStr) && !workingDates.has(nextDateStr)) {
+      hasConsecutiveBreak = true
+      break
+    }
+  }
+  
+  return { isValid: hasConsecutiveBreak, hasBreak: hasConsecutiveBreak }
+}
+
+// Check pay week (Sunday to Saturday, 72 hours max)
+const checkPayWeek = (shifts: Shift[], targetDate: string): { isValid: boolean; hours: number } => {
+  const target = new Date(targetDate)
+  const dayOfWeek = target.getDay() // 0 = Sunday, 6 = Saturday
+  
+  // Find the start of the pay week (Sunday)
+  const payWeekStart = new Date(target)
+  payWeekStart.setDate(target.getDate() - dayOfWeek)
+  
+  // Find the end of the pay week (Saturday)
+  const payWeekEnd = new Date(payWeekStart)
+  payWeekEnd.setDate(payWeekStart.getDate() + 6)
+  
+  const periodShifts = getShiftsInRange(
+    shifts, 
+    payWeekStart.toISOString().split('T')[0], 
+    payWeekEnd.toISOString().split('T')[0]
+  )
+  const totalHours = periodShifts.reduce((sum, shift) => sum + calculateShiftHours(shift.time), 0)
+  
+  return { isValid: totalHours <= 72, hours: totalHours }
+}
+
+// Main WHL validation function
+export const validateWHL = async (
+  staffId: string, 
+  newShiftDate: string, 
+  newShiftTime: string
+): Promise<WHLValidationResult> => {
+  const violations: string[] = []
+  
+  // Get all user shifts
+  const allShifts = await getUserShifts(staffId)
+  
+  // Create a hypothetical shift for validation
+  const hypotheticalShift: Shift = {
+    id: 'temp',
+    date: newShiftDate,
+    time: newShiftTime,
+    staff_id: staffId,
+    is_swapped: false,
+    created_at: new Date().toISOString()
+  }
+  
+  // Add the new shift to the list for validation
+  const shiftsWithNew = [...allShifts, hypotheticalShift]
+  
+  // Check 28-day limit
+  const day28Check = check28DayLimit(shiftsWithNew, newShiftDate)
+  if (!day28Check.isValid) {
+    violations.push(`28-day limit exceeded: ${day28Check.hours.toFixed(1)} hours (max 256)`)
+  }
+  
+  // Check 24-hour limit
+  const day24Check = check24HourLimit(shiftsWithNew, newShiftDate)
+  if (!day24Check.isValid) {
+    violations.push(`24-hour limit exceeded: ${day24Check.hours.toFixed(1)} hours (max 16)`)
+  }
+  
+  // Check consecutive days
+  const consecutiveCheck = checkConsecutiveDays(shiftsWithNew, newShiftDate)
+  if (!consecutiveCheck.isValid) {
+    violations.push(`Consecutive days limit exceeded: ${consecutiveCheck.days} days (max 9)`)
+  }
+  
+  // Check 14-day break
+  const breakCheck = check14DayBreak(shiftsWithNew, newShiftDate)
+  if (!breakCheck.isValid) {
+    violations.push(`No 2 consecutive days off in 14-day period`)
+  }
+  
+  // Check pay week limit
+  const payWeekCheck = checkPayWeek(shiftsWithNew, newShiftDate)
+  if (!payWeekCheck.isValid) {
+    violations.push(`Pay week limit exceeded: ${payWeekCheck.hours.toFixed(1)} hours (max 72)`)
+  }
+  
+  return {
+    isValid: violations.length === 0,
+    violations
+  }
+}
+
 // Parse PDF content to extract shifts
 export const parseShiftsFromText = (text: string): Array<{date: string, time: string}> => {
   const shifts: Array<{date: string, time: string}> = []
-  const seenDates = new Set<string>()
-
-  // Accept any time range as HH:MM-HH:MM, we will later validate on insert
-  const timeRangeRegex = /(\d{2}:\d{2})\s*(?:-|to|–|—)\s*(\d{2}:\d{2})/i
 
   const monthMap: Record<string, number> = {
     jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
@@ -211,105 +453,85 @@ export const parseShiftsFromText = (text: string): Array<{date: string, time: st
     .map(line => line.trim())
     .filter(line => line.length > 0)
 
+  console.log('Total lines to process:', lines.length)
+
+  // First pass: collect all dates and extract shift times directly from Date Summary
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-
-    // Identify a date summary row, including OFF or descriptors like NA SHADOW
-    const dateSummary = line.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})(?:\s*-\s*([^,|]+))?/)
-    if (dateSummary) {
-      const [, dayStr, monthStr, yearStr, descriptor] = dateSummary
-      if (descriptor && /\bOFF\b/i.test(descriptor)) {
-        continue
-      }
-
+    
+    // Look for date summary with shift times: "11-Aug-2025 - 04:15 - 13:15"
+    const dateWithTimeMatch = line.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})\s*-\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/i)
+    if (dateWithTimeMatch) {
+      const [, dayStr, monthStr, yearStr, startTime, endTime] = dateWithTimeMatch
+      console.log(`Found date with times: ${dayStr}-${monthStr}-${yearStr} ${startTime}-${endTime}`)
       const month = monthMap[monthStr.toLowerCase()]
-      if (!month) continue
-      const year = parseInt(yearStr.length === 2 ? '20' + yearStr : yearStr)
-      const day = parseInt(dayStr)
-      const isoDate = new Date(year, month - 1, day).toISOString().split('T')[0]
-
-      // Look ahead for plausible start/end times in this row or subsequent rows.
-      // Collect multiple ranges if present and choose the first non-00:00 and non-identical times.
-      const candidateRanges: string[] = []
-
-      // Inline times on same line
-      const inlineTimes = line.match(/(\d{2}:\d{2})[^\d]+(\d{2}:\d{2})/)
-      if (inlineTimes) {
-        candidateRanges.push(`${inlineTimes[1]}-${inlineTimes[2]}`)
-      }
-
-      for (let j = i + 1; j < Math.min(i + 8, lines.length); j++) {
-        const next = lines[j]
-        // Stop scanning at next date header or empty separator
-        if (/^\d{1,2}-[A-Za-z]{3}-\d{2,4}/.test(next)) break
-        if (/\bOFF\b/i.test(next)) break
-        const t = next.match(timeRangeRegex)
-        if (t) {
-          candidateRanges.push(`${t[1]}-${t[2]}`)
-        }
-      }
-
-      const picked = candidateRanges.find(r => {
-        const [s, e] = r.split('-')
-        return s !== '00:00' && e !== '00:00' && s !== e
-      }) || candidateRanges[0]
-
-      if (picked && isValidTimeRange(picked) && !seenDates.has(isoDate)) {
-        seenDates.add(isoDate)
-        shifts.push({ date: isoDate, time: picked })
-      }
-      continue
-    }
-
-    // Pattern A: Inline date and times, e.g. "20-Aug-2025 - 05:30 - 14:30"
-    const inlineDateMatch = line.match(/(\d{1,2})-([A-Za-z]{3})-(\d{2,4}).*?(\d{2}:\d{2}).*?(\d{2}:\d{2})/)
-    if (inlineDateMatch) {
-      try {
-        const [, dayStr, monthStr, yearStr, startTime, endTime] = inlineDateMatch
-        const month = monthMap[monthStr.toLowerCase()]
-        if (!month) continue
+      if (month) {
         const year = parseInt(yearStr.length === 2 ? '20' + yearStr : yearStr)
         const day = parseInt(dayStr)
-        const isoDate = new Date(year, month - 1, day).toISOString().split('T')[0]
-        if (!seenDates.has(isoDate)) {
+        // Create date in local timezone to avoid offset issues
+        const isoDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+        
+        console.log(`Processing: Day=${day}, Month=${month}, Year=${year}, ISO Date=${isoDate}`)
+        
+        // Skip 00:00 times and same start/end times
+        if (startTime !== '00:00' && endTime !== '00:00' && startTime !== endTime) {
           const timeRange = `${startTime}-${endTime}`
           if (isValidTimeRange(timeRange)) {
-            seenDates.add(isoDate)
             shifts.push({ date: isoDate, time: timeRange })
+            console.log(`✅ Added shift from Date Summary: ${isoDate} ${timeRange}`)
+          } else {
+            console.log(`❌ Invalid time range: ${timeRange}`)
           }
+        } else {
+          console.log(`❌ Skipping invalid times: ${startTime}-${endTime}`)
         }
-      } catch {}
-      continue
-    }
-
-    // Pattern B: Date line followed by time(s) next lines (within next 5 lines)
-    const dateOnlyMatch = line.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/)
-    if (dateOnlyMatch) {
-      const [, dayStr, monthStr, yearStr] = dateOnlyMatch
-      const month = monthMap[monthStr.toLowerCase()]
-      if (!month) continue
-      const year = parseInt(yearStr.length === 2 ? '20' + yearStr : yearStr)
-      const day = parseInt(dayStr)
-      const isoDate = new Date(year, month - 1, day).toISOString().split('T')[0]
-
-      // lookahead for time range
-      for (let j = i + 1; j < Math.min(i + 6, lines.length); j++) {
-        const next = lines[j]
-        if (/\bOFF\b/i.test(next)) break
-        const t = next.match(timeRangeRegex)
-        if (t) {
-          const [, startTime, endTime] = t
-          const timeRange = `${startTime}-${endTime}`
-          if (isValidTimeRange(timeRange) && !seenDates.has(isoDate)) {
-            seenDates.add(isoDate)
-            shifts.push({ date: isoDate, time: timeRange })
-          }
-          break
-        }
+      } else {
+        console.log(`❌ Invalid month: ${monthStr}`)
       }
       continue
     }
+    
+    // Look for date summary with descriptors (OFF, etc.) - skip these
+    const dateWithDescriptorMatch = line.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})\s*-\s*(.+)$/i)
+    if (dateWithDescriptorMatch) {
+      const [, dayStr, monthStr, yearStr, descriptor] = dateWithDescriptorMatch
+      console.log(`Skipping date with descriptor: ${dayStr}-${monthStr}-${yearStr} - ${descriptor}`)
+      continue
+    }
+    
+    // Fallback: look for any line that might contain a date and times
+    const fallbackMatch = line.match(/(\d{1,2})-([A-Za-z]{3})-(\d{2,4}).*?(\d{2}:\d{2}).*?(\d{2}:\d{2})/i)
+    if (fallbackMatch) {
+      const [, dayStr, monthStr, yearStr, startTime, endTime] = fallbackMatch
+      console.log(`Fallback match found: ${dayStr}-${monthStr}-${yearStr} ${startTime}-${endTime} in line: "${line}"`)
+      const month = monthMap[monthStr.toLowerCase()]
+      if (month) {
+        const year = parseInt(yearStr.length === 2 ? '20' + yearStr : yearStr)
+        const day = parseInt(dayStr)
+        // Create date in local timezone to avoid offset issues
+        const isoDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+        
+        console.log(`Fallback processing: Day=${day}, Month=${month}, Year=${year}, ISO Date=${isoDate}`)
+        
+        // Skip 00:00 times and same start/end times
+        if (startTime !== '00:00' && endTime !== '00:00' && startTime !== endTime) {
+          const timeRange = `${startTime}-${endTime}`
+          if (isValidTimeRange(timeRange)) {
+            shifts.push({ date: isoDate, time: timeRange })
+            console.log(`✅ Added shift from fallback: ${isoDate} ${timeRange}`)
+          } else {
+            console.log(`❌ Invalid time range: ${timeRange}`)
+          }
+        } else {
+          console.log(`❌ Skipping invalid times: ${startTime}-${endTime}`)
+        }
+      } else {
+        console.log(`❌ Invalid month: ${monthStr}`)
+      }
+    }
   }
+
+
 
   console.log('Total valid shifts found:', shifts.length)
   return shifts

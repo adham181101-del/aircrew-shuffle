@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { getCurrentUser, type Staff } from "@/lib/auth";
+import { validateWHL } from "@/lib/shifts";
 import { supabase } from "@/integrations/supabase/client";
 
 type SwapRequestWithDetails = {
@@ -112,6 +113,33 @@ const ManageSwaps = () => {
 
   const handleAcceptSwap = async (swapId: string) => {
     try {
+      // Find the swap request to get the shift details
+      const swapRequest = incomingRequests.find(req => req.id === swapId);
+      if (!swapRequest || !swapRequest.requester_shift || !user) {
+        toast({
+          title: "Error",
+          description: "Swap request not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Validate WHL before accepting
+      const whlValidation = await validateWHL(
+        user.id, 
+        swapRequest.requester_shift.date, 
+        swapRequest.requester_shift.time
+      );
+
+      if (!whlValidation.isValid) {
+        toast({
+          title: "Working Hours Limit Violation",
+          description: `Cannot accept swap due to: ${whlValidation.violations.join(', ')}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('swap_requests')
         .update({ status: 'accepted' })

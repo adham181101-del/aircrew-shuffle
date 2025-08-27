@@ -113,12 +113,19 @@ export const signUp = async (
 }
 
 export const signIn = async (email: string, password: string) => {
+  console.log('auth.ts: Attempting sign in for email:', email)
+  
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password
   })
 
-  if (error) throw error
+  if (error) {
+    console.error('auth.ts: Sign in error:', error)
+    throw error
+  }
+  
+  console.log('auth.ts: Sign in successful, data:', data)
   return data
 }
 
@@ -127,29 +134,93 @@ export const signOut = async () => {
   if (error) throw error
 }
 
+export const getAllStaff = async (): Promise<Staff[]> => {
+  try {
+    const { data: staff, error } = await supabase
+      .from('staff')
+      .select('*')
+      .order('staff_number')
+
+    if (error) {
+      console.error('Error fetching all staff:', error)
+      return []
+    }
+
+    return staff || []
+  } catch (error) {
+    console.error('Error in getAllStaff:', error)
+    return []
+  }
+}
+
 export const getCurrentUser = async (): Promise<(Staff & { company: Company }) | null> => {
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) return null
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!session || !user) {
+      return null
+    }
+    
+    // Try to fetch staff profile
+    const { data: staff, error: staffError } = await supabase
+      .from('staff')
+      .select('id, email, staff_number, base_location, can_work_doubles, company_id, created_at')
+      .eq('id', user.id)
+      .maybeSingle()
 
-  const { data: staff, error } = await supabase
-    .from('staff')
-    .select(`
-      *,
-      companies (*)
-    `)
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (error) {
-    console.error('Error fetching staff profile:', error)
-    return null
+  if (staffError) {
+    console.error('auth.ts: Error fetching staff profile:', staffError)
+    
+    // If we can't fetch the staff profile, try to create a basic user object
+    return {
+      id: user.id,
+      email: user.email!,
+      staff_number: user.user_metadata?.staff_number || '0000',
+      base_location: user.user_metadata?.base_location || 'Unknown',
+      can_work_doubles: user.user_metadata?.can_work_doubles || false,
+      company_id: null,
+      created_at: user.created_at,
+      company: null
+    }
   }
 
-  if (!staff) return null
+  if (!staff) {
+    // Return basic user object if no staff profile exists
+    return {
+      id: user.id,
+      email: user.email!,
+      staff_number: user.user_metadata?.staff_number || '0000',
+      base_location: user.user_metadata?.base_location || 'Unknown',
+      can_work_doubles: user.user_metadata?.can_work_doubles || false,
+      company_id: null,
+      created_at: user.created_at,
+      company: null
+    }
+  }
 
-  return {
+  // Get company if staff has company_id
+  let company = null
+  if (staff.company_id) {
+    const { data: companyData, error: companyError } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('id', staff.company_id)
+      .maybeSingle()
+
+    if (!companyError) {
+      company = companyData
+    }
+  }
+
+  const result = {
     ...staff,
-    company: staff.companies as Company
+    company: company as Company
+  }
+  
+  return result
+  } catch (error) {
+    console.error('auth.ts: Error in getCurrentUser:', error)
+    return null
   }
 }
