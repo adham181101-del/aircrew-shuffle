@@ -34,20 +34,14 @@ export const SignInForm = () => {
       await Promise.race([signInPromise, timeoutPromise])
       console.log('SignInForm: signIn successful')
       
-      // Refresh the auth state to get the current user
-      console.log('SignInForm: Refreshing user...')
-      const refreshPromise = refreshUser()
-      await Promise.race([refreshPromise, timeoutPromise])
-      console.log('SignInForm: User refreshed')
-      
       toast({
         title: "Welcome back!",
         description: "Successfully signed in"
       })
       
-      console.log('SignInForm: Navigating to dashboard...')
-      // Use React Router navigation
-      navigate('/dashboard', { replace: true })
+      console.log('SignInForm: Redirecting to dashboard...')
+      // Use window.location for immediate redirect and state refresh
+      window.location.href = '/dashboard'
     } catch (error) {
       console.error('SignInForm: Login error:', error)
       

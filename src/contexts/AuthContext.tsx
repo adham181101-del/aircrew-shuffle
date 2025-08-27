@@ -24,7 +24,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const { user, loading, initialized } = useAuthState()
+  const { user, loading, initialized, refreshUser } = useAuthState()
 
   const handleSignOut = async () => {
     try {
@@ -34,11 +34,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error) {
       console.error('Error signing out:', error)
     }
-  }
-
-  const refreshUser = async () => {
-    // This will be handled by the useAuthState hook
-    console.log('AuthContext: refreshUser called')
   }
 
   return (

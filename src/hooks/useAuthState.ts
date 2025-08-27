@@ -6,6 +6,25 @@ export const useAuthState = () => {
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialized] = useState(false)
 
+  const refreshUser = async () => {
+    try {
+      console.log('useAuthState: refreshUser called')
+      setLoading(true)
+      
+      const currentUser = await getCurrentUser()
+      console.log('useAuthState: refreshUser result:', currentUser)
+      
+      setUser(currentUser)
+      setInitialized(true)
+    } catch (error) {
+      console.error('useAuthState: refreshUser error:', error)
+      setUser(null)
+      setInitialized(true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     let mounted = true
 
@@ -51,5 +70,5 @@ export const useAuthState = () => {
     }
   }, [])
 
-  return { user, loading, initialized }
+  return { user, loading, initialized, refreshUser }
 }
