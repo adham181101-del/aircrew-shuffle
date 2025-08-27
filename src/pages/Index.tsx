@@ -50,7 +50,7 @@ const Index = () => {
               <Button 
                 onClick={() => navigate('/register')}
                 size="lg"
-                className="bg-white text-primary hover:bg-white/90 font-semibold px-8"
+                className="bg-white text-primary hover:bg-blue-600 hover:text-white font-semibold px-8 transition-colors"
               >
                 Join Your Team
               </Button>
@@ -58,7 +58,7 @@ const Index = () => {
                 onClick={() => navigate('/login')}
                 size="lg"
                 variant="outline"
-                className="border-white text-white hover:bg-white/10"
+                className="border-white text-primary hover:bg-blue-600 hover:border-blue-600 transition-colors"
               >
                 Sign In
               </Button>
