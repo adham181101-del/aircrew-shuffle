@@ -34,12 +34,12 @@ const Index = () => {
         <div className="container mx-auto px-4 py-20">
           <div className="text-center max-w-4xl mx-auto">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-elegant mb-8">
-              <Building2 className="h-10 w-10 text-primary" />
+              <img src="/logo.svg" alt="AirCrew Shuffle Logo" className="h-12 w-12" />
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-              Professional Workforce
-              <span className="block text-accent">Shift Management</span>
+              AirCrew Shuffle
+              <span className="block text-accent">Aviation Shift Management</span>
             </h1>
             
             <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
