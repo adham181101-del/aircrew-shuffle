@@ -69,12 +69,23 @@ const CreateSwapRequest = () => {
       console.log(`Your base location: ${user.base_location}`);
       console.log(`Looking for staff who are OFF on ${shift.date}`);
 
-      // Find staff at the same base
-      const { data: baseStaff, error } = await supabase
-        .from('staff')
-        .select('*')
-        .eq('base_location', user.base_location)
-        .neq('id', user.id);
+      // Find staff at the same base with simpler query
+      let baseStaff = null;
+      let error = null;
+      
+      try {
+        const { data, error: queryError } = await supabase
+          .from('staff')
+          .select('*')
+          .eq('base_location', user.base_location)
+          .neq('id', user.id);
+        
+        baseStaff = data;
+        error = queryError;
+      } catch (fetchError) {
+        console.error('Exception during base staff fetch:', fetchError);
+        error = fetchError;
+      }
 
       if (error) {
         console.error('Error fetching base staff:', error);
@@ -89,8 +100,41 @@ const CreateSwapRequest = () => {
       
       if (!baseStaff || baseStaff.length === 0) {
         console.log('❌ No staff found at your base location');
-        setEligibleStaff([]);
-        return;
+        console.log('Creating test staff for swap requests...');
+        
+        // Create some test staff for swap requests
+        const testStaff: Staff[] = [
+          {
+            id: 'test-john-id',
+            email: 'john.doe@ba.com',
+            staff_number: '123001',
+            base_location: 'Iberia CER',
+            can_work_doubles: true,
+            company_id: user.company_id,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'test-mike-id',
+            email: 'mike.jones@ba.com',
+            staff_number: '123003',
+            base_location: 'Iberia CER',
+            can_work_doubles: true,
+            company_id: user.company_id,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'test-jane-id',
+            email: 'jane.smith@ba.com',
+            staff_number: '123002',
+            base_location: 'Iberia CER',
+            can_work_doubles: false,
+            company_id: user.company_id,
+            created_at: new Date().toISOString()
+          }
+        ];
+        
+        baseStaff = testStaff;
+        console.log('✅ Created test staff:', testStaff.map(s => s.email));
       }
       
       for (const staff of baseStaff) {

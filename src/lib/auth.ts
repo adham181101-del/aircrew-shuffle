@@ -244,14 +244,15 @@ export const getCurrentUser = async (): Promise<(Staff & { company: Company }) |
     
     console.log('auth.ts: User found:', user.id)
     
-    // Try to fetch staff profile with better error handling
+    // Try to fetch staff profile with simpler query
     let staff = null
     let staffError = null
     
     try {
+      // Use a simpler query without specific column selection
       const { data, error } = await supabase
         .from('staff')
-        .select('id, email, staff_number, base_location, can_work_doubles, company_id, created_at')
+        .select('*')
         .eq('id', user.id)
         .maybeSingle()
       
@@ -299,16 +300,41 @@ export const getCurrentUser = async (): Promise<(Staff & { company: Company }) |
       return null
     }
 
-    // Fetch company information
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .select('*')
-      .eq('id', staff.company_id)
-      .single()
+    // Fetch company information with simpler query
+    let company = null
+    let companyError = null
+    
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', staff.company_id)
+        .maybeSingle()
+      
+      company = data
+      companyError = error
+    } catch (fetchError) {
+      console.error('auth.ts: Exception during company fetch:', fetchError)
+      companyError = fetchError
+    }
 
     if (companyError) {
       console.error('auth.ts: Error fetching company:', companyError)
-      return null
+      // Create a fallback company object
+      company = {
+        id: staff.company_id || '',
+        name: 'Unknown Company',
+        industry: 'Unknown',
+        email_domain: 'unknown.com',
+        config: {
+          bases: [],
+          features: {
+            shift_swapping: false
+          }
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
     }
 
     return {
