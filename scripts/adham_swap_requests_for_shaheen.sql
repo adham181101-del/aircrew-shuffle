@@ -14,8 +14,21 @@ FROM public.staff
 WHERE email IN ('adham.fati.el.hamzaouy@ba.com', 'shaheen.amin@ba.com')
 ORDER BY email;
 
--- Get all of Adham's shifts
-SELECT '=== ADHAMS SHIFTS ===' as info;
+-- Check what data exists in the shifts table
+SELECT '=== ALL SHIFTS IN DATABASE (FIRST 20) ===' as info;
+SELECT 
+  s.id as shift_id,
+  s.date,
+  s.time,
+  st.email,
+  st.staff_number
+FROM public.shifts s
+JOIN public.staff st ON s.staff_id = st.id
+ORDER BY s.date DESC, s.time
+LIMIT 20;
+
+-- Get all of Adham's shifts (ALL MONTHS)
+SELECT '=== ADHAMS SHIFTS (ALL MONTHS) ===' as info;
 SELECT 
   s.id as shift_id,
   s.date,
@@ -25,10 +38,10 @@ SELECT
 FROM public.shifts s
 JOIN public.staff st ON s.staff_id = st.id
 WHERE st.email = 'adham.fati.el.hamzaouy@ba.com'
-ORDER BY s.date, s.time;
+ORDER BY s.date DESC, s.time;
 
--- Get all of Shaheen's shifts
-SELECT '=== SHAHEENS SHIFTS ===' as info;
+-- Get all of Shaheen's shifts (ALL MONTHS)
+SELECT '=== SHAHEENS SHIFTS (ALL MONTHS) ===' as info;
 SELECT 
   s.id as shift_id,
   s.date,
@@ -38,10 +51,10 @@ SELECT
 FROM public.shifts s
 JOIN public.staff st ON s.staff_id = st.id
 WHERE st.email = 'shaheen.amin@ba.com'
-ORDER BY s.date, s.time;
+ORDER BY s.date DESC, s.time;
 
--- Find Adham's shifts where Shaheen is OFF (Shaheen will be available for swap)
-SELECT '=== ADHAMS SHIFTS WHERE SHAHEEN IS AVAILABLE ===' as info;
+-- Find Adham's shifts where Shaheen is OFF (Shaheen will be available for swap) - ALL MONTHS
+SELECT '=== ADHAMS SHIFTS WHERE SHAHEEN IS AVAILABLE (ALL MONTHS) ===' as info;
 SELECT 
   adham_shifts.shift_id,
   adham_shifts.date,
@@ -61,10 +74,10 @@ WHERE NOT EXISTS (
   WHERE st2.email = 'shaheen.amin@ba.com'
   AND s2.date = adham_shifts.date
 )
-ORDER BY adham_shifts.date, adham_shifts.time;
+ORDER BY adham_shifts.date DESC, adham_shifts.time;
 
--- Find Adham's shifts where Shaheen is also working (Shaheen will NOT be available)
-SELECT '=== ADHAMS SHIFTS WHERE SHAHEEN IS NOT AVAILABLE ===' as info;
+-- Find Adham's shifts where Shaheen is also working (Shaheen will NOT be available) - ALL MONTHS
+SELECT '=== ADHAMS SHIFTS WHERE SHAHEEN IS NOT AVAILABLE (ALL MONTHS) ===' as info;
 SELECT 
   adham_shifts.shift_id,
   adham_shifts.date,
@@ -84,10 +97,10 @@ WHERE EXISTS (
   WHERE st2.email = 'shaheen.amin@ba.com'
   AND s2.date = adham_shifts.date
 )
-ORDER BY adham_shifts.date, adham_shifts.time;
+ORDER BY adham_shifts.date DESC, adham_shifts.time;
 
--- Summary for testing
-SELECT '=== TESTING SUMMARY ===' as info;
+-- Summary for testing - ALL MONTHS
+SELECT '=== TESTING SUMMARY (ALL MONTHS) ===' as info;
 SELECT 
   'Adham shifts where Shaheen is available (TEST THESE):' as type,
   COUNT(*) as count
@@ -122,8 +135,8 @@ FROM (
   )
 ) both_working_shifts;
 
--- Specific test cases with shift IDs
-SELECT '=== SPECIFIC TEST CASES ===' as info;
+-- Specific test cases with shift IDs - ALL MONTHS
+SELECT '=== SPECIFIC TEST CASES (ALL MONTHS) ===' as info;
 SELECT 
   'Use these shift IDs for testing swap requests:' as instruction;
 SELECT 
@@ -140,5 +153,37 @@ AND NOT EXISTS (
   WHERE st2.email = 'shaheen.amin@ba.com'
   AND s2.date = s.date
 )
-ORDER BY s.date, s.time
-LIMIT 5;
+ORDER BY s.date DESC, s.time
+LIMIT 10;
+
+-- Check if we have any data at all
+SELECT '=== DATA VERIFICATION ===' as info;
+SELECT 
+  'Total shifts in database:' as info,
+  COUNT(*) as count
+FROM public.shifts
+
+UNION ALL
+
+SELECT 
+  'Total staff in database:' as info,
+  COUNT(*) as count
+FROM public.staff
+
+UNION ALL
+
+SELECT 
+  'Adham shifts count:' as info,
+  COUNT(*) as count
+FROM public.shifts s
+JOIN public.staff st ON s.staff_id = st.id
+WHERE st.email = 'adham.fati.el.hamzaouy@ba.com'
+
+UNION ALL
+
+SELECT 
+  'Shaheen shifts count:' as info,
+  COUNT(*) as count
+FROM public.shifts s
+JOIN public.staff st ON s.staff_id = st.id
+WHERE st.email = 'shaheen.amin@ba.com';
