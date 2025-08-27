@@ -69,102 +69,68 @@ const CreateSwapRequest = () => {
       console.log(`Your base location: ${user.base_location}`);
       console.log(`Looking for staff who are OFF on ${shift.date}`);
 
-      // Instead of trying to fetch from database (which is failing),
-      // create mock staff data for swap requests
-      console.log('Creating mock staff data for swap requests...');
+      // Fetch all staff at the same base location
+      console.log('Fetching staff from database...');
       
-      const mockStaff: Staff[] = [
-        {
-          id: 'mock-john-id',
-          email: 'john.doe@ba.com',
-          staff_number: '123001',
-          base_location: 'Iberia CER',
-          can_work_doubles: true,
-          company_id: user.company_id,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 'mock-mike-id',
-          email: 'mike.jones@ba.com',
-          staff_number: '123003',
-          base_location: 'Iberia CER',
-          can_work_doubles: true,
-          company_id: user.company_id,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 'mock-jane-id',
-          email: 'jane.smith@ba.com',
-          staff_number: '123002',
-          base_location: 'Iberia CER',
-          can_work_doubles: false,
-          company_id: user.company_id,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 'mock-sarah-id',
-          email: 'sarah.wilson@ba.com',
-          staff_number: '123004',
-          base_location: 'Iberia CER',
-          can_work_doubles: false,
-          company_id: user.company_id,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 'mock-david-id',
-          email: 'david.brown@ba.com',
-          staff_number: '123005',
-          base_location: 'Iberia CER',
-          can_work_doubles: true,
-          company_id: user.company_id,
-          created_at: new Date().toISOString()
-        }
-      ];
+      const { data: baseStaff, error: staffError } = await supabase
+        .from('staff')
+        .select('*')
+        .eq('base_location', user.base_location)
+        .neq('id', user.id);
 
-      // Filter to only staff at the same base location
-      const baseStaff = mockStaff.filter(staff => 
-        staff.base_location === user.base_location && 
-        staff.id !== user.id
-      );
+      if (staffError) {
+        console.error('Error fetching staff:', staffError);
+        throw staffError;
+      }
 
-      console.log(`Found ${baseStaff.length} staff members at ${user.base_location}`);
-      console.log(`Base staff:`, baseStaff.map(s => ({ email: s.email, staff_number: s.staff_number, id: s.id })));
+      console.log(`Found ${baseStaff?.length || 0} staff members at ${user.base_location}`);
+      console.log(`Base staff:`, baseStaff?.map(s => ({ email: s.email, staff_number: s.staff_number, id: s.id })));
       
-      // Check who's available on that date (mock availability)
+      if (!baseStaff || baseStaff.length === 0) {
+        console.log('No staff found at this base location');
+        setEligibleStaff([]);
+        return;
+      }
+
+      // Get all shifts for the selected date to see who's working
+      console.log('Fetching shifts for the selected date...');
+      
+      const { data: shiftsOnDate, error: shiftsError } = await supabase
+        .from('shifts')
+        .select(`
+          id,
+          date,
+          time,
+          staff_id,
+          staff:staff_id(email, staff_number, base_location)
+        `)
+        .eq('date', shift.date);
+
+      if (shiftsError) {
+        console.error('Error fetching shifts:', shiftsError);
+        throw shiftsError;
+      }
+
+      console.log(`Found ${shiftsOnDate?.length || 0} shifts on ${shift.date}`);
+      console.log(`Shifts on date:`, shiftsOnDate);
+
+      // Create a set of staff IDs who are working on this date
+      const workingStaffIds = new Set(shiftsOnDate?.map(s => s.staff_id) || []);
+      
+      console.log(`Staff working on ${shift.date}:`, Array.from(workingStaffIds));
+
+      // Filter to eligible staff (those who are OFF on the selected date)
       const eligibleList: Staff[] = [];
-      
-      // Create mock availability based on the date
-      const dateObj = new Date(shift.date);
-      const dayOfMonth = dateObj.getDate();
-      
-      // Simple mock logic: staff are available on certain days
-      // Mike is off on days ending in 0, 5
-      // Jane is off on days ending in 1, 6  
-      // Sarah is off on days ending in 2, 7
-      // David is off on days ending in 3, 8
-      // John is off on days ending in 4, 9
       
       for (const staff of baseStaff) {
         console.log(`\n--- Checking ${staff.email} (${staff.staff_number}) ---`);
         
-        let isAvailable = false;
+        const isWorkingOnDate = workingStaffIds.has(staff.id);
         
-        if (staff.email === 'mike.jones@ba.com') {
-          isAvailable = dayOfMonth % 10 === 0 || dayOfMonth % 10 === 5;
-        } else if (staff.email === 'jane.smith@ba.com') {
-          isAvailable = dayOfMonth % 10 === 1 || dayOfMonth % 10 === 6;
-        } else if (staff.email === 'sarah.wilson@ba.com') {
-          isAvailable = dayOfMonth % 10 === 2 || dayOfMonth % 10 === 7;
-        } else if (staff.email === 'david.brown@ba.com') {
-          isAvailable = dayOfMonth % 10 === 3 || dayOfMonth % 10 === 8;
-        } else if (staff.email === 'john.doe@ba.com') {
-          isAvailable = dayOfMonth % 10 === 4 || dayOfMonth % 10 === 9;
-        }
+        console.log(`Staff ${staff.email} (${staff.staff_number}): ${isWorkingOnDate ? 'WORKING' : 'OFF'} on ${shift.date}`);
         
-        console.log(`Staff ${staff.email} (${staff.staff_number}): ${isAvailable ? 'OFF' : 'WORKING'} on ${shift.date}`);
-        
-        if (isAvailable) {
-          console.log(`  ✅ Staff ${staff.email} is eligible (OFF + WHL compliant)`);
+        if (!isWorkingOnDate) {
+          console.log(`  ✅ Staff ${staff.email} is eligible (OFF on ${shift.date})`);
           eligibleList.push(staff);
         } else {
           console.log(`  ❌ Staff ${staff.email} excluded - they are working on ${shift.date}`);
@@ -173,14 +139,14 @@ const CreateSwapRequest = () => {
 
       console.log(`\n=== FINAL RESULTS ===`);
       console.log(`Total staff at ${user.base_location}: ${baseStaff.length}`);
-      console.log(`Eligible staff (OFF + WHL compliant): ${eligibleList.length}`);
+      console.log(`Staff working on ${shift.date}: ${workingStaffIds.size}`);
+      console.log(`Eligible staff (OFF): ${eligibleList.length}`);
       console.log(`Eligible staff:`, eligibleList.map(s => s.email));
       
       if (eligibleList.length === 0) {
         console.log(`❌ NO ELIGIBLE STAFF FOUND!`);
-        console.log(`This could mean:`);
-        console.log(`1. All staff are working on ${shift.date}`);
-        console.log(`2. Try a different date for swap requests`);
+        console.log(`This means all staff are working on ${shift.date}`);
+        console.log(`Try a different date for swap requests`);
       }
       
       setEligibleStaff(eligibleList);
