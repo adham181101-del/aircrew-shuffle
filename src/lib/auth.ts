@@ -72,9 +72,10 @@ export const signUp = async (
 
   if (companyError) throw new Error('Invalid company selected')
 
-  if (!validateEmail(email, company.email_domain)) {
-    throw new Error(`Please use your @${company.email_domain} email address`)
-  }
+  // TEMPORARILY DISABLED: Allow all email domains for testing
+  // if (!validateEmail(email, company.email_domain)) {
+  //   throw new Error(`Please use your @${company.email_domain} email address`)
+  // }
   
   if (!validateStaffNumber(staffNumber)) {
     throw new Error('Staff number must be 4-10 digits')
