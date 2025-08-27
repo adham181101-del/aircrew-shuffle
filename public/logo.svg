@@ -1,27 +1,54 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background circle -->
-  <circle cx="32" cy="32" r="30" fill="black"/>
-  
-  <!-- Yellow clock face -->
-  <circle cx="32" cy="32" r="12" fill="#FFD700" stroke="#FFD700" stroke-width="2"/>
-  
-  <!-- Clock hands -->
-  <line x1="32" y1="32" x2="32" y2="24" stroke="black" stroke-width="2" stroke-linecap="round"/>
-  <line x1="32" y1="32" x2="38" y2="38" stroke="black" stroke-width="2" stroke-linecap="round"/>
-  
-  <!-- Top curved arrow -->
-  <path d="M 8 32 Q 32 8 56 32" stroke="white" stroke-width="4" fill="none" stroke-linecap="round" marker-end="url(#arrowhead)"/>
-  
-  <!-- Bottom curved arrow -->
-  <path d="M 56 32 Q 32 56 8 32" stroke="white" stroke-width="4" fill="none" stroke-linecap="round" marker-end="url(#arrowhead2)"/>
-  
-  <!-- Arrow markers -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Background gradient -->
   <defs>
-    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="white"/>
-    </marker>
-    <marker id="arrowhead2" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="white"/>
-    </marker>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8EAF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C5CAE9;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Golden circle gradient -->
+    <radialGradient id="goldGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
+    </radialGradient>
+    
+    <!-- Glow filter for arrows -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
+  
+  <!-- Background -->
+  <rect width="64" height="64" fill="url(#bgGradient)"/>
+  
+  <!-- Glowing white arrows (counter-clockwise) -->
+  <g filter="url(#glow)">
+    <!-- Top arrow -->
+    <path d="M32 8 L40 16 L36 20 L28 12 Z" fill="white" opacity="0.9"/>
+    <!-- Right arrow -->
+    <path d="M48 32 L56 40 L52 44 L44 36 Z" fill="white" opacity="0.9"/>
+    <!-- Bottom arrow -->
+    <path d="M32 56 L40 48 L36 44 L28 52 Z" fill="white" opacity="0.9"/>
+    <!-- Left arrow -->
+    <path d="M16 32 L8 24 L12 20 L20 28 Z" fill="white" opacity="0.9"/>
+  </g>
+  
+  <!-- Golden circle with shadow -->
+  <circle cx="32" cy="32" r="16" fill="url(#goldGradient)" stroke="#B8860B" stroke-width="1"/>
+  
+  <!-- Inner shadow effect -->
+  <circle cx="32" cy="32" r="14" fill="none" stroke="rgba(0,0,0,0.2)" stroke-width="1"/>
+  
+  <!-- Clock hands (4 o'clock and 8 o'clock positions) -->
+  <!-- Hour hand (thicker, shorter) -->
+  <line x1="32" y1="32" x2="28" y2="28" stroke="#FFF8DC" stroke-width="3" stroke-linecap="round"/>
+  <!-- Minute hand (thinner, longer) -->
+  <line x1="32" y1="32" x2="36" y2="24" stroke="#FFF8DC" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Center dot -->
+  <circle cx="32" cy="32" r="2" fill="#FFF8DC"/>
 </svg>

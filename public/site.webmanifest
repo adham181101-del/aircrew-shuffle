@@ -13,6 +13,11 @@
       "type": "image/svg+xml"
     },
     {
+      "src": "/logo.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml"
+    },
+    {
       "src": "/favicon-32x32.png",
       "sizes": "32x32",
       "type": "image/png"
