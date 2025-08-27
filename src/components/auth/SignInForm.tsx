@@ -24,13 +24,20 @@ export const SignInForm = () => {
     console.log('SignInForm: Starting login process...')
 
     try {
+      // Add timeout protection
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout - please try again')), 30000)
+      )
+
       console.log('SignInForm: Calling signIn...')
-      await signIn(formData.email, formData.password)
+      const signInPromise = signIn(formData.email, formData.password)
+      await Promise.race([signInPromise, timeoutPromise])
       console.log('SignInForm: signIn successful')
       
       // Refresh the auth state to get the current user
       console.log('SignInForm: Refreshing user...')
-      await refreshUser()
+      const refreshPromise = refreshUser()
+      await Promise.race([refreshPromise, timeoutPromise])
       console.log('SignInForm: User refreshed')
       
       toast({
@@ -43,9 +50,23 @@ export const SignInForm = () => {
       window.location.href = '/dashboard'
     } catch (error) {
       console.error('SignInForm: Login error:', error)
+      
+      let errorMessage = "Please check your credentials"
+      if (error instanceof Error) {
+        if (error.message.includes('timeout')) {
+          errorMessage = "Connection timeout - please check your internet and try again"
+        } else if (error.message.includes('Invalid login credentials')) {
+          errorMessage = "Invalid email or password"
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = "Please check your email and confirm your account"
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       toast({
         title: "Sign in failed",
-        description: error instanceof Error ? error.message : "Please check your credentials",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {
@@ -84,7 +105,7 @@ export const SignInForm = () => {
         disabled={loading}
       >
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Sign In
+        {loading ? 'Signing In...' : 'Sign In'}
       </Button>
 
       <div className="text-center">
