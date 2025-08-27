@@ -119,16 +119,19 @@ export const SignUpForm = () => {
 
       <div className="space-y-2">
         <Label htmlFor="email">
-          {selectedCompany ? `${selectedCompany.name} Email` : 'Work Email Address'}
+          Email Address (Any domain allowed for testing)
         </Label>
         <Input
           id="email"
           type="email"
-          placeholder="your.name@company.com"
+          placeholder="your.email@anydomain.com"
           value={formData.email}
           onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
           required
         />
+        <p className="text-sm text-muted-foreground">
+          Temporarily allowing any email domain for testing purposes
+        </p>
       </div>
 
       <div className="space-y-2">
