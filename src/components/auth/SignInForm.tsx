@@ -13,7 +13,6 @@ export const SignInForm = () => {
   const { toast } = useToast()
   const { refreshUser } = useAuth()
   const [loading, setLoading] = useState(false)
-  const [loginSuccess, setLoginSuccess] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -35,40 +34,16 @@ export const SignInForm = () => {
       await Promise.race([signInPromise, timeoutPromise])
       console.log('SignInForm: signIn successful')
       
-      // Wait a moment for Supabase session to be established
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      toast({
+        title: "Welcome back!",
+        description: "Successfully signed in"
+      })
       
-      console.log('SignInForm: Redirecting to dashboard...')
-      
-      // Try multiple redirect methods for maximum compatibility
-      try {
-        // Method 1: Direct location change
+      // Wait for auth state to update, then redirect
+      setTimeout(() => {
+        console.log('SignInForm: Redirecting to dashboard...')
         window.location.href = '/dashboard'
-        
-        // Method 2: Fallback after a short delay
-        setTimeout(() => {
-          if (window.location.pathname !== '/dashboard') {
-            console.log('SignInForm: Fallback redirect triggered')
-            window.location.replace('/dashboard')
-          }
-        }, 500)
-        
-        // Method 3: Final fallback
-        setTimeout(() => {
-          if (window.location.pathname !== '/dashboard') {
-            console.log('SignInForm: Final fallback redirect')
-            window.location.assign('/dashboard')
-          }
-        }, 2000)
-      } catch (redirectError) {
-        console.error('SignInForm: Redirect error:', redirectError)
-        // Last resort: show success message and manual redirect
-        setLoginSuccess(true)
-        toast({
-          title: "Login successful!",
-          description: "Please click the dashboard button below",
-        })
-      }
+      }, 1500)
     } catch (error) {
       console.error('SignInForm: Login error:', error)
       
@@ -120,24 +95,14 @@ export const SignInForm = () => {
         />
       </div>
 
-      {loginSuccess ? (
-        <Button 
-          type="button"
-          onClick={() => window.location.href = '/dashboard'}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 transition-colors"
-        >
-          Go to Dashboard
-        </Button>
-      ) : (
-        <Button 
-          type="submit" 
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 transition-colors"
-          disabled={loading}
-        >
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {loading ? 'Signing In...' : 'Sign In'}
-        </Button>
-      )}
+      <Button 
+        type="submit" 
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 transition-colors"
+        disabled={loading}
+      >
+        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {loading ? 'Signing In...' : 'Sign In'}
+      </Button>
 
       <div className="text-center">
         <Button

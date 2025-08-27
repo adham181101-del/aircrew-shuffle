@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getCurrentUser, type Staff, type Company } from '@/lib/auth'
+import { supabase } from '@/integrations/supabase/client'
 
 export const useAuthState = () => {
   const [user, setUser] = useState<(Staff & { company: Company }) | null>(null)
@@ -63,10 +64,39 @@ export const useAuthState = () => {
       }
     }
 
+    // Set up Supabase auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('useAuthState: Auth state change:', event, session)
+        
+        if (!mounted) return
+        
+        if (event === 'SIGNED_IN' && session) {
+          console.log('useAuthState: User signed in, refreshing user data')
+          setLoading(true)
+          try {
+            const currentUser = await getCurrentUser()
+            console.log('useAuthState: Updated user data:', currentUser)
+            setUser(currentUser)
+          } catch (error) {
+            console.error('useAuthState: Error updating user data:', error)
+            setUser(null)
+          } finally {
+            setLoading(false)
+          }
+        } else if (event === 'SIGNED_OUT') {
+          console.log('useAuthState: User signed out')
+          setUser(null)
+          setLoading(false)
+        }
+      }
+    )
+
     initializeAuth()
 
     return () => {
       mounted = false
+      subscription.unsubscribe()
     }
   }, [])
 
