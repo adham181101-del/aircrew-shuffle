@@ -75,6 +75,8 @@ const CreateSwapRequest = () => {
       // Check who's available on that date
       const eligibleList: Staff[] = [];
       
+      console.log(`Looking for staff at ${user.base_location} who are OFF on ${shift.date}`);
+      
       for (const staff of baseStaff || []) {
         const { data: staffShifts } = await supabase
           .from('shifts')
@@ -84,18 +86,22 @@ const CreateSwapRequest = () => {
 
         const hasShiftOnDate = (staffShifts?.length || 0) > 0;
         
-        // Staff is eligible if:
-        // 1. They don't have a shift that day (OFF)
-        // 2. OR they can work doubles and have a compatible shift
-        if (!hasShiftOnDate || staff.can_work_doubles) {
+        console.log(`Staff ${staff.email}: ${hasShiftOnDate ? 'WORKING' : 'OFF'} on ${shift.date}`);
+        
+        // Staff is eligible if they DON'T have a shift that day (they are OFF)
+        // For swap requests, we only want staff who are off duty
+        if (!hasShiftOnDate) {
           // Check WHL compliance for the potential new shift
           const whlValidation = await validateWHL(staff.id, shift.date, shift.time);
           
           if (whlValidation.isValid) {
+            console.log(`Staff ${staff.email} is eligible (OFF + WHL compliant)`);
             eligibleList.push(staff);
           } else {
             console.log(`Staff ${staff.email} excluded due to WHL violations:`, whlValidation.violations);
           }
+        } else {
+          console.log(`Staff ${staff.email} excluded - they are working on ${shift.date}`);
         }
       }
 
@@ -153,7 +159,7 @@ const CreateSwapRequest = () => {
 
       toast({
         title: "Swap Request Sent!",
-        description: `Your swap request has been sent to ${eligibleStaff.length} eligible staff members`,
+        description: `Your swap request has been sent to ${eligibleStaff.length} staff members who are off duty on ${selectedShiftData?.date}`,
       });
       
       navigate('/swaps');
@@ -193,7 +199,7 @@ const CreateSwapRequest = () => {
                 Request a Shift Swap
               </CardTitle>
               <CardDescription>
-                Select a shift you want to swap and we'll find eligible staff members to send your request to.
+                Select a shift you want to swap and we'll find staff members who are off duty on that day to send your request to.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -260,7 +266,7 @@ const CreateSwapRequest = () => {
                           <CardContent className="pt-6">
                             <div className="space-y-2">
                               <p className="text-sm text-muted-foreground mb-3">
-                                Your request will be sent to {eligibleStaff.length} eligible staff member(s):
+                                Your request will be sent to {eligibleStaff.length} staff member(s) who are OFF on {selectedShiftData?.date}:
                               </p>
                               <div className="flex flex-wrap gap-2">
                                 {eligibleStaff.map((staff) => (
@@ -279,7 +285,7 @@ const CreateSwapRequest = () => {
                             No eligible staff found for this shift
                           </p>
                           <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                            Staff members are eligible if they're OFF that day or can work doubles.
+                            Staff members are eligible if they're OFF on {selectedShiftData?.date}.
                           </p>
                         </div>
                       )}
