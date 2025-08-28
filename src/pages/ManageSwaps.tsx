@@ -125,7 +125,8 @@ const ManageSwaps = () => {
     const variants: Record<string, any> = {
       pending: "secondary",
       accepted: "default",
-      declined: "destructive"
+      declined: "destructive",
+      counter_offered: "outline"
     };
     return variants[status] || "secondary";
   };
@@ -416,7 +417,7 @@ const ManageSwaps = () => {
       const { error } = await supabase
         .from('swap_requests')
         .update({ 
-          status: 'accepted',
+          status: 'counter_offered',
           accepter_shift_id: null, // No specific shift, just a date
           counter_offer_date: selectedCounterOffer.date // Store the offered date
         })
@@ -430,8 +431,8 @@ const ManageSwaps = () => {
       console.log('Swap request updated successfully');
 
       toast({
-        title: "Swap Accepted",
-        description: "You have accepted the swap request with your counter-offer",
+        title: "Counter-Offer Sent",
+        description: "Your counter-offer has been sent to the requester",
       });
 
       // Reset counter-offer state
@@ -473,6 +474,82 @@ const ManageSwaps = () => {
       toast({
         title: "Error",
         description: "Failed to reject swap request",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAcceptCounterOffer = async (swapId: string) => {
+    try {
+      console.log('=== ACCEPTING COUNTER-OFFER ===');
+      console.log('Swap ID:', swapId);
+      
+      // Update the swap request status to accepted
+      const { error } = await supabase
+        .from('swap_requests')
+        .update({ 
+          status: 'accepted'
+        })
+        .eq('id', swapId);
+
+      if (error) {
+        console.error('Error accepting counter-offer:', error);
+        throw error;
+      }
+
+      console.log('Counter-offer accepted successfully');
+
+      toast({
+        title: "Counter-Offer Accepted",
+        description: "You have accepted the counter-offer",
+      });
+
+      if (user) {
+        await loadMyRequests(user.id);
+      }
+    } catch (error) {
+      console.error('Error in handleAcceptCounterOffer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to accept counter-offer",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRejectCounterOffer = async (swapId: string) => {
+    try {
+      console.log('=== REJECTING COUNTER-OFFER ===');
+      console.log('Swap ID:', swapId);
+      
+      // Update the swap request status to declined
+      const { error } = await supabase
+        .from('swap_requests')
+        .update({ 
+          status: 'declined'
+        })
+        .eq('id', swapId);
+
+      if (error) {
+        console.error('Error rejecting counter-offer:', error);
+        throw error;
+      }
+
+      console.log('Counter-offer rejected successfully');
+
+      toast({
+        title: "Counter-Offer Rejected",
+        description: "You have rejected the counter-offer",
+      });
+
+      if (user) {
+        await loadMyRequests(user.id);
+      }
+    } catch (error) {
+      console.error('Error in handleRejectCounterOffer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject counter-offer",
         variant: "destructive"
       });
     }
@@ -752,6 +829,44 @@ const ManageSwaps = () => {
                               <p className="text-xs text-green-700 dark:text-green-300 mt-2">
                                 {request.accepter_staff?.staff_number} will cover your shift on {request.requester_shift?.date}
                               </p>
+                            </div>
+                          )}
+                          
+                          {request.status === 'counter_offered' && request.counter_offer_date && (
+                            <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-lg mt-3">
+                              <h4 className="font-medium text-sm mb-2">COUNTER-OFFER RECEIVED</h4>
+                              <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4" />
+                                  <span>{request.counter_offer_date}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                                    Available for swap
+                                  </span>
+                                </div>
+                              </div>
+                              <p className="text-xs text-orange-700 dark:text-orange-300 mt-2">
+                                {request.accepter_staff?.staff_number} is offering to work your shift on {request.requester_shift?.date} in exchange for you working their shift on {request.counter_offer_date}
+                              </p>
+                              
+                              <div className="flex gap-2 mt-3">
+                                <Button 
+                                  onClick={() => handleAcceptCounterOffer(request.id)}
+                                  size="sm"
+                                  className="flex-1"
+                                >
+                                  Accept Counter-Offer
+                                </Button>
+                                <Button 
+                                  variant="outline"
+                                  onClick={() => handleRejectCounterOffer(request.id)}
+                                  size="sm"
+                                  className="flex-1"
+                                >
+                                  Reject Counter-Offer
+                                </Button>
+                              </div>
                             </div>
                           )}
                         </CardContent>
