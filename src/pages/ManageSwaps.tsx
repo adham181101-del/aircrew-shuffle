@@ -617,9 +617,12 @@ const ManageSwaps = () => {
             </div>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="incoming">
                   Incoming ({incomingRequests.length})
+                </TabsTrigger>
+                <TabsTrigger value="counter-offers">
+                  Counter Offers ({myRequests.filter(r => r.status === 'pending' && r.counter_offer_date).length})
                 </TabsTrigger>
                 <TabsTrigger value="my-requests">
                   My Requests ({myRequests.length})
@@ -798,6 +801,101 @@ const ManageSwaps = () => {
                 )}
               </TabsContent>
 
+              <TabsContent value="counter-offers" className="space-y-4">
+                <div className="text-center mb-6">
+                  <h2 className="text-xl font-semibold mb-2">Counter Offers to Review</h2>
+                  <p className="text-muted-foreground">
+                    Review counter-offers from crew members responding to your swap requests
+                  </p>
+                </div>
+
+                {myRequests.filter(r => r.status === 'pending' && r.counter_offer_date).length === 0 ? (
+                  <Card>
+                    <CardContent className="pt-6 text-center">
+                      <ArrowLeftRight className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-lg font-medium mb-2">No counter offers</p>
+                      <p className="text-muted-foreground">
+                        You don't have any counter-offers to review at the moment.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {myRequests
+                      .filter(request => request.status === 'pending' && request.counter_offer_date)
+                      .map((request) => (
+                      <Card key={request.id}>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="flex items-center gap-2">
+                              <User className="h-5 w-5" />
+                              Counter Offer from {request.accepter_staff?.staff_number}
+                            </CardTitle>
+                            <Badge variant="outline" className="text-orange-600 border-orange-300">
+                              Counter Offer
+                            </Badge>
+                          </div>
+                          <CardDescription>
+                            Received {format(new Date(request.created_at), 'MMM d, yyyy')}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
+                            <h4 className="font-medium text-sm mb-2">YOUR ORIGINAL SHIFT</h4>
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                <span>{request.requester_shift?.date}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                <span>{request.requester_shift?.time}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-lg mt-3">
+                            <h4 className="font-medium text-sm mb-2">COUNTER-OFFER RECEIVED</h4>
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                <span>{request.counter_offer_date}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-600 dark:text-gray-400">
+                                  Available for swap
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-orange-700 dark:text-orange-300 mt-2">
+                              {request.accepter_staff?.staff_number} is offering to work your shift on {request.requester_shift?.date} in exchange for you working their shift on {request.counter_offer_date}
+                            </p>
+                            
+                            <div className="flex gap-2 mt-3">
+                              <Button 
+                                onClick={() => handleAcceptCounterOffer(request.id)}
+                                size="sm"
+                                className="flex-1"
+                              >
+                                Accept Counter-Offer
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                onClick={() => handleRejectCounterOffer(request.id)}
+                                size="sm"
+                                className="flex-1"
+                              >
+                                Reject Counter-Offer
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
               <TabsContent value="my-requests" className="space-y-4">
                 <div className="text-center mb-6">
                   <h2 className="text-xl font-semibold mb-2">Your Swap Requests</h2>
@@ -851,7 +949,7 @@ const ManageSwaps = () => {
                           
                           {request.status === 'accepted' && request.accepter_shift && (
                             <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg mt-3">
-                              <h4 className="font-medium text-sm mb-2">COUNTER-OFFER ACCEPTED</h4>
+                              <h4 className="font-medium text-sm mb-2">SWAP ACCEPTED</h4>
                               <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-2">
                                   <Calendar className="h-4 w-4" />
@@ -869,40 +967,11 @@ const ManageSwaps = () => {
                           )}
                           
                           {request.status === 'pending' && request.counter_offer_date && (
-                            <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-lg mt-3">
-                              <h4 className="font-medium text-sm mb-2">COUNTER-OFFER RECEIVED</h4>
-                              <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="h-4 w-4" />
-                                  <span>{request.counter_offer_date}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-gray-600 dark:text-gray-400">
-                                    Available for swap
-                                  </span>
-                                </div>
-                              </div>
-                              <p className="text-xs text-orange-700 dark:text-orange-300 mt-2">
-                                {request.accepter_staff?.staff_number} is offering to work your shift on {request.requester_shift?.date} in exchange for you working their shift on {request.counter_offer_date}
+                            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg mt-3">
+                              <h4 className="font-medium text-sm mb-2">COUNTER-OFFER PENDING</h4>
+                              <p className="text-xs text-blue-700 dark:text-blue-300">
+                                A counter-offer has been made. Check the "Counter Offers" tab to review it.
                               </p>
-                              
-                              <div className="flex gap-2 mt-3">
-                                <Button 
-                                  onClick={() => handleAcceptCounterOffer(request.id)}
-                                  size="sm"
-                                  className="flex-1"
-                                >
-                                  Accept Counter-Offer
-                                </Button>
-                                <Button 
-                                  variant="outline"
-                                  onClick={() => handleRejectCounterOffer(request.id)}
-                                  size="sm"
-                                  className="flex-1"
-                                >
-                                  Reject Counter-Offer
-                                </Button>
-                              </div>
                             </div>
                           )}
                         </CardContent>
