@@ -240,22 +240,36 @@ const ManageSwaps = () => {
         console.log(`User shifts on ${date}:`, userShiftsOnThisDate);
         console.log(`Requester shifts on ${date}:`, requesterShiftsOnThisDate);
         
-        // CASE 1: If user is OFF on this date AND requester is working, they can offer it as a counter-offer
+        // CASE 1: Standard swap - User is OFF and requester is working
         if (userIsOffOnThisDate && requesterIsWorkingOnThisDate) {
-          console.log(`✅ ${date} - User is OFF and requester is working, can offer this date`);
+          console.log(`✅ ${date} - Standard swap: User is OFF and requester is working`);
           return true;
         }
         
-        // CASE 2: If user is working on this date, they can only offer it if:
-        // - They can work doubles AND
-        // - They are also working on the requester's date (meaning they'd be doing a double for the requester)
-        if (userWorkingOnRequesterDate && canWorkDoubles && !userIsOffOnThisDate) {
-          console.log(`✅ ${date} - User is working but can work doubles for requester`);
-          return true;
+        // CASE 2: Time swap - Both are working but with different shift times
+        if (!userIsOffOnThisDate && requesterIsWorkingOnThisDate) {
+          const userShiftTime = userShiftsOnThisDate[0]?.time;
+          const requesterShiftTime = requesterShiftsOnThisDate[0]?.time;
+          
+          console.log(`Time swap check: User shift ${userShiftTime}, Requester shift ${requesterShiftTime}`);
+          
+          // Check for 4:15 ↔ 13:15 swap
+          const isTimeSwap = (
+            (userShiftTime === '04:15' && requesterShiftTime === '13:15') ||
+            (userShiftTime === '13:15' && requesterShiftTime === '04:15')
+          );
+          
+          if (isTimeSwap) {
+            console.log(`✅ ${date} - Time swap: ${userShiftTime} ↔ ${requesterShiftTime}`);
+            return true;
+          } else {
+            console.log(`❌ ${date} - Both working but not compatible times: ${userShiftTime} vs ${requesterShiftTime}`);
+            return false;
+          }
         }
         
-        // CASE 3: User is working on this date but cannot offer it
-        console.log(`❌ ${date} - User is working and cannot offer this date`);
+        // CASE 3: No swap opportunity
+        console.log(`❌ ${date} - No swap opportunity`);
         return false;
       });
 
@@ -558,7 +572,7 @@ const ManageSwaps = () => {
                                   <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
                                     <h4 className="font-medium text-sm mb-2">SELECT A DATE TO OFFER IN EXCHANGE</h4>
                                     <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">
-                                      Choose a date where you are OFF and can work their shift, or a date where you can work a double shift for them.
+                                      Choose a date for an equal exchange: either you're OFF and they're working, or both working with compatible times (4:15 ↔ 13:15).
                                     </p>
                                     
                                     {loadingCounterShifts ? (
@@ -610,7 +624,7 @@ const ManageSwaps = () => {
                                         </p>
                                         <ul className="text-xs text-gray-600 dark:text-gray-400 list-disc list-inside space-y-1">
                                           <li>You are working on all available dates</li>
-                                          <li>You cannot work doubles and are already working on the requested date</li>
+                                          <li>No compatible time swaps available (4:15 ↔ 13:15)</li>
                                           <li>No future dates are available for swapping</li>
                                         </ul>
                                       </div>
