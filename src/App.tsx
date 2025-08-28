@@ -19,21 +19,23 @@ const queryClient = new QueryClient();
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, initialized } = useAuth();
   
-  console.log('ProtectedRoute: user=', user, 'loading=', loading);
+  console.log('ProtectedRoute: user=', user, 'loading=', loading, 'initialized=', initialized);
   
-  // Only show loading for a very short time
-  if (loading) {
+  // Show loading only briefly, with fallback
+  if (loading && !initialized) {
     console.log('ProtectedRoute: Showing loading spinner');
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="mt-4 text-sm text-muted-foreground">Loading your dashboard...</p>
       </div>
     );
   }
   
-  if (!user) {
+  // If initialized but no user, redirect to login
+  if (initialized && !user) {
     console.log('ProtectedRoute: No user, redirecting to login');
     // Use window.location for Safari compatibility
     if (typeof window !== 'undefined') {
@@ -41,6 +43,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       return null;
     }
     return <Navigate to="/login" replace />;
+  }
+  
+  // If still loading after initialization, show content anyway
+  if (loading && initialized) {
+    console.log('ProtectedRoute: Loading but initialized, showing content');
+    return <>{children}</>;
   }
   
   console.log('ProtectedRoute: User authenticated, showing children');
