@@ -455,7 +455,6 @@ const ManageSwaps = () => {
         .from('swap_requests')
         .update({ 
           status: 'counter_offered',
-          accepter_shift_id: null, // No specific shift, just a date
           counter_offer_date: selectedCounterOffer.date // Store the offered date
         })
         .eq('id', swapId);
