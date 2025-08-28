@@ -13,6 +13,7 @@ import Upload from "./pages/Upload";
 import ManageSwaps from "./pages/ManageSwaps";
 import CreateShift from "./pages/CreateShift";
 import CreateSwapRequest from "./pages/CreateSwapRequest";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -89,6 +90,7 @@ const AppRoutes = () => (
     <Route path="/swaps" element={<ProtectedRoute><ManageSwaps /></ProtectedRoute>} />
     <Route path="/swaps/create" element={<ProtectedRoute><CreateSwapRequest /></ProtectedRoute>} />
     <Route path="/shifts/create" element={<ProtectedRoute><CreateShift /></ProtectedRoute>} />
+    <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
     <Route path="*" element={<NotFound />} />
   </Routes>
