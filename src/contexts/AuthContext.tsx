@@ -5,6 +5,7 @@ import { useAuthState } from '@/hooks/useAuthState'
 interface AuthContextType {
   user: (Staff & { company: Company }) | null
   loading: boolean
+  initialized: boolean
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -40,6 +41,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     <AuthContext.Provider value={{
       user,
       loading: loading || !initialized,
+      initialized,
       signOut: handleSignOut,
       refreshUser
     }}>

@@ -8,6 +8,7 @@ export const useAuthState = () => {
   const [initialized, setInitialized] = useState(false)
   const initializedRef = useRef(false)
   const userRef = useRef<(Staff & { company: Company }) | null>(null)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const refreshUser = async () => {
     try {
@@ -35,10 +36,21 @@ export const useAuthState = () => {
   useEffect(() => {
     let mounted = true
 
+    // Set a timeout fallback to prevent infinite loading
+    timeoutRef.current = setTimeout(() => {
+      if (mounted && loading) {
+        console.log('useAuthState: Loading timeout reached, forcing completion')
+        setLoading(false)
+        setInitialized(true)
+        initializedRef.current = true
+      }
+    }, 5000) // 5 second timeout
+
     const initializeAuth = async () => {
       // Prevent multiple initializations
       if (initializedRef.current) {
         console.log('useAuthState: Already initialized, skipping')
+        setLoading(false)
         return
       }
 
@@ -115,6 +127,9 @@ export const useAuthState = () => {
 
     return () => {
       mounted = false
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
       subscription.unsubscribe()
     }
   }, [])
