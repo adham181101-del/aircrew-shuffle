@@ -64,6 +64,9 @@ const ManageSwaps = () => {
   };
 
   const loadIncomingRequests = async (userId: string) => {
+    console.log('=== LOADING INCOMING REQUESTS ===');
+    console.log('User ID:', userId);
+    
     const { data, error } = await supabase
       .from('swap_requests')
       .select(`
@@ -77,6 +80,18 @@ const ManageSwaps = () => {
     if (error) {
       console.error('Error loading incoming requests:', error);
       return;
+    }
+
+    console.log('Incoming requests data:', data);
+    console.log('Number of incoming requests:', data?.length || 0);
+    
+    if (data && data.length > 0) {
+      console.log('First request details:', {
+        id: data[0].id,
+        requester_staff: data[0].requester_staff,
+        requester_shift: data[0].requester_shift,
+        status: data[0].status
+      });
     }
 
     setIncomingRequests(data || []);
@@ -113,9 +128,17 @@ const ManageSwaps = () => {
 
   const handleAcceptSwap = async (swapId: string) => {
     try {
+      console.log('=== ACCEPT SWAP DEBUG ===');
+      console.log('Swap ID:', swapId);
+      console.log('User ID:', user?.id);
+      console.log('Incoming requests:', incomingRequests);
+      
       // Find the swap request to get the shift details
       const swapRequest = incomingRequests.find(req => req.id === swapId);
-      if (!swapRequest || !swapRequest.requester_shift || !user) {
+      console.log('Found swap request:', swapRequest);
+      
+      if (!swapRequest) {
+        console.error('Swap request not found in local state');
         toast({
           title: "Error",
           description: "Swap request not found",
@@ -124,12 +147,42 @@ const ManageSwaps = () => {
         return;
       }
 
+      console.log('Requester shift:', swapRequest.requester_shift);
+      console.log('Requester staff:', swapRequest.requester_staff);
+
+      if (!swapRequest.requester_shift) {
+        console.error('Requester shift details missing');
+        toast({
+          title: "Error",
+          description: "Shift details not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!user) {
+        console.error('User not found');
+        toast({
+          title: "Error",
+          description: "User not authenticated",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Validating WHL for shift:', {
+        date: swapRequest.requester_shift.date,
+        time: swapRequest.requester_shift.time
+      });
+
       // Validate WHL before accepting
       const whlValidation = await validateWHL(
         user.id, 
         swapRequest.requester_shift.date, 
         swapRequest.requester_shift.time
       );
+
+      console.log('WHL validation result:', whlValidation);
 
       if (!whlValidation.isValid) {
         toast({
@@ -140,12 +193,19 @@ const ManageSwaps = () => {
         return;
       }
 
+      console.log('Updating swap request status to accepted...');
+
       const { error } = await supabase
         .from('swap_requests')
         .update({ status: 'accepted' })
         .eq('id', swapId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating swap request:', error);
+        throw error;
+      }
+
+      console.log('Swap request updated successfully');
 
       toast({
         title: "Swap Accepted",
@@ -156,6 +216,7 @@ const ManageSwaps = () => {
         await loadIncomingRequests(user.id);
       }
     } catch (error) {
+      console.error('Error in handleAcceptSwap:', error);
       toast({
         title: "Error",
         description: "Failed to accept swap request",
