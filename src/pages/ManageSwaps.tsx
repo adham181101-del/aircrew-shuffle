@@ -165,56 +165,67 @@ const ManageSwaps = () => {
       const canWorkDoubles = userStaff?.can_work_doubles || false;
       console.log('User can work doubles:', canWorkDoubles);
 
-      // Get all shifts on the requester's date to check if user is working
-      const { data: shiftsOnRequesterDate, error: dateShiftsError } = await supabase
-        .from('shifts')
-        .select('*')
-        .eq('date', requesterShiftDate);
-
-      if (dateShiftsError) {
-        console.error('Error fetching shifts on requester date:', dateShiftsError);
-        return [];
-      }
-
       // Check if user is working on the requester's date
-      const userWorkingOnRequesterDate = (shiftsOnRequesterDate || []).some(
-        shift => shift.staff_id === userId
+      const userWorkingOnRequesterDate = (userShifts || []).some(
+        shift => shift.date === requesterShiftDate
       );
       
       console.log('User working on requester date:', userWorkingOnRequesterDate);
-      console.log('Shifts on requester date:', shiftsOnRequesterDate);
+      console.log('All user shifts:', userShifts);
 
-      // Filter to only future shifts (available for swapping)
-      const futureShifts = (userShifts || []).filter(shift => 
-        new Date(shift.date) >= new Date()
-      );
-
-      console.log('All future shifts:', futureShifts);
-
-      // Filter to only shifts that can be offered as counter-offers
-      const availableForCounterOffer = futureShifts.filter(shift => {
-        // Get all shifts on this shift's date
-        const shiftsOnThisDate = (userShifts || []).filter(s => s.date === shift.date);
-        
-        // If user has multiple shifts on this date, they can't offer any of them
-        if (shiftsOnThisDate.length > 1) {
-          console.log(`Multiple shifts on ${shift.date}, cannot offer any`);
-          return false;
-        }
-        
-        // If user is working on the requester's date, they can only offer shifts if they can work doubles
-        if (userWorkingOnRequesterDate && !canWorkDoubles) {
-          console.log(`User is working on requester date and cannot work doubles, cannot offer ${shift.date}`);
-          return false;
-        }
-        
-        console.log(`Shift on ${shift.date} is available for counter-offer`);
-        return true;
+      // Get all future dates where the user is OFF (no shifts)
+      const futureDates = [];
+      const today = new Date();
+      const next30Days = Array.from({ length: 30 }, (_, i) => {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        return date.toISOString().split('T')[0]; // YYYY-MM-DD format
       });
 
-      console.log('Available shifts for counter-offer:', availableForCounterOffer);
-      setAvailableShifts(availableForCounterOffer);
-      return availableForCounterOffer;
+      console.log('Next 30 days:', next30Days);
+
+      // Find dates where user is OFF and can work the requester's shift
+      const availableDates = next30Days.filter(date => {
+        // Skip past dates
+        if (new Date(date) < today) return false;
+        
+        // Check if user has any shifts on this date
+        const shiftsOnThisDate = (userShifts || []).filter(shift => shift.date === date);
+        const isOffOnThisDate = shiftsOnThisDate.length === 0;
+        
+        console.log(`Date ${date}: ${isOffOnThisDate ? 'OFF' : 'WORKING'} (${shiftsOnThisDate.length} shifts)`);
+        
+        // If user is OFF on this date, they can offer it as a counter-offer
+        if (isOffOnThisDate) {
+          console.log(`✅ ${date} - User is OFF, can offer this date`);
+          return true;
+        }
+        
+        // If user is working on this date, they can only offer it if they can work doubles
+        // AND they're also working on the requester's date (meaning they'd be doing a double for the requester)
+        if (userWorkingOnRequesterDate && canWorkDoubles) {
+          console.log(`✅ ${date} - User is working but can work doubles for requester`);
+          return true;
+        }
+        
+        console.log(`❌ ${date} - User is working and cannot offer this date`);
+        return false;
+      });
+
+      console.log('Available dates for counter-offer:', availableDates);
+
+      // Create mock shift objects for the available dates
+      const availableShiftsForCounterOffer = availableDates.map(date => ({
+        id: `counter-offer-${date}`,
+        date: date,
+        time: 'Available for swap',
+        staff_id: userId,
+        is_counter_offer: true
+      }));
+
+      console.log('Available shifts for counter-offer:', availableShiftsForCounterOffer);
+      setAvailableShifts(availableShiftsForCounterOffer);
+      return availableShiftsForCounterOffer;
     } catch (error) {
       console.error('Error in fetchAvailableShifts:', error);
       return [];
@@ -290,11 +301,24 @@ const ManageSwaps = () => {
       if (!selectedCounterShift) {
         toast({
           title: "Counter-Offer Required",
-          description: "Please select a shift to offer in exchange",
+          description: "Please select a date to offer in exchange",
           variant: "destructive"
         });
         return;
       }
+
+      // Extract the date from the selected counter-offer
+      const selectedCounterOffer = availableShifts.find(shift => shift.id === selectedCounterShift);
+      if (!selectedCounterOffer) {
+        toast({
+          title: "Error",
+          description: "Selected counter-offer not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Selected counter-offer date:', selectedCounterOffer.date);
 
       console.log('Validating WHL for shift:', {
         date: swapRequest.requester_shift.date,
@@ -321,12 +345,13 @@ const ManageSwaps = () => {
 
       console.log('Updating swap request with counter-offer...');
 
-      // Update the swap request with the counter-offer shift
+      // Update the swap request with the counter-offer date
       const { error } = await supabase
         .from('swap_requests')
         .update({ 
           status: 'accepted',
-          accepter_shift_id: selectedCounterShift
+          accepter_shift_id: null, // No specific shift, just a date
+          counter_offer_date: selectedCounterOffer.date // Store the offered date
         })
         .eq('id', swapId);
 
@@ -484,21 +509,20 @@ const ManageSwaps = () => {
                               {showCounterOffer === request.id ? (
                                 <div className="space-y-3">
                                   <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
-                                    <h4 className="font-medium text-sm mb-2">SELECT YOUR SHIFT TO OFFER IN EXCHANGE</h4>
+                                    <h4 className="font-medium text-sm mb-2">SELECT A DATE TO OFFER IN EXCHANGE</h4>
                                     <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">
-                                      Choose a shift from your schedule to offer in return for the requested shift.
-                                      Only shifts you can actually offer are shown below.
+                                      Choose a date where you are OFF and can work their shift, or a date where you can work a double shift for them.
                                     </p>
                                     
                                     {loadingCounterShifts ? (
                                       <div className="flex items-center gap-2">
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                        <span className="text-sm">Loading your available shifts...</span>
+                                        <span className="text-sm">Loading your available dates...</span>
                                       </div>
                                     ) : availableShifts.length > 0 ? (
                                       <div className="space-y-2">
                                         <p className="text-xs text-green-700 dark:text-green-300 font-medium">
-                                          ✅ Available shifts for counter-offer:
+                                          ✅ Available dates for counter-offer:
                                         </p>
                                         {availableShifts.map((shift) => (
                                           <div
@@ -517,8 +541,9 @@ const ManageSwaps = () => {
                                                   <span className="text-sm">{shift.date}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                  <Clock className="h-3 w-3" />
-                                                  <span className="text-sm">{shift.time}</span>
+                                                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                                                    {shift.is_counter_offer ? 'Available for swap' : shift.time}
+                                                  </span>
                                                 </div>
                                               </div>
                                               {selectedCounterShift === shift.id && (
@@ -531,15 +556,15 @@ const ManageSwaps = () => {
                                     ) : (
                                       <div className="space-y-2">
                                         <p className="text-xs text-red-700 dark:text-red-300 font-medium">
-                                          ❌ No shifts available for counter-offer
+                                          ❌ No dates available for counter-offer
                                         </p>
                                         <p className="text-xs text-gray-600 dark:text-gray-400">
                                           This could be because:
                                         </p>
                                         <ul className="text-xs text-gray-600 dark:text-gray-400 list-disc list-inside space-y-1">
-                                          <li>You have multiple shifts on the same day</li>
-                                          <li>You're already working on the requested date and cannot work doubles</li>
-                                          <li>You have no future shifts available</li>
+                                          <li>You are working on all available dates</li>
+                                          <li>You cannot work doubles and are already working on the requested date</li>
+                                          <li>No future dates are available for swapping</li>
                                         </ul>
                                       </div>
                                     )}
