@@ -243,6 +243,169 @@ export const deleteAllShifts = async (staffId: string): Promise<void> => {
   if (error) throw error
 }
 
+// Function to execute a shift swap when a swap request is accepted
+export const executeShiftSwap = async (swapRequest: any): Promise<void> => {
+  console.log('=== EXECUTING SHIFT SWAP ===');
+  console.log('Swap request:', swapRequest);
+  
+  try {
+    // Get the requester's shift details
+    const { data: requesterShift, error: requesterError } = await supabase
+      .from('shifts')
+      .select('*')
+      .eq('id', swapRequest.requester_shift_id)
+      .single();
+
+    if (requesterError) {
+      console.error('Error fetching requester shift:', requesterError);
+      throw requesterError;
+    }
+
+    console.log('Requester shift:', requesterShift);
+
+    // If this is a counter-offer, we need to handle both shifts
+    if (swapRequest.counter_offer_date) {
+      console.log('Processing counter-offer swap');
+      
+      // Create a new shift for the accepter (they get the requester's shift)
+      const { error: accepterShiftError } = await supabase
+        .from('shifts')
+        .insert({
+          staff_id: swapRequest.accepter_id,
+          date: requesterShift.date,
+          time: requesterShift.time,
+          is_swapped: true
+        });
+
+      if (accepterShiftError) {
+        console.error('Error creating accepter shift:', accepterShiftError);
+        throw accepterShiftError;
+      }
+
+      // Create a new shift for the requester (they get the counter-offer date)
+      const { error: requesterNewShiftError } = await supabase
+        .from('shifts')
+        .insert({
+          staff_id: swapRequest.requester_id,
+          date: swapRequest.counter_offer_date,
+          time: requesterShift.time, // Use the same time as the original shift
+          is_swapped: true
+        });
+
+      if (requesterNewShiftError) {
+        console.error('Error creating requester new shift:', requesterNewShiftError);
+        throw requesterNewShiftError;
+      }
+
+      // Mark the original requester shift as swapped
+      const { error: updateRequesterError } = await supabase
+        .from('shifts')
+        .update({ is_swapped: true })
+        .eq('id', swapRequest.requester_shift_id);
+
+      if (updateRequesterError) {
+        console.error('Error updating requester shift:', updateRequesterError);
+        throw updateRequesterError;
+      }
+
+      console.log('Counter-offer swap executed successfully');
+    } else {
+      // This is a direct swap (no counter-offer)
+      console.log('Processing direct swap');
+      
+      // Get the accepter's shift details if they have one
+      if (swapRequest.accepter_shift_id) {
+        const { data: accepterShift, error: accepterError } = await supabase
+          .from('shifts')
+          .select('*')
+          .eq('id', swapRequest.accepter_shift_id)
+          .single();
+
+        if (accepterError) {
+          console.error('Error fetching accepter shift:', accepterError);
+          throw accepterError;
+        }
+
+        console.log('Accepter shift:', accepterShift);
+
+        // Create a new shift for the accepter (they get the requester's shift)
+        const { error: accepterNewShiftError } = await supabase
+          .from('shifts')
+          .insert({
+            staff_id: swapRequest.accepter_id,
+            date: requesterShift.date,
+            time: requesterShift.time,
+            is_swapped: true
+          });
+
+        if (accepterNewShiftError) {
+          console.error('Error creating accepter new shift:', accepterNewShiftError);
+          throw accepterNewShiftError;
+        }
+
+        // Create a new shift for the requester (they get the accepter's shift)
+        const { error: requesterNewShiftError } = await supabase
+          .from('shifts')
+          .insert({
+            staff_id: swapRequest.requester_id,
+            date: accepterShift.date,
+            time: accepterShift.time,
+            is_swapped: true
+          });
+
+        if (requesterNewShiftError) {
+          console.error('Error creating requester new shift:', requesterNewShiftError);
+          throw requesterNewShiftError;
+        }
+
+        // Mark both original shifts as swapped
+        const { error: updateAccepterError } = await supabase
+          .from('shifts')
+          .update({ is_swapped: true })
+          .eq('id', swapRequest.accepter_shift_id);
+
+        if (updateAccepterError) {
+          console.error('Error updating accepter shift:', updateAccepterError);
+          throw updateAccepterError;
+        }
+      } else {
+        // Accepter doesn't have a shift, just give them the requester's shift
+        const { error: accepterShiftError } = await supabase
+          .from('shifts')
+          .insert({
+            staff_id: swapRequest.accepter_id,
+            date: requesterShift.date,
+            time: requesterShift.time,
+            is_swapped: true
+          });
+
+        if (accepterShiftError) {
+          console.error('Error creating accepter shift:', accepterShiftError);
+          throw accepterShiftError;
+        }
+      }
+
+      // Mark the original requester shift as swapped
+      const { error: updateRequesterError } = await supabase
+        .from('shifts')
+        .update({ is_swapped: true })
+        .eq('id', swapRequest.requester_shift_id);
+
+      if (updateRequesterError) {
+        console.error('Error updating requester shift:', updateRequesterError);
+        throw updateRequesterError;
+      }
+
+      console.log('Direct swap executed successfully');
+    }
+
+    console.log('Shift swap completed successfully');
+  } catch (error) {
+    console.error('Error executing shift swap:', error);
+    throw error;
+  }
+}
+
 // Working Hours Limitations (WHL) validation functions
 export interface WHLValidationResult {
   isValid: boolean

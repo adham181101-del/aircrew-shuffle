@@ -75,6 +75,31 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
     }
   }
 
+  // Function to refresh shifts (can be called from parent component)
+  const refreshShifts = async () => {
+    if (user) {
+      setLoading(true)
+      try {
+        const userShifts = await getUserShifts(user.id)
+        setShifts(userShifts)
+      } catch (error) {
+        console.error('Error refreshing shifts:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+  }
+
+  // Expose refresh function to parent component
+  useEffect(() => {
+    // @ts-ignore - Adding refreshShifts to window for parent access
+    window.refreshCalendarShifts = refreshShifts
+    return () => {
+      // @ts-ignore
+      delete window.refreshCalendarShifts
+    }
+  }, [user])
+
   const getShiftsForDate = (date: Date): Shift[] => {
     const dateStr = date.toLocaleDateString('en-CA') // YYYY-MM-DD format in local timezone
     return shifts.filter(shift => shift.date === dateStr)

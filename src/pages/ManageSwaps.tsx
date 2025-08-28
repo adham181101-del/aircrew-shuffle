@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { getCurrentUser, type Staff } from "@/lib/auth";
-import { validateWHL } from "@/lib/shifts";
+import { validateWHL, executeShiftSwap } from '@/lib/shifts';
 import { supabase } from "@/integrations/supabase/client";
 
 type SwapRequestWithDetails = {
@@ -515,10 +515,86 @@ const ManageSwaps = () => {
     }
   };
 
+  const handleAcceptDirectSwap = async (swapId: string) => {
+    try {
+      console.log('=== ACCEPTING DIRECT SWAP ===');
+      console.log('Swap ID:', swapId);
+      
+      // Find the swap request to get all the details
+      const swapRequest = incomingRequests.find(req => req.id === swapId);
+      if (!swapRequest) {
+        console.error('Swap request not found');
+        toast({
+          title: "Error",
+          description: "Swap request not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Found swap request:', swapRequest);
+      
+      // Update the swap request status to accepted
+      const { error } = await supabase
+        .from('swap_requests')
+        .update({ 
+          status: 'accepted'
+        })
+        .eq('id', swapId);
+
+      if (error) {
+        console.error('Error accepting direct swap:', error);
+        throw error;
+      }
+
+      console.log('Direct swap accepted, now executing shift swap...');
+
+      // Execute the actual shift swap
+      await executeShiftSwap(swapRequest);
+
+      console.log('Direct swap accepted and shift swap executed successfully');
+
+      toast({
+        title: "Swap Accepted",
+        description: "You have accepted the swap and the shifts have been exchanged",
+      });
+
+      // Refresh the calendar to show the new shifts
+      if (typeof window !== 'undefined' && (window as any).refreshCalendarShifts) {
+        (window as any).refreshCalendarShifts();
+      }
+
+      if (user) {
+        await loadIncomingRequests(user.id);
+      }
+    } catch (error) {
+      console.error('Error in handleAcceptDirectSwap:', error);
+      toast({
+        title: "Error",
+        description: "Failed to accept swap",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleAcceptCounterOffer = async (swapId: string) => {
     try {
       console.log('=== ACCEPTING COUNTER-OFFER ===');
       console.log('Swap ID:', swapId);
+      
+      // Find the swap request to get all the details
+      const swapRequest = myRequests.find(req => req.id === swapId);
+      if (!swapRequest) {
+        console.error('Swap request not found');
+        toast({
+          title: "Error",
+          description: "Swap request not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Found swap request:', swapRequest);
       
       // Update the swap request status to accepted
       const { error } = await supabase
@@ -533,12 +609,22 @@ const ManageSwaps = () => {
         throw error;
       }
 
-      console.log('Counter-offer accepted successfully');
+      console.log('Counter-offer accepted, now executing shift swap...');
+
+      // Execute the actual shift swap
+      await executeShiftSwap(swapRequest);
+
+      console.log('Counter-offer accepted and shift swap executed successfully');
 
       toast({
         title: "Counter-Offer Accepted",
-        description: "You have accepted the counter-offer",
+        description: "You have accepted the counter-offer and the shifts have been swapped",
       });
+
+      // Refresh the calendar to show the new shifts
+      if (typeof window !== 'undefined' && (window as any).refreshCalendarShifts) {
+        (window as any).refreshCalendarShifts();
+      }
 
       if (user) {
         await loadMyRequests(user.id);
@@ -776,19 +862,33 @@ const ManageSwaps = () => {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex gap-2">
-                                  <Button 
-                                    onClick={() => handleShowCounterOffer(request.id)}
-                                    className="flex-1"
-                                  >
-                                    Accept with Counter-Offer
-                                  </Button>
+                                <div className="space-y-3">
+                                  <div className="flex gap-2">
+                                    <Button 
+                                      onClick={() => handleAcceptDirectSwap(request.id)}
+                                      className="flex-1"
+                                    >
+                                      Accept Swap
+                                    </Button>
+                                    <Button 
+                                      variant="outline"
+                                      onClick={() => handleRejectSwap(request.id)}
+                                      className="flex-1"
+                                    >
+                                      Decline
+                                    </Button>
+                                  </div>
+                                  
+                                  <div className="text-center">
+                                    <span className="text-xs text-muted-foreground">or</span>
+                                  </div>
+                                  
                                   <Button 
                                     variant="outline"
-                                    onClick={() => handleRejectSwap(request.id)}
-                                    className="flex-1"
+                                    onClick={() => handleShowCounterOffer(request.id)}
+                                    className="w-full"
                                   >
-                                    Decline
+                                    Accept with Counter-Offer
                                   </Button>
                                 </div>
                               )}
