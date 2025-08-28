@@ -20,7 +20,8 @@ import {
   Building2,
   Trash2,
   Bell,
-  X
+  X,
+  User
 } from 'lucide-react'
 import { PremiumCalculator } from '@/components/premium/PremiumCalculator'
 import { TeamView } from '@/components/team/TeamView'
@@ -198,6 +199,15 @@ const Dashboard = () => {
               <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
                 {user?.base_location}
               </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/profile')}
+                className="text-white hover:bg-white/20"
+              >
+                <User className="h-4 w-4 mr-2" />
+                Profile
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
