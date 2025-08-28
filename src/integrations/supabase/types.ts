@@ -121,6 +121,7 @@ export type Database = {
         Row: {
           accepter_id: string | null
           accepter_shift_id: string | null
+          counter_offer_date: string | null
           created_at: string
           id: string
           message: string | null
@@ -132,6 +133,7 @@ export type Database = {
         Insert: {
           accepter_id?: string | null
           accepter_shift_id?: string | null
+          counter_offer_date?: string | null
           created_at?: string
           id?: string
           message?: string | null
@@ -143,6 +145,7 @@ export type Database = {
         Update: {
           accepter_id?: string | null
           accepter_shift_id?: string | null
+          counter_offer_date?: string | null
           created_at?: string
           id?: string
           message?: string | null
