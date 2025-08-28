@@ -54,24 +54,22 @@ const Dashboard = () => {
   const [showSwapNotification, setShowSwapNotification] = useState(false)
 
   useEffect(() => {
-    checkAuthAndLoadData()
-  }, [])
+    if (user) {
+      loadDashboardData()
+    }
+  }, [user])
 
-  const checkAuthAndLoadData = async () => {
+  const loadDashboardData = async () => {
+    if (!user) return
+    
     try {
-      const currentUser = await getCurrentUser()
-      if (!currentUser) {
-        navigate('/login')
-        return
-      }
-
-      // User is managed by AuthContext
+      setLoading(true)
       
-      const userShifts = await getUserShifts(currentUser.id)
+      const userShifts = await getUserShifts(user.id)
       setShifts(userShifts)
       
       // Fetch pending swap requests
-      const pendingSwapsData = await fetchPendingSwaps(currentUser.id)
+      const pendingSwapsData = await fetchPendingSwaps(user.id)
       setPendingSwaps(pendingSwapsData)
       
       setStats({
@@ -93,6 +91,11 @@ const Dashboard = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const checkAuthAndLoadData = async () => {
+    // This function is no longer needed since we use AuthContext
+    // Keeping it for backward compatibility but it's not used
   }
 
   const fetchPendingSwaps = async (userId: string) => {
