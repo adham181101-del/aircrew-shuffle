@@ -396,43 +396,44 @@ const ManageSwaps = () => {
 
       // Add detailed debugging for WHL validation
       console.log('=== WHL VALIDATION DEBUG ===');
-      console.log('User ID:', user.id);
-      console.log('Counter-offer date (when user would work):', selectedCounterOffer.date);
-      console.log('Requester shift date (what user is offering):', swapRequest.requester_shift.date);
+      console.log('Accepter ID (Shaheen):', user.id);
+      console.log('Requester ID (Adham):', swapRequest.requester_id);
+      console.log('Counter-offer date (when Adham would work):', selectedCounterOffer.date);
+      console.log('Requester shift date (what Shaheen is offering):', swapRequest.requester_shift.date);
       console.log('Requester shift time:', swapRequest.requester_shift.time);
       
-      // Get user's current shifts for debugging
-      const { data: userShiftsForDebug, error: debugError } = await supabase
+      // Get requester's (Adham's) current shifts for debugging - this is who needs WHL validation
+      const { data: requesterShiftsForDebug, error: debugError } = await supabase
         .from('shifts')
         .select('*')
-        .eq('staff_id', user.id)
+        .eq('staff_id', swapRequest.requester_id)
         .order('date', { ascending: true });
 
-      if (!debugError && userShiftsForDebug) {
-        console.log('Current user shifts:', userShiftsForDebug.length);
+      if (!debugError && requesterShiftsForDebug) {
+        console.log('Requester (Adham) shifts:', requesterShiftsForDebug.length);
         
-        // Show shifts around the counter-offer date (when user would work)
+        // Show shifts around the counter-offer date (when Adham would work)
         const targetDate = new Date(selectedCounterOffer.date);
         const dayBefore = new Date(targetDate);
         dayBefore.setDate(targetDate.getDate() - 1);
         const dayAfter = new Date(targetDate);
         dayAfter.setDate(targetDate.getDate() + 1);
         
-        const relevantShifts = userShiftsForDebug.filter(shift => {
+        const relevantShifts = requesterShiftsForDebug.filter(shift => {
           const shiftDate = new Date(shift.date);
           return shiftDate >= dayBefore && shiftDate <= dayAfter;
         });
         
-        console.log('Shifts around counter-offer date (24-hour period):', relevantShifts);
+        console.log('Requester (Adham) shifts around counter-offer date (24-hour period):', relevantShifts);
         console.log('Day before counter-offer:', dayBefore.toISOString().split('T')[0]);
         console.log('Counter-offer date:', targetDate.toISOString().split('T')[0]);
         console.log('Day after counter-offer:', dayAfter.toISOString().split('T')[0]);
       }
 
-      // Validate WHL for the counter-offer date (when user would work)
+      // Validate WHL for the requester (Adham) on the counter-offer date
       const whlValidation = await validateWHL(
-        user.id, 
-        selectedCounterOffer.date, // Use counter-offer date, not requester's date
+        swapRequest.requester_id, // Use requester's ID (Adham), not accepter's ID (Shaheen)
+        selectedCounterOffer.date, // Check if Adham can work on this date
         swapRequest.requester_shift.time
       );
 
