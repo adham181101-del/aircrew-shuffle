@@ -1,0 +1,41 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+  
+  <!-- Decorative circles -->
+  <circle cx="100" cy="100" r="50" fill="rgba(255,255,255,0.1)"/>
+  <circle cx="1100" cy="530" r="80" fill="rgba(255,255,255,0.1)"/>
+  <circle cx="1050" cy="150" r="30" fill="rgba(255,255,255,0.1)"/>
+  
+  <!-- Main logo circle -->
+  <circle cx="600" cy="250" r="80" fill="url(#logoGradient)" stroke="white" stroke-width="4"/>
+  
+  <!-- Clock hands in the logo -->
+  <line x1="600" y1="250" x2="600" y2="190" stroke="white" stroke-width="6" stroke-linecap="round"/>
+  <line x1="600" y1="250" x2="650" y2="250" stroke="white" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="600" cy="250" r="8" fill="white"/>
+  
+  <!-- Title -->
+  <text x="600" y="380" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="white">AirCrew Shuffle</text>
+  
+  <!-- Subtitle -->
+  <text x="600" y="420" font-family="Arial, sans-serif" font-size="24" text-anchor="middle" fill="rgba(255,255,255,0.9)">Aviation Shift Management</text>
+  
+  <!-- Features -->
+  <text x="600" y="480" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" fill="rgba(255,255,255,0.8)">Upload Rosters • Manage Schedules • Calculate Premiums • Coordinate Swaps</text>
+  
+  <!-- URL -->
+  <text x="600" y="580" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="rgba(255,255,255,0.7)">aircrew-shuffle.vercel.app</text>
+</svg>
