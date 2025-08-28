@@ -454,7 +454,7 @@ const ManageSwaps = () => {
       const { error } = await supabase
         .from('swap_requests')
         .update({ 
-          status: 'counter_offered',
+          status: 'pending', // Keep as pending since counter_offered is not allowed
           counter_offer_date: selectedCounterOffer.date // Store the offered date
         })
         .eq('id', swapId);
@@ -868,7 +868,7 @@ const ManageSwaps = () => {
                             </div>
                           )}
                           
-                          {request.status === 'counter_offered' && request.counter_offer_date && (
+                          {request.status === 'pending' && request.counter_offer_date && (
                             <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-lg mt-3">
                               <h4 className="font-medium text-sm mb-2">COUNTER-OFFER RECEIVED</h4>
                               <div className="flex items-center gap-4">
