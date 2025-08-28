@@ -268,7 +268,13 @@ const ManageSwaps = () => {
           }
         }
         
-        // CASE 3: No swap opportunity
+        // CASE 3: Double shift - User is working but can work doubles for requester
+        if (!userIsOffOnThisDate && userWorkingOnRequesterDate && canWorkDoubles) {
+          console.log(`✅ ${date} - Double shift: User is working but can work doubles for requester`);
+          return true;
+        }
+        
+        // CASE 4: No swap opportunity
         console.log(`❌ ${date} - No swap opportunity`);
         return false;
       });
@@ -572,7 +578,7 @@ const ManageSwaps = () => {
                                   <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
                                     <h4 className="font-medium text-sm mb-2">SELECT A DATE TO OFFER IN EXCHANGE</h4>
                                     <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">
-                                      Choose a date for an equal exchange: either you're OFF and they're working, or both working with compatible times (4:15 ↔ 13:15).
+                                      Choose a date for an equal exchange: you're OFF and they're working, both working with compatible times (4:15 ↔ 13:15), or you can work doubles for them.
                                     </p>
                                     
                                     {loadingCounterShifts ? (
@@ -625,6 +631,7 @@ const ManageSwaps = () => {
                                         <ul className="text-xs text-gray-600 dark:text-gray-400 list-disc list-inside space-y-1">
                                           <li>You are working on all available dates</li>
                                           <li>No compatible time swaps available (4:15 ↔ 13:15)</li>
+                                          <li>You cannot work doubles and are already working on the requested date</li>
                                           <li>No future dates are available for swapping</li>
                                         </ul>
                                       </div>
