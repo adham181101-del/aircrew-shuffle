@@ -1,41 +1,101 @@
-<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
   <!-- Background gradient -->
   <defs>
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E3A8A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
     </linearGradient>
-    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+    
+    <!-- Golden gradient for plane -->
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
     </linearGradient>
+    
+    <!-- Silver gradient for wings -->
+    <linearGradient id="silverGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E5E7EB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9CA3AF;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Glow filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
   
   <!-- Background -->
   <rect width="1200" height="630" fill="url(#bgGradient)"/>
   
-  <!-- Decorative circles -->
-  <circle cx="100" cy="100" r="50" fill="rgba(255,255,255,0.1)"/>
-  <circle cx="1100" cy="530" r="80" fill="rgba(255,255,255,0.1)"/>
-  <circle cx="1050" cy="150" r="30" fill="rgba(255,255,255,0.1)"/>
+  <!-- Decorative clouds -->
+  <g opacity="0.1">
+    <ellipse cx="200" cy="150" rx="80" ry="40" fill="white"/>
+    <ellipse cx="1000" cy="100" rx="60" ry="30" fill="white"/>
+    <ellipse cx="900" cy="500" rx="70" ry="35" fill="white"/>
+    <ellipse cx="150" cy="450" rx="50" ry="25" fill="white"/>
+  </g>
   
-  <!-- Main logo circle -->
-  <circle cx="600" cy="250" r="80" fill="url(#logoGradient)" stroke="white" stroke-width="4"/>
-  
-  <!-- Clock hands in the logo -->
-  <line x1="600" y1="250" x2="600" y2="190" stroke="white" stroke-width="6" stroke-linecap="round"/>
-  <line x1="600" y1="250" x2="650" y2="250" stroke="white" stroke-width="4" stroke-linecap="round"/>
-  <circle cx="600" cy="250" r="8" fill="white"/>
+  <!-- Large logo in center -->
+  <g transform="translate(500, 200) scale(3)">
+    <!-- Wings (left and right) -->
+    <g filter="url(#glow)">
+      <!-- Left wing -->
+      <path d="M8 32 Q16 24 24 32 Q16 40 8 32 Z" fill="url(#silverGradient)" stroke="#6B7280" stroke-width="0.5"/>
+      <!-- Right wing -->
+      <path d="M56 32 Q48 24 40 32 Q48 40 56 32 Z" fill="url(#silverGradient)" stroke="#6B7280" stroke-width="0.5"/>
+    </g>
+    
+    <!-- Main plane body -->
+    <path d="M28 28 L36 28 L38 32 L36 36 L28 36 L26 32 Z" fill="url(#goldGradient)" stroke="#B8860B" stroke-width="0.5"/>
+    
+    <!-- Plane nose -->
+    <path d="M38 30 L42 32 L38 34 Z" fill="url(#goldGradient)" stroke="#B8860B" stroke-width="0.5"/>
+    
+    <!-- Tail fin -->
+    <path d="M26 30 L24 26 L26 22 L28 26 Z" fill="url(#goldGradient)" stroke="#B8860B" stroke-width="0.5"/>
+    
+    <!-- Windows -->
+    <circle cx="30" cy="30" r="1" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="34" cy="30" r="1" fill="#FFFFFF" opacity="0.8"/>
+    
+    <!-- Propeller effect -->
+    <g opacity="0.6">
+      <line x1="42" y1="32" x2="46" y2="28" stroke="#FFD700" stroke-width="1" stroke-linecap="round"/>
+      <line x1="42" y1="32" x2="46" y2="36" stroke="#FFD700" stroke-width="1" stroke-linecap="round"/>
+      <line x1="42" y1="32" x2="48" y2="32" stroke="#FFD700" stroke-width="1" stroke-linecap="round"/>
+    </g>
+    
+    <!-- Speed lines -->
+    <g opacity="0.4">
+      <line x1="20" y1="28" x2="16" y2="26" stroke="#FFFFFF" stroke-width="1" stroke-linecap="round"/>
+      <line x1="20" y1="32" x2="16" y2="32" stroke="#FFFFFF" stroke-width="1" stroke-linecap="round"/>
+      <line x1="20" y1="36" x2="16" y2="38" stroke="#FFFFFF" stroke-width="1" stroke-linecap="round"/>
+    </g>
+  </g>
   
   <!-- Title -->
-  <text x="600" y="380" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="white">AirCrew Shuffle</text>
+  <text x="600" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="white">
+    AirCrew Shuffle
+  </text>
   
   <!-- Subtitle -->
-  <text x="600" y="420" font-family="Arial, sans-serif" font-size="24" text-anchor="middle" fill="rgba(255,255,255,0.9)">Aviation Shift Management</text>
+  <text x="600" y="420" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="white" opacity="0.9">
+    Aviation Shift Management
+  </text>
   
-  <!-- Features -->
-  <text x="600" y="480" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" fill="rgba(255,255,255,0.8)">Upload Rosters • Manage Schedules • Calculate Premiums • Coordinate Swaps</text>
+  <!-- Features list -->
+  <g transform="translate(600, 480)">
+    <text x="0" y="0" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="white" opacity="0.8">
+      ✈️ Smart Roster Management • 🔄 Seamless Shift Swaps • 🛡️ Secure & Compliant
+    </text>
+  </g>
   
-  <!-- URL -->
-  <text x="600" y="580" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="rgba(255,255,255,0.7)">aircrew-shuffle.vercel.app</text>
+  <!-- Website URL -->
+  <text x="600" y="580" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" opacity="0.7">
+    aircrew-shuffle.vercel.app
+  </text>
 </svg>
