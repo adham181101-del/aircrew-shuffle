@@ -1,12 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <!-- Definitions for gradients and filters -->
   <defs>
-    <!-- Background gradient -->
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-    </linearGradient>
-    
     <!-- Calendar header gradient -->
     <linearGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
@@ -35,9 +29,6 @@
       <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000000" flood-opacity="0.1"/>
     </filter>
   </defs>
-  
-  <!-- Background -->
-  <rect width="64" height="64" fill="url(#bgGradient)"/>
   
   <!-- Calendar base with shadow -->
   <rect x="10" y="14" width="44" height="40" fill="url(#bodyGradient)" rx="6" filter="url(#shadow)"/>
