@@ -17,6 +17,7 @@ type SwapRequestWithDetails = {
   requester_shift_id: string;
   accepter_id: string | null;
   accepter_shift_id: string | null;
+  counter_offer_date: string | null;
   status: string;
   message: string | null;
   created_at: string;
@@ -392,6 +393,40 @@ const ManageSwaps = () => {
         date: swapRequest.requester_shift.date,
         time: swapRequest.requester_shift.time
       });
+
+      // Add detailed debugging for WHL validation
+      console.log('=== WHL VALIDATION DEBUG ===');
+      console.log('User ID:', user.id);
+      console.log('New shift date:', swapRequest.requester_shift.date);
+      console.log('New shift time:', swapRequest.requester_shift.time);
+      
+      // Get user's current shifts for debugging
+      const { data: userShiftsForDebug, error: debugError } = await supabase
+        .from('shifts')
+        .select('*')
+        .eq('staff_id', user.id)
+        .order('date', { ascending: true });
+
+      if (!debugError && userShiftsForDebug) {
+        console.log('Current user shifts:', userShiftsForDebug.length);
+        
+        // Show shifts around the target date
+        const targetDate = new Date(swapRequest.requester_shift.date);
+        const dayBefore = new Date(targetDate);
+        dayBefore.setDate(targetDate.getDate() - 1);
+        const dayAfter = new Date(targetDate);
+        dayAfter.setDate(targetDate.getDate() + 1);
+        
+        const relevantShifts = userShiftsForDebug.filter(shift => {
+          const shiftDate = new Date(shift.date);
+          return shiftDate >= dayBefore && shiftDate <= dayAfter;
+        });
+        
+        console.log('Shifts around target date (24-hour period):', relevantShifts);
+        console.log('Day before target:', dayBefore.toISOString().split('T')[0]);
+        console.log('Target date:', targetDate.toISOString().split('T')[0]);
+        console.log('Day after target:', dayAfter.toISOString().split('T')[0]);
+      }
 
       // Validate WHL before accepting
       const whlValidation = await validateWHL(
