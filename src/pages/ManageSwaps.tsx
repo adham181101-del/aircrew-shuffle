@@ -170,6 +170,32 @@ const ManageSwaps = () => {
       const canWorkDoubles = userStaff?.can_work_doubles || false;
       console.log('User can work doubles:', canWorkDoubles);
 
+      // Get the requester's staff ID to find their shifts
+      const { data: requesterStaff, error: requesterStaffError } = await supabase
+        .from('swap_requests')
+        .select('requester_id')
+        .eq('id', showCounterOffer)
+        .single();
+
+      if (requesterStaffError) {
+        console.error('Error fetching requester staff ID:', requesterStaffError);
+        return [];
+      }
+
+      // Get all shifts for the requester
+      const { data: requesterShifts, error: requesterShiftsError } = await supabase
+        .from('shifts')
+        .select('*')
+        .eq('staff_id', requesterStaff.requester_id)
+        .order('date', { ascending: true });
+
+      if (requesterShiftsError) {
+        console.error('Error fetching requester shifts:', requesterShiftsError);
+        return [];
+      }
+
+      console.log('Requester shifts:', requesterShifts);
+
       // Check if user is working on the requester's date
       const userWorkingOnRequesterDate = (userShifts || []).some(
         shift => shift.date === requesterShiftDate
@@ -200,22 +226,27 @@ const ManageSwaps = () => {
         }
         
         // Check if user has any shifts on this date
-        const shiftsOnThisDate = (userShifts || []).filter(shift => shift.date === date);
-        const isOffOnThisDate = shiftsOnThisDate.length === 0;
+        const userShiftsOnThisDate = (userShifts || []).filter(shift => shift.date === date);
+        const userIsOffOnThisDate = userShiftsOnThisDate.length === 0;
         
-        console.log(`Date ${date}: ${isOffOnThisDate ? 'OFF' : 'WORKING'} (${shiftsOnThisDate.length} shifts)`);
-        console.log(`Shifts on ${date}:`, shiftsOnThisDate);
+        // Check if requester has any shifts on this date
+        const requesterShiftsOnThisDate = (requesterShifts || []).filter(shift => shift.date === date);
+        const requesterIsWorkingOnThisDate = requesterShiftsOnThisDate.length > 0;
         
-        // CASE 1: If user is OFF on this date, they can offer it as a counter-offer
-        if (isOffOnThisDate) {
-          console.log(`✅ ${date} - User is OFF, can offer this date`);
+        console.log(`Date ${date}: User ${userIsOffOnThisDate ? 'OFF' : 'WORKING'} (${userShiftsOnThisDate.length} shifts), Requester ${requesterIsWorkingOnThisDate ? 'WORKING' : 'OFF'} (${requesterShiftsOnThisDate.length} shifts)`);
+        console.log(`User shifts on ${date}:`, userShiftsOnThisDate);
+        console.log(`Requester shifts on ${date}:`, requesterShiftsOnThisDate);
+        
+        // CASE 1: If user is OFF on this date AND requester is working, they can offer it as a counter-offer
+        if (userIsOffOnThisDate && requesterIsWorkingOnThisDate) {
+          console.log(`✅ ${date} - User is OFF and requester is working, can offer this date`);
           return true;
         }
         
         // CASE 2: If user is working on this date, they can only offer it if:
         // - They can work doubles AND
         // - They are also working on the requester's date (meaning they'd be doing a double for the requester)
-        if (userWorkingOnRequesterDate && canWorkDoubles) {
+        if (userWorkingOnRequesterDate && canWorkDoubles && !userIsOffOnThisDate) {
           console.log(`✅ ${date} - User is working but can work doubles for requester`);
           return true;
         }
