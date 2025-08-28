@@ -34,6 +34,10 @@ const ManageSwaps = () => {
   const [incomingRequests, setIncomingRequests] = useState<SwapRequestWithDetails[]>([]);
   const [myRequests, setMyRequests] = useState<SwapRequestWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
+  const [availableShifts, setAvailableShifts] = useState<any[]>([]);
+  const [selectedCounterShift, setSelectedCounterShift] = useState<string>("");
+  const [showCounterOffer, setShowCounterOffer] = useState<string | null>(null);
+  const [loadingCounterShifts, setLoadingCounterShifts] = useState(false);
 
   useEffect(() => {
     loadUserAndRequests();
@@ -126,6 +130,46 @@ const ManageSwaps = () => {
     return variants[status] || "secondary";
   };
 
+  const fetchAvailableShifts = async (userId: string) => {
+    try {
+      setLoadingCounterShifts(true);
+      
+      // Get all shifts for the current user
+      const { data: userShifts, error: shiftsError } = await supabase
+        .from('shifts')
+        .select('*')
+        .eq('staff_id', userId)
+        .order('date', { ascending: true });
+
+      if (shiftsError) {
+        console.error('Error fetching user shifts:', shiftsError);
+        return [];
+      }
+
+      // Filter to only future shifts (available for swapping)
+      const futureShifts = (userShifts || []).filter(shift => 
+        new Date(shift.date) >= new Date()
+      );
+
+      console.log('Available shifts for counter-offer:', futureShifts);
+      setAvailableShifts(futureShifts);
+      return futureShifts;
+    } catch (error) {
+      console.error('Error in fetchAvailableShifts:', error);
+      return [];
+    } finally {
+      setLoadingCounterShifts(false);
+    }
+  };
+
+  const handleShowCounterOffer = async (swapId: string) => {
+    if (!user) return;
+    
+    setShowCounterOffer(swapId);
+    setSelectedCounterShift("");
+    await fetchAvailableShifts(user.id);
+  };
+
   const handleAcceptSwap = async (swapId: string) => {
     try {
       console.log('=== ACCEPT SWAP DEBUG ===');
@@ -170,6 +214,16 @@ const ManageSwaps = () => {
         return;
       }
 
+      // Check if a counter-offer shift is selected
+      if (!selectedCounterShift) {
+        toast({
+          title: "Counter-Offer Required",
+          description: "Please select a shift to offer in exchange",
+          variant: "destructive"
+        });
+        return;
+      }
+
       console.log('Validating WHL for shift:', {
         date: swapRequest.requester_shift.date,
         time: swapRequest.requester_shift.time
@@ -193,11 +247,15 @@ const ManageSwaps = () => {
         return;
       }
 
-      console.log('Updating swap request status to accepted...');
+      console.log('Updating swap request with counter-offer...');
 
+      // Update the swap request with the counter-offer shift
       const { error } = await supabase
         .from('swap_requests')
-        .update({ status: 'accepted' })
+        .update({ 
+          status: 'accepted',
+          accepter_shift_id: selectedCounterShift
+        })
         .eq('id', swapId);
 
       if (error) {
@@ -209,8 +267,13 @@ const ManageSwaps = () => {
 
       toast({
         title: "Swap Accepted",
-        description: "You have accepted the swap request",
+        description: "You have accepted the swap request with your counter-offer",
       });
+
+      // Reset counter-offer state
+      setShowCounterOffer(null);
+      setSelectedCounterShift("");
+      setAvailableShifts([]);
 
       if (user) {
         await loadIncomingRequests(user.id);
@@ -345,20 +408,95 @@ const ManageSwaps = () => {
                           )}
 
                           {request.status === "pending" && (
-                            <div className="flex gap-2">
-                              <Button 
-                                onClick={() => handleAcceptSwap(request.id)}
-                                className="flex-1"
-                              >
-                                Accept Swap
-                              </Button>
-                              <Button 
-                                variant="outline"
-                                onClick={() => handleRejectSwap(request.id)}
-                                className="flex-1"
-                              >
-                                Decline
-                              </Button>
+                            <div className="space-y-4">
+                              {showCounterOffer === request.id ? (
+                                <div className="space-y-3">
+                                  <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
+                                    <h4 className="font-medium text-sm mb-2">SELECT YOUR SHIFT TO OFFER IN EXCHANGE</h4>
+                                    <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">
+                                      Choose a shift from your schedule to offer in return for the requested shift.
+                                    </p>
+                                    
+                                    {loadingCounterShifts ? (
+                                      <div className="flex items-center gap-2">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                        <span className="text-sm">Loading your shifts...</span>
+                                      </div>
+                                    ) : availableShifts.length > 0 ? (
+                                      <div className="space-y-2">
+                                        {availableShifts.map((shift) => (
+                                          <div
+                                            key={shift.id}
+                                            className={`p-2 rounded border cursor-pointer transition-colors ${
+                                              selectedCounterShift === shift.id
+                                                ? 'bg-blue-100 border-blue-300 dark:bg-blue-900/30 dark:border-blue-600'
+                                                : 'bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                            }`}
+                                            onClick={() => setSelectedCounterShift(shift.id)}
+                                          >
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-2">
+                                                  <Calendar className="h-3 w-3" />
+                                                  <span className="text-sm">{shift.date}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                  <Clock className="h-3 w-3" />
+                                                  <span className="text-sm">{shift.time}</span>
+                                                </div>
+                                              </div>
+                                              {selectedCounterShift === shift.id && (
+                                                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        No future shifts available for counter-offer.
+                                      </p>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="flex gap-2">
+                                    <Button 
+                                      onClick={() => handleAcceptSwap(request.id)}
+                                      disabled={!selectedCounterShift}
+                                      className="flex-1"
+                                    >
+                                      Accept with Counter-Offer
+                                    </Button>
+                                    <Button 
+                                      variant="outline"
+                                      onClick={() => {
+                                        setShowCounterOffer(null);
+                                        setSelectedCounterShift("");
+                                        setAvailableShifts([]);
+                                      }}
+                                      className="flex-1"
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex gap-2">
+                                  <Button 
+                                    onClick={() => handleShowCounterOffer(request.id)}
+                                    className="flex-1"
+                                  >
+                                    Accept with Counter-Offer
+                                  </Button>
+                                  <Button 
+                                    variant="outline"
+                                    onClick={() => handleRejectSwap(request.id)}
+                                    className="flex-1"
+                                  >
+                                    Decline
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           )}
                         </CardContent>
@@ -418,6 +556,25 @@ const ManageSwaps = () => {
                               </div>
                             </div>
                           </div>
+                          
+                          {request.status === 'accepted' && request.accepter_shift && (
+                            <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg mt-3">
+                              <h4 className="font-medium text-sm mb-2">COUNTER-OFFER ACCEPTED</h4>
+                              <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4" />
+                                  <span>{request.accepter_shift?.date}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-4 w-4" />
+                                  <span>{request.accepter_shift?.time}</span>
+                                </div>
+                              </div>
+                              <p className="text-xs text-green-700 dark:text-green-300 mt-2">
+                                {request.accepter_staff?.staff_number} will cover your shift on {request.requester_shift?.date}
+                              </p>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     ))}
