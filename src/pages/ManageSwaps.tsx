@@ -397,8 +397,9 @@ const ManageSwaps = () => {
       // Add detailed debugging for WHL validation
       console.log('=== WHL VALIDATION DEBUG ===');
       console.log('User ID:', user.id);
-      console.log('New shift date:', swapRequest.requester_shift.date);
-      console.log('New shift time:', swapRequest.requester_shift.time);
+      console.log('Counter-offer date (when user would work):', selectedCounterOffer.date);
+      console.log('Requester shift date (what user is offering):', swapRequest.requester_shift.date);
+      console.log('Requester shift time:', swapRequest.requester_shift.time);
       
       // Get user's current shifts for debugging
       const { data: userShiftsForDebug, error: debugError } = await supabase
@@ -410,8 +411,8 @@ const ManageSwaps = () => {
       if (!debugError && userShiftsForDebug) {
         console.log('Current user shifts:', userShiftsForDebug.length);
         
-        // Show shifts around the target date
-        const targetDate = new Date(swapRequest.requester_shift.date);
+        // Show shifts around the counter-offer date (when user would work)
+        const targetDate = new Date(selectedCounterOffer.date);
         const dayBefore = new Date(targetDate);
         dayBefore.setDate(targetDate.getDate() - 1);
         const dayAfter = new Date(targetDate);
@@ -422,16 +423,16 @@ const ManageSwaps = () => {
           return shiftDate >= dayBefore && shiftDate <= dayAfter;
         });
         
-        console.log('Shifts around target date (24-hour period):', relevantShifts);
-        console.log('Day before target:', dayBefore.toISOString().split('T')[0]);
-        console.log('Target date:', targetDate.toISOString().split('T')[0]);
-        console.log('Day after target:', dayAfter.toISOString().split('T')[0]);
+        console.log('Shifts around counter-offer date (24-hour period):', relevantShifts);
+        console.log('Day before counter-offer:', dayBefore.toISOString().split('T')[0]);
+        console.log('Counter-offer date:', targetDate.toISOString().split('T')[0]);
+        console.log('Day after counter-offer:', dayAfter.toISOString().split('T')[0]);
       }
 
-      // Validate WHL before accepting
+      // Validate WHL for the counter-offer date (when user would work)
       const whlValidation = await validateWHL(
         user.id, 
-        swapRequest.requester_shift.date, 
+        selectedCounterOffer.date, // Use counter-offer date, not requester's date
         swapRequest.requester_shift.time
       );
 
