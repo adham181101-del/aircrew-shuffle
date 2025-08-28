@@ -130,13 +130,14 @@ const ManageSwaps = () => {
     return variants[status] || "secondary";
   };
 
-  const fetchAvailableShifts = async (userId: string, requesterShiftDate: string) => {
+  const fetchAvailableShifts = async (userId: string, requesterShiftDate: string, swapId: string) => {
     try {
       setLoadingCounterShifts(true);
       
       console.log('=== FETCHING AVAILABLE SHIFTS FOR COUNTER-OFFER ===');
       console.log('User ID:', userId);
       console.log('Requester shift date:', requesterShiftDate);
+      console.log('Swap ID:', swapId);
       console.log('Requester shift date type:', typeof requesterShiftDate);
       
       // Get all shifts for the current user
@@ -174,13 +175,15 @@ const ManageSwaps = () => {
       const { data: requesterStaff, error: requesterStaffError } = await supabase
         .from('swap_requests')
         .select('requester_id')
-        .eq('id', showCounterOffer)
+        .eq('id', swapId)
         .single();
 
       if (requesterStaffError) {
         console.error('Error fetching requester staff ID:', requesterStaffError);
         return [];
       }
+
+      console.log('Requester staff ID:', requesterStaff.requester_id);
 
       // Get all shifts for the requester
       const { data: requesterShifts, error: requesterShiftsError } = await supabase
@@ -294,7 +297,7 @@ const ManageSwaps = () => {
     
     setShowCounterOffer(swapId);
     setSelectedCounterShift("");
-    await fetchAvailableShifts(user.id, swapRequest.requester_shift.date);
+    await fetchAvailableShifts(user.id, swapRequest.requester_shift.date, swapId);
   };
 
   const handleAcceptSwap = async (swapId: string) => {
