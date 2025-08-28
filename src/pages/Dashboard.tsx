@@ -18,10 +18,13 @@ import {
   ArrowRightLeft,
   DollarSign,
   Building2,
-  Trash2
+  Trash2,
+  Bell,
+  X
 } from 'lucide-react'
 import { PremiumCalculator } from '@/components/premium/PremiumCalculator'
 import { TeamView } from '@/components/team/TeamView'
+import { supabase } from '@/integrations/supabase/client'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +50,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false)
   const [deletingAll, setDeletingAll] = useState(false)
+  const [pendingSwaps, setPendingSwaps] = useState<any[]>([])
+  const [showSwapNotification, setShowSwapNotification] = useState(false)
 
   useEffect(() => {
     checkAuthAndLoadData()
@@ -65,11 +70,20 @@ const Dashboard = () => {
       const userShifts = await getUserShifts(currentUser.id)
       setShifts(userShifts)
       
+      // Fetch pending swap requests
+      const pendingSwapsData = await fetchPendingSwaps(currentUser.id)
+      setPendingSwaps(pendingSwapsData)
+      
       setStats({
         totalShifts: userShifts.length,
-        pendingSwaps: 0, // TODO: Implement swap request counting
+        pendingSwaps: pendingSwapsData.length,
         acceptedSwaps: userShifts.filter(s => s.is_swapped).length
       })
+      
+      // Show notification if there are pending swaps
+      if (pendingSwapsData.length > 0) {
+        setShowSwapNotification(true)
+      }
     } catch (error) {
       toast({
         title: "Error loading dashboard",
@@ -78,6 +92,31 @@ const Dashboard = () => {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchPendingSwaps = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('swap_requests')
+        .select(`
+          *,
+          requester_staff:staff!swap_requests_requester_id_fkey(email, staff_number),
+          requester_shift:shifts!swap_requests_requester_shift_id_fkey(date, time)
+        `)
+        .eq('accepter_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching pending swaps:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in fetchPendingSwaps:', error);
+      return [];
     }
   }
 
@@ -169,6 +208,47 @@ const Dashboard = () => {
           </div>
         </div>
       </header>
+
+      {/* Pending Swaps Notification */}
+      {showSwapNotification && pendingSwaps.length > 0 && (
+        <div className="bg-amber-50 border-b border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Bell className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                    You have {pendingSwaps.length} pending swap request{pendingSwaps.length > 1 ? 's' : ''} to review
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    {pendingSwaps.length === 1 
+                      ? `From ${pendingSwaps[0].requester_staff?.staff_number || 'Staff Member'}`
+                      : `From ${pendingSwaps.length} different crew members`
+                    }
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  size="sm"
+                  onClick={() => navigate('/swaps')}
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  Review Requests
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowSwapNotification(false)}
+                  className="text-amber-600 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
