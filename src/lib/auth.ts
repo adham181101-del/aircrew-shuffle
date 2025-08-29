@@ -140,14 +140,6 @@ export const signUp = async (
     throw new Error('Staff number already registered for this company')
   }
 
-  console.log('auth.ts: Signing up user with data:', {
-    email: sanitizedEmail,
-    staffNumber: sanitizedStaffNumber,
-    baseLocation: sanitizedBaseLocation,
-    canWorkDoubles,
-    companyId
-  })
-
   const { data, error } = await supabase.auth.signUp({
     email: sanitizedEmail,
     password,
@@ -163,13 +155,10 @@ export const signUp = async (
   })
 
   if (error) {
-    console.error('auth.ts: Sign up error:', error)
+    console.error('Sign up error:', error)
     throw error
   }
 
-  console.log('auth.ts: Sign up successful, data:', data)
-
-  // Staff profile will be created automatically via database trigger
   return data
 }
 
@@ -182,30 +171,27 @@ export const signIn = async (email: string, password: string) => {
   // Security: Sanitize email
   const sanitizedEmail = sanitizeInput(email)
   
-  console.log('auth.ts: Starting sign in for:', sanitizedEmail)
-  console.log('auth.ts: Supabase URL:', import.meta.env.VITE_SUPABASE_URL || 'using fallback')
-  
-  // Test Supabase connection
-  try {
-    const { data: testData, error: testError } = await supabase.auth.getSession()
-    console.log('auth.ts: Connection test result:', testData, testError)
-  } catch (connectionError) {
-    console.error('auth.ts: Connection test failed:', connectionError)
-  }
-  
-  const { data, error } = await supabase.auth.signInWithPassword({
+  // Create a timeout promise for Vercel compatibility
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Request timeout - please try again')), 10000);
+  });
+
+  // Main sign in with timeout
+  const signInPromise = supabase.auth.signInWithPassword({
     email: sanitizedEmail,
     password
-  })
+  });
+
+  // Race between timeout and sign in
+  const { data, error } = await Promise.race([signInPromise, timeoutPromise]);
 
   if (error) {
-    console.error('auth.ts: Sign in error:', error)
-    throw error
+    console.error('Sign in error:', error);
+    throw error;
   }
   
-  console.log('auth.ts: Sign in successful, data:', data)
-  return data
-}
+  return data;
+};
 
 export const signOut = async () => {
   const { error } = await supabase.auth.signOut()
@@ -233,75 +219,78 @@ export const getAllStaff = async (): Promise<Staff[]> => {
 
 export const getCurrentUser = async (): Promise<(Staff & { company: Company }) | null> => {
   try {
-    console.log('auth.ts: Getting current user...')
-    const { data: { session } } = await supabase.auth.getSession()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!session || !user) {
-      console.log('auth.ts: No session or user found')
-      return null
-    }
-    
-    console.log('auth.ts: User found:', user.id)
-    
-    // Try to fetch staff profile, but don't fail if it doesn't work
-    let staff = null
-    
-    try {
-      const { data, error } = await supabase
-        .from('staff')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle()
+    // Create a timeout promise for Vercel compatibility
+    const timeoutPromise = new Promise<null>((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout - please try again')), 8000);
+    });
+
+    // Main user fetch with timeout
+    const userPromise = (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!error && data) {
-        staff = data
-        console.log('auth.ts: Successfully fetched staff profile')
-      } else {
-        console.log('auth.ts: Staff profile fetch failed or no data, using fallback')
+      if (!session || !user) {
+        return null;
       }
-    } catch (fetchError) {
-      console.log('auth.ts: Exception during staff fetch, using fallback')
-    }
-
-    // Always create a working user object, either from database or fallback
-    const workingUser = staff || {
-      id: user.id,
-      email: user.email || '',
-      staff_number: user.user_metadata?.staff_number || '254575',
-      base_location: user.user_metadata?.base_location || 'Iberia CER',
-      can_work_doubles: user.user_metadata?.can_work_doubles || true,
-      company_id: user.user_metadata?.company_id || '',
-      created_at: user.created_at || new Date().toISOString()
-    }
-
-    // Create a working company object
-    const workingCompany: Company = {
-      id: workingUser.company_id || 'ba-company-id',
-      name: 'British Airways',
-      industry: 'Aviation',
-      email_domain: 'ba.com',
-      config: {
-        bases: ['Iberia CER', 'Heathrow', 'Gatwick'],
-        features: {
-          premium_calculator: true,
-          shift_swapping: true
+      
+      // Try to fetch staff profile with timeout
+      let staff = null;
+      
+      try {
+        const { data, error } = await supabase
+          .from('staff')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        if (!error && data) {
+          staff = data;
         }
-      },
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
+      } catch (fetchError) {
+        // Continue with fallback if staff fetch fails
+      }
 
-    console.log('auth.ts: Returning working user object')
-    return {
-      ...workingUser,
-      company: workingCompany
-    }
+      // Create working user object
+      const workingUser = staff || {
+        id: user.id,
+        email: user.email || '',
+        staff_number: user.user_metadata?.staff_number || '254575',
+        base_location: user.user_metadata?.base_location || 'Iberia CER',
+        can_work_doubles: user.user_metadata?.can_work_doubles || true,
+        company_id: user.user_metadata?.company_id || '',
+        created_at: user.created_at || new Date().toISOString()
+      };
+
+      // Create working company object
+      const workingCompany: Company = {
+        id: workingUser.company_id || 'ba-company-id',
+        name: 'British Airways',
+        industry: 'Aviation',
+        email_domain: 'ba.com',
+        config: {
+          bases: ['Iberia CER', 'Heathrow', 'Gatwick'],
+          features: {
+            premium_calculator: true,
+            shift_swapping: true
+          }
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      return {
+        ...workingUser,
+        company: workingCompany
+      };
+    })();
+
+    // Race between timeout and user fetch
+    return await Promise.race([userPromise, timeoutPromise]);
   } catch (error) {
-    console.error('auth.ts: Error in getCurrentUser:', error)
-    return null
+    console.error('Auth error:', error);
+    return null;
   }
-}
+};
 
 // Security: Function to verify data integrity
 export const verifyDataIntegrity = async () => {

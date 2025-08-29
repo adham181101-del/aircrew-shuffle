@@ -21,24 +21,14 @@ export const SignInForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    console.log('SignInForm: Starting login process...')
 
     try {
-      // Add timeout protection
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout - please try again')), 30000)
-      )
-
-      console.log('SignInForm: Calling signIn...')
-      const signInPromise = signIn(formData.email, formData.password)
-      await Promise.race([signInPromise, timeoutPromise])
-      console.log('SignInForm: signIn successful')
+      await signIn(formData.email, formData.password)
       
-      // Immediate redirect without toast to avoid interference
-      console.log('SignInForm: Redirecting to dashboard...')
-      window.location.href = '/dashboard'
+      // Redirect to dashboard on success
+      navigate('/dashboard')
     } catch (error) {
-      console.error('SignInForm: Login error:', error)
+      console.error('Login error:', error)
       
       let errorMessage = "Please check your credentials"
       if (error instanceof Error) {
@@ -58,8 +48,7 @@ export const SignInForm = () => {
         description: errorMessage,
         variant: "destructive"
       })
-      
-      // Only set loading to false on error
+    } finally {
       setLoading(false)
     }
   }
