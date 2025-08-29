@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { lazy, Suspense } from "react";
 
+// Force Vercel cache refresh - v2.0.0
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
 const Login = lazy(() => import("./pages/Login"));
