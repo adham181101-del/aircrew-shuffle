@@ -12,18 +12,16 @@ export const useAuthState = () => {
 
   const refreshUser = async () => {
     try {
-      console.log('useAuthState: refreshUser called')
       setLoading(true)
       
       const currentUser = await getCurrentUser()
-      console.log('useAuthState: refreshUser result:', currentUser)
       
       setUser(currentUser)
       userRef.current = currentUser
       setInitialized(true)
       initializedRef.current = true
     } catch (error) {
-      console.error('useAuthState: refreshUser error:', error)
+      console.error('Auth refresh error:', error)
       setUser(null)
       userRef.current = null
       setInitialized(true)
@@ -36,34 +34,26 @@ export const useAuthState = () => {
   useEffect(() => {
     let mounted = true
 
-    // Set a timeout fallback to prevent infinite loading
+    // Reduced timeout for faster loading
     timeoutRef.current = setTimeout(() => {
       if (mounted && loading) {
-        console.log('useAuthState: Loading timeout reached, forcing completion')
         setLoading(false)
         setInitialized(true)
         initializedRef.current = true
       }
-    }, 5000) // 5 second timeout
+    }, 2000) // Reduced from 5s to 2s
 
     const initializeAuth = async () => {
-      // Prevent multiple initializations
       if (initializedRef.current) {
-        console.log('useAuthState: Already initialized, skipping')
         setLoading(false)
         return
       }
 
       try {
-        console.log('useAuthState: Starting initialization...')
-        
-        // Minimal delay for faster loading
-        await new Promise(resolve => setTimeout(resolve, 50))
-        
+        // Removed artificial delay
         if (!mounted) return
         
         const currentUser = await getCurrentUser()
-        console.log('useAuthState: getCurrentUser result:', currentUser)
         
         if (mounted) {
           setUser(currentUser)
@@ -73,7 +63,7 @@ export const useAuthState = () => {
           setLoading(false)
         }
       } catch (error) {
-        console.error('useAuthState: Error during initialization:', error)
+        console.error('Auth initialization error:', error)
         if (mounted) {
           setUser(null)
           userRef.current = null
@@ -84,27 +74,22 @@ export const useAuthState = () => {
       }
     }
 
-    // Set up Supabase auth listener with optimized handling
+    // Optimized auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('useAuthState: Auth state change:', event, session)
-        
         if (!mounted) return
         
         if (event === 'SIGNED_IN' && session) {
-          console.log('useAuthState: User signed in, refreshing user data')
-          // Only set loading briefly for sign in
           setLoading(true)
           
           try {
             const currentUser = await getCurrentUser()
-            console.log('useAuthState: Updated user data:', currentUser)
             setUser(currentUser)
             userRef.current = currentUser
             setInitialized(true)
             initializedRef.current = true
           } catch (error) {
-            console.error('useAuthState: Error updating user data:', error)
+            console.error('Auth update error:', error)
             setUser(null)
             userRef.current = null
             setInitialized(true)
@@ -113,7 +98,6 @@ export const useAuthState = () => {
             setLoading(false)
           }
         } else if (event === 'SIGNED_OUT') {
-          console.log('useAuthState: User signed out')
           setUser(null)
           userRef.current = null
           setLoading(false)
