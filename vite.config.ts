@@ -22,7 +22,6 @@ export default defineConfig(({ mode }) => ({
   build: {
     target: 'esnext',
     minify: 'terser',
-    // Force cache busting
     rollupOptions: {
       output: {
         manualChunks: {
@@ -32,13 +31,6 @@ export default defineConfig(({ mode }) => ({
           supabase: ['@supabase/supabase-js'],
           query: ['@tanstack/react-query'],
         },
-        // Add timestamp to chunk names for cache busting
-        chunkFileNames: (chunkInfo) => {
-          const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';
-          return `js/[name]-[hash]-${Date.now()}.js`;
-        },
-        entryFileNames: `js/[name]-[hash]-${Date.now()}.js`,
-        assetFileNames: `assets/[name]-[hash]-${Date.now()}[extname]`,
       },
     },
     terserOptions: {
