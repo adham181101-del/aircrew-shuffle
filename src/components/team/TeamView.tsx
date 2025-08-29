@@ -73,10 +73,16 @@ export const TeamView = () => {
   const generateTeamData = () => {
     if (!selectedMonth || shifts.length === 0 || allStaff.length === 0) return
 
-    // Filter shifts for selected month
-    const monthShifts = shifts.filter(shift => 
-      shift.date.startsWith(selectedMonth)
-    )
+    // Get current date (start of day)
+    const currentDate = new Date()
+    currentDate.setHours(0, 0, 0, 0)
+
+    // Filter shifts for selected month and only current/future dates
+    const monthShifts = shifts.filter(shift => {
+      const shiftDate = new Date(shift.date)
+      shiftDate.setHours(0, 0, 0, 0)
+      return shift.date.startsWith(selectedMonth) && shiftDate >= currentDate
+    })
 
     // Group shifts by date
     const shiftsByDate = monthShifts.reduce((acc, shift) => {
@@ -109,7 +115,7 @@ export const TeamView = () => {
           email: staffMember.email,
           staffNumber: staffMember.staff_number,
           baseLocation: staffMember.base_location,
-          shiftTime: staffShift ? `${staffShift.start_time} - ${staffShift.end_time}` : 'Off duty',
+          shiftTime: staffShift ? staffShift.time : 'Off duty',
           role: isWorkingToday ? 'Working Today' : 'Off Duty'
         }
       })
@@ -149,6 +155,7 @@ export const TeamView = () => {
         <div>
           <h2 className="text-2xl font-bold">Team Schedule</h2>
           <p className="text-muted-foreground">See who you're working with each day</p>
+          <p className="text-xs text-muted-foreground mt-1">Showing current and future dates only</p>
         </div>
         
         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -176,7 +183,7 @@ export const TeamView = () => {
             <h3 className="text-lg font-semibold mb-2">No Team Data</h3>
             <p className="text-muted-foreground text-center">
               {selectedMonth 
-                ? "No shifts found for this month. Upload your roster to see team information."
+                ? "No future shifts found for this month. The team schedule only shows current and upcoming dates."
                 : "Select a month to view team schedule."
               }
             </p>
