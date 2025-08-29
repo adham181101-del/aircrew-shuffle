@@ -21,7 +21,8 @@ import {
   Trash2,
   Bell,
   X,
-  User
+  User,
+  Menu
 } from 'lucide-react'
 import { PremiumCalculator } from '@/components/premium/PremiumCalculator'
 import { TeamView } from '@/components/team/TeamView'
@@ -36,6 +37,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 const Dashboard = () => {
   const navigate = useNavigate()
@@ -184,15 +191,22 @@ const Dashboard = () => {
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
                 <Building2 className="text-lg text-primary" />
               </div>
-              <div>
+              <div className="hidden sm:block">
                 <h1 className="text-xl font-bold text-white">{user?.company?.name || 'Company'}</h1>
                 <p className="text-white/80 text-sm">
                   Welcome back, {user?.email?.split('@')[0] || 'User'}
                 </p>
               </div>
+              <div className="sm:hidden">
+                <h1 className="text-lg font-bold text-white">{user?.company?.name || 'Company'}</h1>
+                <p className="text-white/80 text-xs">
+                  {user?.email?.split('@')[0] || 'User'}
+                </p>
+              </div>
             </div>
             
-            <div className="flex items-center space-x-2">
+            {/* Desktop Header Actions */}
+            <div className="hidden md:flex items-center space-x-2">
               <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
                 {user?.company?.industry || 'Aviation'}
               </Badge>
@@ -217,6 +231,34 @@ const Dashboard = () => {
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
+            </div>
+
+            {/* Mobile Header Actions */}
+            <div className="md:hidden flex items-center space-x-2">
+              <Badge variant="secondary" className="bg-white/20 text-white border-white/30 text-xs">
+                {user?.base_location}
+              </Badge>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/20 p-2"
+                  >
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <User className="h-4 w-4 mr-2" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -374,6 +416,18 @@ const Dashboard = () => {
           >
             <Trash2 className="h-5 w-5 mr-2" />
             Delete All Shifts
+          </Button>
+        </div>
+
+        {/* Mobile Sign Out Button */}
+        <div className="md:hidden mb-6">
+          <Button
+            onClick={handleSignOut}
+            variant="outline"
+            className="w-full h-12 border-red-200 text-red-600 hover:bg-red-50"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
           </Button>
         </div>
 
