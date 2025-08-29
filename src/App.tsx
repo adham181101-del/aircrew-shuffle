@@ -5,28 +5,44 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import Upload from "./pages/Upload";
-import ManageSwaps from "./pages/ManageSwaps";
-import CreateShift from "./pages/CreateShift";
-import CreateSwapRequest from "./pages/CreateSwapRequest";
-import Profile from "./pages/Profile";
-import NotFound from "./pages/NotFound";
+import { lazy, Suspense } from "react";
 
-const queryClient = new QueryClient();
+// Lazy load pages for better performance
+const Index = lazy(() => import("./pages/Index"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Upload = lazy(() => import("./pages/Upload"));
+const ManageSwaps = lazy(() => import("./pages/ManageSwaps"));
+const CreateShift = lazy(() => import("./pages/CreateShift"));
+const CreateSwapRequest = lazy(() => import("./pages/CreateSwapRequest"));
+const Profile = lazy(() => import("./pages/Profile"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Loading component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, initialized } = useAuth();
   
-  console.log('ProtectedRoute: user=', user, 'loading=', loading, 'initialized=', initialized);
-  
   // Show loading only briefly, with fallback
   if (loading && !initialized) {
-    console.log('ProtectedRoute: Showing loading spinner');
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -37,7 +53,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   // If initialized but no user, redirect to login
   if (initialized && !user) {
-    console.log('ProtectedRoute: No user, redirecting to login');
     // Use window.location for Safari compatibility
     if (typeof window !== 'undefined') {
       window.location.href = '/login';
@@ -48,11 +63,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   // If still loading after initialization, show content anyway
   if (loading && initialized) {
-    console.log('ProtectedRoute: Loading but initialized, showing content');
     return <>{children}</>;
   }
   
-  console.log('ProtectedRoute: User authenticated, showing children');
   return <>{children}</>;
 };
 
@@ -60,10 +73,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
-  console.log('PublicRoute: user=', user, 'loading=', loading);
-  
   if (loading) {
-    console.log('PublicRoute: Showing loading spinner');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -72,28 +82,28 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   if (user) {
-    console.log('PublicRoute: User found, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
   
-  console.log('PublicRoute: No user, showing login form');
   return <>{children}</>;
 };
 
 const AppRoutes = () => (
-  <Routes>
-    <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
-    <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-    <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-    <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
-    <Route path="/swaps" element={<ProtectedRoute><ManageSwaps /></ProtectedRoute>} />
-    <Route path="/swaps/create" element={<ProtectedRoute><CreateSwapRequest /></ProtectedRoute>} />
-    <Route path="/shifts/create" element={<ProtectedRoute><CreateShift /></ProtectedRoute>} />
-    <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-    <Route path="*" element={<NotFound />} />
-  </Routes>
+  <Suspense fallback={<PageLoader />}>
+    <Routes>
+      <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+      <Route path="/swaps" element={<ProtectedRoute><ManageSwaps /></ProtectedRoute>} />
+      <Route path="/swaps/create" element={<ProtectedRoute><CreateSwapRequest /></ProtectedRoute>} />
+      <Route path="/shifts/create" element={<ProtectedRoute><CreateShift /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </Suspense>
 );
 
 const App = () => (
