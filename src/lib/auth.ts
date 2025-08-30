@@ -200,17 +200,16 @@ export const signOut = async () => {
 
 export const getAllStaff = async (): Promise<Staff[]> => {
   try {
-    const { data: staff, error } = await supabase
-      .from('staff')
-      .select('*')
-      .order('staff_number')
+    // Use the secure RPC function instead of direct table access
+    const { data, error } = await supabase
+      .rpc('get_all_staff_for_team')
 
     if (error) {
       console.error('Error fetching all staff:', error)
       return []
     }
 
-    return staff || []
+    return data || []
   } catch (error) {
     console.error('Error in getAllStaff:', error)
     return []
