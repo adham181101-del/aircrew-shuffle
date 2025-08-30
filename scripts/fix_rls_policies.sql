@@ -97,8 +97,8 @@ BEGIN
         s.company_id,
         s.created_at
     FROM public.staff s
-    INNER JOIN public.staff current_user ON current_user.id = auth.uid()
-    WHERE s.company_id = current_user.company_id;
+    INNER JOIN public.staff current_staff ON current_staff.id = auth.uid()
+    WHERE s.company_id = current_staff.company_id;
 END;
 $$;
 
