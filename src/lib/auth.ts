@@ -221,7 +221,7 @@ export const getCurrentUser = async (): Promise<(Staff & { company: Company }) |
   try {
     // Create a timeout promise for Vercel compatibility
     const timeoutPromise = new Promise<null>((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout - please try again')), 8000);
+      setTimeout(() => reject(new Error('Request timeout - please try again')), 15000); // Increased timeout
     });
 
     // Main user fetch with timeout
@@ -248,6 +248,7 @@ export const getCurrentUser = async (): Promise<(Staff & { company: Company }) |
         }
       } catch (fetchError) {
         // Continue with fallback if staff fetch fails
+        console.log('Staff fetch failed, using fallback data');
       }
 
       // Create working user object
@@ -288,7 +289,8 @@ export const getCurrentUser = async (): Promise<(Staff & { company: Company }) |
     return await Promise.race([userPromise, timeoutPromise]);
   } catch (error) {
     console.error('Auth error:', error);
-    return null;
+    // Don't return null immediately, let the calling code handle the error
+    throw error;
   }
 };
 
