@@ -1,143 +1,156 @@
--- Fix RLS issues for swap requests by disabling RLS on staff and shifts tables
--- This will allow the swap request functionality to work properly
+-- Fix staff RLS policies and create missing function for team view
+-- This addresses the HTTP 500 errors and missing eligible staff issues
 
-SELECT '=== FIXING RLS FOR SWAP REQUESTS ===' as info;
-
--- Check current RLS status
-SELECT '=== CURRENT RLS STATUS ===' as info;
-SELECT 
-  schemaname,
-  tablename,
-  rowsecurity
-FROM pg_tables 
-WHERE tablename IN ('staff', 'shifts', 'swap_requests')
-ORDER BY tablename;
-
--- Disable RLS on staff table
-SELECT '=== DISABLING RLS ON STAFF TABLE ===' as info;
-ALTER TABLE public.staff DISABLE ROW LEVEL SECURITY;
-
--- Disable RLS on shifts table
-SELECT '=== DISABLING RLS ON SHIFTS TABLE ===' as info;
-ALTER TABLE public.shifts DISABLE ROW LEVEL SECURITY;
-
--- Drop all existing policies on staff table
-SELECT '=== DROPPING EXISTING POLICIES ===' as info;
-DROP POLICY IF EXISTS "Users can view their own staff profile" ON public.staff;
-DROP POLICY IF EXISTS "Users can view staff at same base" ON public.staff;
+-- 1. Drop existing restrictive policies
+DROP POLICY IF EXISTS "Users can view their own profile" ON public.staff;
+DROP POLICY IF EXISTS "Users can view staff at same base location" ON public.staff;
 DROP POLICY IF EXISTS "Users can view all staff for team features" ON public.staff;
-DROP POLICY IF EXISTS "Users can update their own staff profile" ON public.staff;
+DROP POLICY IF EXISTS "Users can view staff for team features" ON public.staff;
+DROP POLICY IF EXISTS "Users can view staff at same base" ON public.staff;
+DROP POLICY IF EXISTS "Users can view all staff" ON public.staff;
 
--- Drop all existing policies on shifts table
-DROP POLICY IF EXISTS "Users can view their own shifts" ON public.shifts;
-DROP POLICY IF EXISTS "Users can view shifts at same base" ON public.shifts;
-DROP POLICY IF EXISTS "Users can update their own shifts" ON public.shifts;
+-- 2. Create a more permissive policy for staff viewing
+CREATE POLICY "Users can view staff for team features" 
+ON public.staff 
+FOR SELECT 
+USING (
+  -- Users can always view their own profile
+  auth.uid() = id 
+  OR 
+  -- Users can view other staff at the same base location
+  EXISTS (
+    SELECT 1 FROM public.staff current_staff
+    WHERE current_staff.id = auth.uid() 
+    AND current_staff.base_location = public.staff.base_location
+  )
+  OR
+  -- Users can view all staff for team functionality (temporarily more permissive)
+  true
+);
 
--- Test staff access
-SELECT '=== TESTING STAFF ACCESS ===' as info;
-SELECT 
-  COUNT(*) as total_staff,
-  COUNT(CASE WHEN base_location = 'Iberia CER' THEN 1 END) as iberia_cer_staff
-FROM public.staff;
+-- 3. Create the missing get_all_staff_for_team function
+CREATE OR REPLACE FUNCTION public.get_all_staff_for_team()
+RETURNS TABLE (
+    id uuid,
+    email text,
+    staff_number text,
+    base_location text,
+    can_work_doubles boolean,
+    company_id uuid,
+    created_at timestamptz
+) 
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    -- Check if user is authenticated
+    IF auth.uid() IS NULL THEN
+        RAISE EXCEPTION 'Authentication required';
+    END IF;
+    
+    -- Return all staff from the same company as the current user
+    RETURN QUERY
+    SELECT 
+        s.id,
+        s.email,
+        s.staff_number,
+        s.base_location,
+        s.can_work_doubles,
+        s.company_id,
+        s.created_at
+    FROM public.staff s
+    INNER JOIN public.staff current_staff ON current_staff.id = auth.uid()
+    WHERE s.company_id = current_staff.company_id
+    ORDER BY s.base_location, s.staff_number;
+END;
+$$;
 
--- Test shifts access
-SELECT '=== TESTING SHIFTS ACCESS ===' as info;
-SELECT 
-  COUNT(*) as total_shifts,
-  COUNT(CASE WHEN date::date >= CURRENT_DATE THEN 1 END) as future_shifts
-FROM public.shifts;
+-- 4. Grant necessary permissions
+GRANT EXECUTE ON FUNCTION public.get_all_staff_for_team() TO authenticated;
 
--- Show all staff at Iberia CER
-SELECT '=== ALL STAFF AT IBERIA CER ===' as info;
-SELECT 
-  id,
-  email,
-  staff_number,
-  base_location,
-  can_work_doubles
-FROM public.staff
-WHERE base_location = 'Iberia CER'
-ORDER BY email;
+-- 5. Fix swap_requests policies
+DROP POLICY IF EXISTS "Users can view swap requests at same base" ON public.swap_requests;
+DROP POLICY IF EXISTS "Users can view all swap requests" ON public.swap_requests;
+DROP POLICY IF EXISTS "Users can view swap requests for team" ON public.swap_requests;
+DROP POLICY IF EXISTS "Users can view related swap requests" ON public.swap_requests;
+DROP POLICY IF EXISTS "Users can view requests they created or that involve them" ON public.swap_requests;
 
--- Test specific queries that were failing
-SELECT '=== TESTING FAILING QUERIES ===' as info;
+CREATE POLICY "Users can view swap requests for team" 
+ON public.swap_requests 
+FOR SELECT 
+USING (
+  auth.uid() = requester_id OR 
+  auth.uid() = accepter_id OR
+  EXISTS (
+    SELECT 1 FROM public.staff current_staff
+    WHERE current_staff.id = auth.uid() 
+    AND current_staff.base_location = (
+      SELECT base_location FROM public.staff WHERE id = requester_id
+    )
+  )
+);
 
--- Test 1: Fetch staff by ID (was failing in auth.ts)
-SELECT 'Test 1: Fetch staff by ID' as test_name;
-SELECT 
-  id,
-  email,
-  staff_number,
-  base_location
-FROM public.staff
-WHERE id = '342b9c6c-7abc-4d69-bd01-5f12aaa32f7d';
+-- 6. Create a function to get eligible staff for swaps
+CREATE OR REPLACE FUNCTION public.get_eligible_staff_for_swap(
+    requester_base_location text,
+    swap_date date,
+    requester_id uuid
+)
+RETURNS TABLE (
+    id uuid,
+    email text,
+    staff_number text,
+    base_location text,
+    can_work_doubles boolean,
+    company_id uuid,
+    created_at timestamptz
+) 
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    -- Check if user is authenticated
+    IF auth.uid() IS NULL THEN
+        RAISE EXCEPTION 'Authentication required';
+    END IF;
+    
+    -- Return staff who are OFF on the swap date at the same base location
+    RETURN QUERY
+    SELECT 
+        s.id,
+        s.email,
+        s.staff_number,
+        s.base_location,
+        s.can_work_doubles,
+        s.company_id,
+        s.created_at
+    FROM public.staff s
+    WHERE s.base_location = requester_base_location
+    AND s.id != requester_id
+    AND NOT EXISTS (
+        SELECT 1 FROM public.shifts sh
+        WHERE sh.staff_id = s.id
+        AND sh.date = swap_date
+    )
+    ORDER BY s.staff_number;
+END;
+$$;
 
--- Test 2: Fetch staff at same base location (was failing in CreateSwapRequest.tsx)
-SELECT 'Test 2: Fetch staff at Iberia CER' as test_name;
-SELECT 
-  id,
-  email,
-  staff_number,
-  base_location
-FROM public.staff
-WHERE base_location = 'Iberia CER'
-  AND id != '342b9c6c-7abc-4d69-bd01-5f12aaa32f7d';
+-- 7. Grant permissions for the new function
+GRANT EXECUTE ON FUNCTION public.get_eligible_staff_for_swap(text, date, uuid) TO authenticated;
 
--- Test 3: Fetch shifts for a specific date
-SELECT 'Test 3: Fetch shifts for 2025-09-05' as test_name;
-SELECT 
-  s.id,
-  s.date,
-  s.time,
-  st.email,
-  st.staff_number
-FROM public.shifts s
-JOIN public.staff st ON s.staff_id = st.id
-WHERE s.date::date = '2025-09-05'::date
-ORDER BY s.time;
+-- 8. Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_staff_base_location ON public.staff(base_location);
+CREATE INDEX IF NOT EXISTS idx_shifts_date_staff ON public.shifts(date, staff_id);
 
--- Test 4: Test the specific shift that's failing in the swap request
-SELECT 'Test 4: Fetch specific shift from swap request' as test_name;
-SELECT 
-  s.id,
-  s.date,
-  s.time,
-  s.staff_id,
-  st.email,
-  st.staff_number
-FROM public.shifts s
-JOIN public.staff st ON s.staff_id = st.id
-WHERE s.id = 'ea9a6861-5322-4301-9710-f001a3732d17';
+-- 9. Verify the changes
+SELECT 'Staff policies' as table_name, count(*) as policy_count 
+FROM pg_policies WHERE tablename = 'staff'
+UNION ALL
+SELECT 'Swap requests policies' as table_name, count(*) as policy_count 
+FROM pg_policies WHERE tablename = 'swap_requests';
 
--- Test 5: Test swap request with shift details
-SELECT 'Test 5: Test swap request query with shift details' as test_name;
-SELECT 
-  sr.id as swap_request_id,
-  sr.requester_id,
-  sr.requester_shift_id,
-  sr.accepter_id,
-  sr.status,
-  rs.email as requester_email,
-  rs.staff_number as requester_staff_number,
-  s.date as shift_date,
-  s.time as shift_time
-FROM public.swap_requests sr
-LEFT JOIN public.staff rs ON sr.requester_id = rs.id
-LEFT JOIN public.shifts s ON sr.requester_shift_id = s.id
-WHERE sr.id = '9cc3dd3f-0b08-485f-bf21-93fb13a567b9';
-
--- Show final RLS status
-SELECT '=== FINAL RLS STATUS ===' as info;
-SELECT 
-  schemaname,
-  tablename,
-  rowsecurity
-FROM pg_tables 
-WHERE tablename IN ('staff', 'shifts', 'swap_requests')
-ORDER BY tablename;
-
--- Summary
-SELECT '=== SUMMARY ===' as info;
-SELECT 
-  'RLS disabled on staff and shifts tables' as action,
-  'Swap requests should now work with shift details' as result;
+-- 10. Test the function exists
+SELECT routine_name, routine_type 
+FROM information_schema.routines 
+WHERE routine_name IN ('get_all_staff_for_team', 'get_eligible_staff_for_swap');

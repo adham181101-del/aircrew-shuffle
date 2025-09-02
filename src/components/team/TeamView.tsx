@@ -7,6 +7,7 @@ import { getUserShifts, type Shift } from '@/lib/shifts'
 import { getCurrentUser, getAllStaff, type Staff } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
 import { Calendar, Users, Clock, MapPin } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
 
 interface TeamMember {
   id: string
@@ -15,7 +16,8 @@ interface TeamMember {
   staffNumber: string
   baseLocation: string
   shiftTime: string
-  role?: string
+  role?: 'Working Today' | 'Off Duty' | 'location_header'
+  workingDetails?: string
 }
 
 interface DayTeam {
@@ -38,27 +40,71 @@ export const TeamView = () => {
   }, [])
 
   useEffect(() => {
-    if (selectedMonth && shifts.length > 0 && allStaff.length > 0) {
+    if (selectedMonth && allStaff.length > 0) {
+      loadShiftsForMonth(selectedMonth)
+    }
+  }, [selectedMonth, allStaff])
+
+  const loadShiftsForMonth = async (month: string) => {
+    try {
+      // Fetch all shifts for the selected month
+      const { data: monthShifts, error: shiftsError } = await supabase
+        .from('shifts')
+        .select('*')
+        .gte('date', month + '-01')
+        .lt('date', month + '-32') // Get all shifts in the month
+        .order('date', { ascending: true })
+
+      if (shiftsError) {
+        console.error('Error fetching shifts for month:', shiftsError)
+        return
+      }
+      
+      setShifts(monthShifts || [])
+    } catch (error) {
+      console.error('Error loading shifts for month:', error)
+    }
+  }
+
+  // Regenerate team data when shifts change
+  useEffect(() => {
+    if (shifts.length > 0 && allStaff.length > 0) {
       generateTeamData()
     }
-  }, [selectedMonth, shifts, allStaff])
+  }, [shifts, allStaff])
 
   const loadShifts = async () => {
     try {
       const user = await getCurrentUser()
       if (!user) return
 
-      const [userShifts, staffData] = await Promise.all([
-        getUserShifts(user.id),
-        getAllStaff()
-      ])
-      
-      setShifts(userShifts)
+      // Get all staff first
+      const staffData = await getAllStaff()
       setAllStaff(staffData)
       
-      // Auto-select current month
+      // Get ALL shifts for the current month, not just user shifts
       const currentMonth = new Date().toISOString().slice(0, 7)
       setSelectedMonth(currentMonth)
+      
+      // Fetch all shifts for the current month
+      const { data: allShifts, error: shiftsError } = await supabase
+        .from('shifts')
+        .select('*')
+        .gte('date', currentMonth + '-01')
+        .lt('date', currentMonth + '-32') // Get all shifts in the month
+        .order('date', { ascending: true })
+
+      if (shiftsError) {
+        console.error('Error fetching shifts:', shiftsError)
+        toast({
+          title: "Error loading shifts",
+          description: "Could not load shift data for team view",
+          variant: "destructive"
+        })
+        return
+      }
+      
+      setShifts(allShifts || [])
     } catch (error) {
       toast({
         title: "Error loading data",
@@ -102,22 +148,49 @@ export const TeamView = () => {
         day: 'numeric'
       })
 
-      // Show all staff members, highlighting those working on this day
-      const staffIdsOnThisDay = dayShifts.map(shift => shift.staff_id)
-      const teamMembers: TeamMember[] = allStaff.map((staffMember, index) => {
-        // Find the shift for this staff member
-        const staffShift = dayShifts.find(shift => shift.staff_id === staffMember.id)
-        const isWorkingToday = staffIdsOnThisDay.includes(staffMember.id)
-        
-        return {
-          id: staffMember.id,
-          name: staffMember.email?.split('@')[0] || `Staff ${index + 1}`,
-          email: staffMember.email,
-          staffNumber: staffMember.staff_number,
-          baseLocation: staffMember.base_location,
-          shiftTime: staffShift ? staffShift.time : 'Off duty',
-          role: isWorkingToday ? 'Working Today' : 'Off Duty'
+      // Group staff by base location for better organization
+      const staffByLocation = allStaff.reduce((acc, staff) => {
+        const location = staff.base_location || 'Unknown Location'
+        if (!acc[location]) {
+          acc[location] = []
         }
+        acc[location].push(staff)
+        return acc
+      }, {} as Record<string, typeof allStaff>)
+
+      // Create team members with location grouping
+      const teamMembers: TeamMember[] = []
+      
+      Object.entries(staffByLocation).forEach(([location, locationStaff]) => {
+        // Add location header
+        if (locationStaff.length > 0) {
+          teamMembers.push({
+            id: `location-${location}`,
+            name: `📍 ${location}`,
+            email: '',
+            staffNumber: `${locationStaff.length} staff`,
+            baseLocation: location,
+            shiftTime: '',
+            role: 'location_header'
+          })
+        }
+
+        // Add staff members for this location
+        locationStaff.forEach((staffMember) => {
+          const staffShift = dayShifts.find(shift => shift.staff_id === staffMember.id)
+          const isWorkingToday = dayShifts.some(shift => shift.staff_id === staffMember.id)
+          
+          teamMembers.push({
+            id: staffMember.id,
+            name: staffMember.email?.split('@')[0] || `Staff Member`,
+            email: staffMember.email,
+            staffNumber: staffMember.staff_number,
+            baseLocation: staffMember.base_location,
+            shiftTime: staffShift ? staffShift.time : 'Off duty',
+            role: isWorkingToday ? 'Working Today' : 'Off Duty',
+            workingDetails: staffShift ? `${staffShift.time} shift` : 'No shifts scheduled'
+          })
+        })
       })
 
       const workingToday = teamMembers.filter(member => member.role === 'Working Today').length
@@ -206,31 +279,50 @@ export const TeamView = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid gap-3">
-                                     {day.teamMembers.map((member) => {
-                     const isWorking = member.role === 'Working Today'
-                     return (
-                       <div 
-                         key={member.id} 
-                         className={`flex items-center justify-between p-3 border rounded-lg ${
-                           isWorking ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                         }`}
-                       >
-                         <div className="flex items-center gap-3">
-                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                             isWorking ? 'bg-green-100' : 'bg-gray-100'
-                           }`}>
-                             <Users className={`h-5 w-5 ${isWorking ? 'text-green-600' : 'text-gray-500'}`} />
-                           </div>
-                           <div>
-                             <p className="font-medium">{member.name}</p>
-                             <p className="text-sm text-muted-foreground">{member.staffNumber}</p>
-                           </div>
-                         </div>
-                         <div className="text-right">
-                           <div className="flex items-center gap-2 mb-1">
+                  {day.teamMembers.map((member) => {
+                    const isWorking = member.role === 'Working Today'
+                    const isLocationHeader = member.role === 'location_header'
+                    
+                    if (isLocationHeader) {
+                      return (
+                        <div 
+                          key={member.id} 
+                          className="bg-blue-50 dark:bg-blue-950/20 p-3 border border-blue-200 dark:border-blue-800 rounded-lg"
+                        >
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-5 w-5 text-blue-600" />
+                            <div>
+                              <p className="font-semibold text-blue-800 dark:text-blue-200">{member.name}</p>
+                              <p className="text-sm text-blue-600 dark:text-blue-300">{member.staffNumber}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    }
+                    
+                    return (
+                      <div 
+                        key={member.id} 
+                        className={`flex items-center justify-between p-3 border rounded-lg ${
+                          isWorking ? 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800' : 'bg-gray-50 border-gray-200 dark:bg-gray-800 dark:border-gray-600'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            isWorking ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-700'
+                          }`}>
+                            <Users className={`h-5 w-5 ${isWorking ? 'text-green-600' : 'text-gray-500'}`} />
+                          </div>
+                          <div>
+                            <p className="font-medium">{member.name}</p>
+                            <p className="text-sm text-muted-foreground">{member.staffNumber}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                                                     <div className="flex items-center gap-2 mb-1">
                              <Clock className="h-4 w-4 text-muted-foreground" />
                              <span className={`text-sm font-medium ${
-                               isWorking ? 'text-green-700' : 'text-gray-500'
+                               isWorking ? 'text-green-700 dark:text-green-300' : 'text-gray-500 dark:text-gray-400'
                              }`}>
                                {member.shiftTime}
                              </span>
@@ -240,14 +332,21 @@ export const TeamView = () => {
                              <span className="text-sm text-muted-foreground">{member.baseLocation}</span>
                            </div>
                            {isWorking && (
-                             <Badge variant="default" className="mt-1 bg-green-600">
+                             <Badge variant="default" className="mt-1 bg-green-600 dark:bg-green-500">
                                Working Today
                              </Badge>
                            )}
-                         </div>
-                       </div>
-                     )
-                   })}
+                           {member.workingDetails && (
+                             <p className={`text-xs mt-1 ${
+                               isWorking ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'
+                             }`}>
+                               {member.workingDetails}
+                             </p>
+                           )}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>
