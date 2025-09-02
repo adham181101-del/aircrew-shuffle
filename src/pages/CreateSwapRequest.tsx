@@ -71,99 +71,76 @@ const CreateSwapRequest = () => {
       console.log(`Shift date type: ${typeof shift.date}`);
       console.log(`Shift date value: "${shift.date}"`);
 
-      // Fetch all staff at the same base location
-      console.log('Fetching staff from database...');
+      // Use the new database function for better performance
+      console.log('Fetching eligible staff using database function...');
       
-      const { data: baseStaff, error: staffError } = await supabase
-        .from('staff')
-        .select('*')
-        .eq('base_location', user.base_location)
-        .neq('id', user.id);
+      const { data: eligibleStaffData, error: eligibleError } = await supabase
+        .rpc('get_eligible_staff_for_swap', {
+          requester_base_location: user.base_location,
+          swap_date: shift.date,
+          requester_id: user.id
+        });
 
-      if (staffError) {
-        console.error('Error fetching staff:', staffError);
-        throw staffError;
-      }
+      if (eligibleError) {
+        console.error('Error fetching eligible staff:', eligibleError);
+        
+        // Fallback to manual query if function fails
+        console.log('Falling back to manual query...');
+        const { data: baseStaff, error: staffError } = await supabase
+          .from('staff')
+          .select('*')
+          .eq('base_location', user.base_location)
+          .neq('id', user.id);
 
-      console.log(`Found ${baseStaff?.length || 0} staff members at ${user.base_location}`);
-      console.log(`Base staff:`, baseStaff?.map(s => ({ email: s.email, staff_number: s.staff_number, id: s.id })));
-      
-      if (!baseStaff || baseStaff.length === 0) {
-        console.log('No staff found at this base location');
-        setEligibleStaff([]);
+        if (staffError) {
+          console.error('Error fetching staff:', staffError);
+          throw staffError;
+        }
+
+        console.log(`Found ${baseStaff?.length || 0} staff members at ${user.base_location}`);
+        
+        if (!baseStaff || baseStaff.length === 0) {
+          console.log('No staff found at this base location');
+          setEligibleStaff([]);
+          return;
+        }
+
+        // Get all shifts for the selected date to see who's working
+        console.log('Fetching shifts for the selected date...');
+        const { data: shiftsOnDate, error: shiftsError } = await supabase
+          .from('shifts')
+          .select('staff_id')
+          .eq('date', shift.date);
+
+        if (shiftsError) {
+          console.error('Error fetching shifts:', shiftsError);
+          throw shiftsError;
+        }
+
+        // Create a set of staff IDs who are working on this date
+        const workingStaffIds = new Set(shiftsOnDate?.map(s => s.staff_id) || []);
+        
+        // Filter to eligible staff (those who are OFF on the selected date)
+        const eligibleList = baseStaff.filter(staff => !workingStaffIds.has(staff.id));
+        
+        console.log(`\n=== FALLBACK RESULTS ===`);
+        console.log(`Total staff at ${user.base_location}: ${baseStaff.length}`);
+        console.log(`Staff working on ${shift.date}: ${workingStaffIds.size}`);
+        console.log(`Eligible staff (OFF): ${eligibleList.length}`);
+        
+        setEligibleStaff(eligibleList);
         return;
       }
 
-      // Get all shifts for the selected date to see who's working
-      console.log('Fetching shifts for the selected date...');
-      console.log(`Querying for date: "${shift.date}"`);
+      console.log(`\n=== DATABASE FUNCTION RESULTS ===`);
+      console.log(`Found ${eligibleStaffData?.length || 0} eligible staff members`);
+      console.log(`Eligible staff:`, eligibleStaffData?.map(s => ({ 
+        email: s.email, 
+        staff_number: s.staff_number, 
+        base_location: s.base_location 
+      })));
       
-      const { data: shiftsOnDate, error: shiftsError } = await supabase
-        .from('shifts')
-        .select(`
-          id,
-          date,
-          time,
-          staff_id,
-          staff:staff_id(email, staff_number, base_location)
-        `)
-        .eq('date', shift.date);
-
-      if (shiftsError) {
-        console.error('Error fetching shifts:', shiftsError);
-        throw shiftsError;
-      }
-
-      console.log(`Found ${shiftsOnDate?.length || 0} shifts on ${shift.date}`);
-      console.log(`Shifts on date:`, shiftsOnDate);
-
-      // Also try a broader query to see all shifts
-      console.log('Fetching ALL shifts to debug date format...');
-      const { data: allShifts, error: allShiftsError } = await supabase
-        .from('shifts')
-        .select('date, staff_id')
-        .limit(10);
-      
-      if (!allShiftsError) {
-        console.log('Sample shifts in database:', allShifts);
-      }
-
-      // Create a set of staff IDs who are working on this date
-      const workingStaffIds = new Set(shiftsOnDate?.map(s => s.staff_id) || []);
-      
-      console.log(`Staff working on ${shift.date}:`, Array.from(workingStaffIds));
-
-      // Filter to eligible staff (those who are OFF on the selected date)
-      const eligibleList: Staff[] = [];
-      
-      for (const staff of baseStaff) {
-        console.log(`\n--- Checking ${staff.email} (${staff.staff_number}) ---`);
-        
-        const isWorkingOnDate = workingStaffIds.has(staff.id);
-        
-        console.log(`Staff ${staff.email} (${staff.staff_number}): ${isWorkingOnDate ? 'WORKING' : 'OFF'} on ${shift.date}`);
-        
-        if (!isWorkingOnDate) {
-          console.log(`  ✅ Staff ${staff.email} is eligible (OFF on ${shift.date})`);
-          eligibleList.push(staff);
-        } else {
-          console.log(`  ❌ Staff ${staff.email} excluded - they are working on ${shift.date}`);
-        }
-      }
-
-      console.log(`\n=== FINAL RESULTS ===`);
-      console.log(`Total staff at ${user.base_location}: ${baseStaff.length}`);
-      console.log(`Staff working on ${shift.date}: ${workingStaffIds.size}`);
-      console.log(`Eligible staff (OFF): ${eligibleList.length}`);
-      console.log(`Eligible staff:`, eligibleList.map(s => s.email));
-      
-      if (eligibleList.length === 0) {
-        console.log(`❌ NO ELIGIBLE STAFF FOUND!`);
-        console.log(`This means all staff are working on ${shift.date}`);
-        console.log(`Try a different date for swap requests`);
-      }
-      
-      setEligibleStaff(eligibleList);
+      setEligibleStaff(eligibleStaffData || []);
     } catch (error) {
       console.error('Error finding eligible staff:', error);
       toast({
