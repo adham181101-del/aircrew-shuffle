@@ -645,4 +645,22 @@
   border: none !important;
 }
 
+/* Ensure premium and team buttons are visible on mobile */
+@media (max-width: 768px) {
+  /* Make navigation tabs container responsive */
+  .dashboard-nav-tabs {
+    @apply w-full max-w-none px-2;
+  }
+  
+  /* Ensure buttons don't get cut off */
+  .dashboard-nav-tabs button {
+    @apply min-w-0 px-3 py-2 text-sm;
+  }
+  
+  /* Make button text smaller on mobile */
+  .dashboard-nav-tabs button span {
+    @apply text-xs;
+  }
+}
+
 /* Fix delete button hover states to ensure text remains visible */

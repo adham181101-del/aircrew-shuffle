@@ -352,7 +352,7 @@ const Dashboard = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex space-x-2 mb-8 bg-white p-2 rounded-2xl shadow-lg max-w-lg border border-gray-100">
+        <div className="dashboard-nav-tabs flex space-x-2 mb-8 bg-white p-2 rounded-2xl shadow-lg w-full max-w-lg border border-gray-100">
           <Button
             variant={activeTab === 'calendar' ? 'default' : 'ghost'}
             size="sm"
