@@ -51,6 +51,8 @@ const ManageSwaps = () => {
   const [loadingCounterShifts, setLoadingCounterShifts] = useState(false);
   const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
   const [requestToRevoke, setRequestToRevoke] = useState<string | null>(null);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentSwapId, setCurrentSwapId] = useState<string | null>(null);
 
   useEffect(() => {
     loadUserAndRequests();
@@ -144,7 +146,7 @@ const ManageSwaps = () => {
     return variants[status] || "secondary";
   };
 
-  const fetchAvailableShifts = async (userId: string, requesterShiftDate: string, swapId: string) => {
+  const fetchAvailableShifts = async (userId: string, requesterShiftDate: string, swapId: string, targetMonth?: Date) => {
     try {
       setLoadingCounterShifts(true);
       
@@ -152,6 +154,7 @@ const ManageSwaps = () => {
       console.log('User ID:', userId);
       console.log('Requester shift date:', requesterShiftDate);
       console.log('Swap ID:', swapId);
+      console.log('Target month:', targetMonth);
       console.log('Requester shift date type:', typeof requesterShiftDate);
       
       // Get all shifts for the current user
@@ -226,16 +229,24 @@ const ManageSwaps = () => {
       // Get all future dates where the user is OFF (no shifts)
       const futureDates = [];
       const today = new Date();
-      const next30Days = Array.from({ length: 30 }, (_, i) => {
-        const date = new Date(today);
-        date.setDate(today.getDate() + i);
+      
+      // Use target month if provided, otherwise use current month
+      const startDate = targetMonth ? new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1) : today;
+      const endDate = targetMonth ? new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0) : new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+      
+      // Generate dates for the specified month or next 30 days
+      const daysInMonth = Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+      const nextDays = Array.from({ length: daysInMonth }, (_, i) => {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + i);
         return date.toISOString().split('T')[0]; // YYYY-MM-DD format
       });
 
-      console.log('Next 30 days:', next30Days);
+      console.log('Date range:', { startDate: startDate.toISOString().split('T')[0], endDate: endDate.toISOString().split('T')[0] });
+      console.log('Generated dates:', nextDays);
 
       // Find dates where user is OFF and can work the requester's shift
-      const availableDates = next30Days.filter(date => {
+      const availableDates = nextDays.filter(date => {
         // Skip past dates
         if (new Date(date) < today) {
           console.log(`❌ ${date} - Past date, skipping`);
@@ -331,7 +342,9 @@ const ManageSwaps = () => {
     
     setShowCounterOffer(swapId);
     setSelectedCounterShift("");
-    await fetchAvailableShifts(user.id, swapRequest.requester_shift.date, swapId);
+    setCurrentSwapId(swapId);
+    setCurrentMonth(new Date()); // Reset to current month
+    await fetchAvailableShifts(user.id, swapRequest.requester_shift.date, swapId, new Date());
   };
 
   const handleAcceptSwap = async (swapId: string) => {
@@ -726,6 +739,37 @@ const ManageSwaps = () => {
     }
   };
 
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    const newMonth = new Date(currentMonth);
+    if (direction === 'prev') {
+      newMonth.setMonth(newMonth.getMonth() - 1);
+    } else {
+      newMonth.setMonth(newMonth.getMonth() + 1);
+    }
+    setCurrentMonth(newMonth);
+    
+    // Refresh available shifts for the new month
+    if (currentSwapId && user) {
+      const swapRequest = incomingRequests.find(req => req.id === currentSwapId);
+      if (swapRequest?.requester_shift?.date) {
+        fetchAvailableShifts(user.id, swapRequest.requester_shift.date, currentSwapId, newMonth);
+      }
+    }
+  };
+
+  const resetToCurrentMonth = () => {
+    const today = new Date();
+    setCurrentMonth(today);
+    
+    // Refresh available shifts for current month
+    if (currentSwapId && user) {
+      const swapRequest = incomingRequests.find(req => req.id === currentSwapId);
+      if (swapRequest?.requester_shift?.date) {
+        fetchAvailableShifts(user.id, swapRequest.requester_shift.date, currentSwapId, today);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <header className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-xl">
@@ -915,6 +959,44 @@ const ManageSwaps = () => {
                                     Choose a date when {request.requester_staff?.staff_number || 'the requester'} is off to work their shift in exchange.
                                   </p>
                                   
+                                  {/* Month Navigation */}
+                                  <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-lg border border-blue-200">
+                                    <Button
+                                      onClick={() => navigateMonth('prev')}
+                                      variant="outline"
+                                      size="sm"
+                                      className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                                    >
+                                      ← Previous Month
+                                    </Button>
+                                    
+                                    <div className="text-center">
+                                      <h5 className="font-semibold text-blue-900">
+                                        {currentMonth.toLocaleDateString('en-US', { 
+                                          month: 'long', 
+                                          year: 'numeric' 
+                                        })}
+                                      </h5>
+                                      <Button
+                                        onClick={resetToCurrentMonth}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-blue-600 hover:text-blue-800 text-xs"
+                                      >
+                                        Today
+                                      </Button>
+                                    </div>
+                                    
+                                    <Button
+                                      onClick={() => navigateMonth('next')}
+                                      variant="outline"
+                                      size="sm"
+                                      className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                                    >
+                                      Next Month →
+                                    </Button>
+                                  </div>
+                                  
                                   {loadingCounterShifts ? (
                                     <div className="flex items-center gap-2">
                                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -955,7 +1037,7 @@ const ManageSwaps = () => {
                                     </div>
                                   ) : (
                                     <div className="text-sm text-red-700">
-                                      ❌ No dates available for counter-offer
+                                      ❌ No dates available for counter-offer in {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                                     </div>
                                   )}
                                 </div>
