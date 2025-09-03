@@ -267,6 +267,17 @@ export const executeShiftSwap = async (swapRequest: any): Promise<void> => {
     if (swapRequest.counter_offer_date) {
       console.log('Processing counter-offer swap');
       
+      // DELETE the original requester shift first
+      const { error: deleteRequesterError } = await supabase
+        .from('shifts')
+        .delete()
+        .eq('id', swapRequest.requester_shift_id);
+
+      if (deleteRequesterError) {
+        console.error('Error deleting requester shift:', deleteRequesterError);
+        throw deleteRequesterError;
+      }
+
       // Create a new shift for the accepter (they get the requester's shift)
       const { error: accepterShiftError } = await supabase
         .from('shifts')
@@ -297,17 +308,6 @@ export const executeShiftSwap = async (swapRequest: any): Promise<void> => {
         throw requesterNewShiftError;
       }
 
-      // Mark the original requester shift as swapped
-      const { error: updateRequesterError } = await supabase
-        .from('shifts')
-        .update({ is_swapped: true })
-        .eq('id', swapRequest.requester_shift_id);
-
-      if (updateRequesterError) {
-        console.error('Error updating requester shift:', updateRequesterError);
-        throw updateRequesterError;
-      }
-
       console.log('Counter-offer swap executed successfully');
     } else {
       // This is a direct swap (no counter-offer)
@@ -327,6 +327,27 @@ export const executeShiftSwap = async (swapRequest: any): Promise<void> => {
         }
 
         console.log('Accepter shift:', accepterShift);
+
+        // DELETE both original shifts first
+        const { error: deleteAccepterError } = await supabase
+          .from('shifts')
+          .delete()
+          .eq('id', swapRequest.accepter_shift_id);
+
+        if (deleteAccepterError) {
+          console.error('Error deleting accepter shift:', deleteAccepterError);
+          throw deleteAccepterError;
+        }
+
+        const { error: deleteRequesterError } = await supabase
+          .from('shifts')
+          .delete()
+          .eq('id', swapRequest.requester_shift_id);
+
+        if (deleteRequesterError) {
+          console.error('Error deleting requester shift:', deleteRequesterError);
+          throw deleteRequesterError;
+        }
 
         // Create a new shift for the accepter (they get the requester's shift)
         const { error: accepterNewShiftError } = await supabase
@@ -357,19 +378,19 @@ export const executeShiftSwap = async (swapRequest: any): Promise<void> => {
           console.error('Error creating requester new shift:', requesterNewShiftError);
           throw requesterNewShiftError;
         }
-
-        // Mark both original shifts as swapped
-        const { error: updateAccepterError } = await supabase
-          .from('shifts')
-          .update({ is_swapped: true })
-          .eq('id', swapRequest.accepter_shift_id);
-
-        if (updateAccepterError) {
-          console.error('Error updating accepter shift:', updateAccepterError);
-          throw updateAccepterError;
-        }
       } else {
         // Accepter doesn't have a shift, just give them the requester's shift
+        // DELETE the original requester shift first
+        const { error: deleteRequesterError } = await supabase
+          .from('shifts')
+          .delete()
+          .eq('id', swapRequest.requester_shift_id);
+
+        if (deleteRequesterError) {
+          console.error('Error deleting requester shift:', deleteRequesterError);
+          throw deleteRequesterError;
+        }
+
         const { error: accepterShiftError } = await supabase
           .from('shifts')
           .insert({
@@ -385,21 +406,17 @@ export const executeShiftSwap = async (swapRequest: any): Promise<void> => {
         }
       }
 
-      // Mark the original requester shift as swapped
-      const { error: updateRequesterError } = await supabase
-        .from('shifts')
-        .update({ is_swapped: true })
-        .eq('id', swapRequest.requester_shift_id);
-
-      if (updateRequesterError) {
-        console.error('Error updating requester shift:', updateRequesterError);
-        throw updateRequesterError;
-      }
-
       console.log('Direct swap executed successfully');
     }
 
     console.log('Shift swap completed successfully');
+    
+    // Notify both parties that their calendars have been updated
+    console.log('Notifying both parties of calendar updates...');
+    
+    // The frontend will handle the calendar refresh and page reload
+    // This ensures both parties see the updated shifts immediately
+    
   } catch (error) {
     console.error('Error executing shift swap:', error);
     throw error;
