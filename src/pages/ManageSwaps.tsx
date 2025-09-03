@@ -260,6 +260,9 @@ const ManageSwaps = () => {
       console.log('Generated dates:', nextDays);
       if (targetMonth) {
         console.log(`Filtering for month: ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}`);
+        console.log('Target month object:', targetMonth);
+        console.log('Target month getMonth():', targetMonth.getMonth());
+        console.log('Target month getFullYear():', targetMonth.getFullYear());
       }
 
       // Find dates where user is OFF and can work the requester's shift
@@ -338,11 +341,25 @@ const ManageSwaps = () => {
       // Final filter: ensure all dates are from the target month if specified
       let finalAvailableDates = availableDates;
       if (targetMonth) {
+        console.log('=== FINAL MONTH FILTERING ===');
+        console.log('Available dates before final filter:', availableDates);
+        console.log('Target month for filtering:', targetMonth);
+        
         finalAvailableDates = availableDates.filter(date => {
           const dateObj = new Date(date);
-          return dateObj.getMonth() === targetMonth.getMonth() && 
-                 dateObj.getFullYear() === targetMonth.getFullYear();
+          const dateMonth = dateObj.getMonth();
+          const dateYear = dateObj.getFullYear();
+          const targetMonthNum = targetMonth.getMonth();
+          const targetYear = targetMonth.getFullYear();
+          
+          console.log(`Checking date ${date}: month=${dateMonth}, year=${dateYear} vs target month=${targetMonthNum}, year=${targetYear}`);
+          
+          const isFromTargetMonth = dateMonth === targetMonthNum && dateYear === targetYear;
+          console.log(`Date ${date} is from target month: ${isFromTargetMonth}`);
+          
+          return isFromTargetMonth;
         });
+        
         console.log(`Final filtered dates for ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}:`, finalAvailableDates);
       }
 
@@ -780,20 +797,44 @@ const ManageSwaps = () => {
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
+    console.log('=== NAVIGATING MONTH ===');
+    console.log('Current month before:', currentMonth);
+    console.log('Direction:', direction);
+    
     const newMonth = new Date(currentMonth);
     if (direction === 'prev') {
       newMonth.setMonth(newMonth.getMonth() - 1);
     } else {
       newMonth.setMonth(newMonth.getMonth() + 1);
     }
+    
+    console.log('New month:', newMonth);
+    console.log('New month string:', newMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
+    
     setCurrentMonth(newMonth);
     
     // Refresh available shifts for the new month
     if (currentSwapId && user) {
+      console.log('Current swap ID:', currentSwapId);
+      console.log('User ID:', user.id);
+      
       const swapRequest = incomingRequests.find(req => req.id === currentSwapId);
+      console.log('Found swap request:', swapRequest);
+      
       if (swapRequest?.requester_shift?.date) {
+        console.log('Requester shift date:', swapRequest.requester_shift.date);
+        console.log('Calling fetchAvailableShifts with new month:', newMonth);
+        
+        // Clear current available shifts first
+        setAvailableShifts([]);
+        
+        // Fetch new shifts for the new month
         fetchAvailableShifts(user.id, swapRequest.requester_shift.date, currentSwapId, newMonth);
+      } else {
+        console.log('No swap request or requester shift date found');
       }
+    } else {
+      console.log('No current swap ID or user');
     }
   };
 
