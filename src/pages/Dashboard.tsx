@@ -182,19 +182,19 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
-      <header className="border-b bg-gradient-primary">
-        <div className="container mx-auto px-4 py-4">
+      <header className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-xl">
+        <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <Building2 className="text-lg text-primary" />
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
+                <Building2 className="h-7 w-7 text-white" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-xl font-bold text-white">{user?.company?.name || 'Company'}</h1>
-                <p className="text-white/80 text-sm">
-                  Welcome back, {user?.email?.split('@')[0] || 'User'}
+                <h1 className="text-2xl font-bold text-white">{user?.company?.name || 'Company'}</h1>
+                <p className="text-white/80 text-base">
+                  Welcome back, <span className="font-semibold">{user?.email?.split('@')[0] || 'User'}</span>
                 </p>
               </div>
               <div className="sm:hidden">
@@ -206,18 +206,18 @@ const Dashboard = () => {
             </div>
             
             {/* Desktop Header Actions */}
-            <div className="hidden md:flex items-center space-x-2">
-              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+            <div className="hidden md:flex items-center space-x-3">
+              <Badge variant="secondary" className="bg-white/20 text-white border-white/30 px-3 py-1">
                 {user?.company?.industry || 'Aviation'}
               </Badge>
-              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+              <Badge variant="secondary" className="bg-white/20 text-white border-white/30 px-3 py-1">
                 {user?.base_location}
               </Badge>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/profile')}
-                className="text-white hover:bg-white/20"
+                className="text-white hover:bg-white/20 px-4 py-2"
               >
                 <User className="h-4 w-4 mr-2" />
                 Profile
@@ -226,7 +226,7 @@ const Dashboard = () => {
                 variant="ghost"
                 size="sm"
                 onClick={handleSignOut}
-                className="text-white hover:bg-white/20"
+                className="text-white hover:bg-white/20 px-4 py-2"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
@@ -266,13 +266,15 @@ const Dashboard = () => {
 
       {/* Pending Swaps Notification */}
       {showSwapNotification && pendingSwaps.length > 0 && (
-        <div className="bg-amber-50 border-b border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
-          <div className="container mx-auto px-4 py-3">
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+          <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <Bell className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                  <Bell className="h-5 w-5 text-amber-600" />
+                </div>
                 <div>
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
                     You have {pendingSwaps.length} pending swap request{pendingSwaps.length > 1 ? 's' : ''} to review
                   </p>
                   <p className="text-xs text-amber-700 dark:text-amber-300">
@@ -287,7 +289,7 @@ const Dashboard = () => {
                 <Button
                   size="sm"
                   onClick={() => navigate('/swaps')}
-                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg shadow-md"
                 >
                   Review Requests
                 </Button>
@@ -295,7 +297,7 @@ const Dashboard = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowSwapNotification(false)}
-                  className="text-amber-600 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                  className="text-amber-600 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/20 p-2"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -306,47 +308,60 @@ const Dashboard = () => {
       )}
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Shifts</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-blue-800">Total Shifts</CardTitle>
+              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                <Calendar className="h-5 w-5 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalShifts}</div>
+              <div className="text-3xl font-bold text-blue-900">{stats.totalShifts}</div>
+              <p className="text-xs text-blue-600 mt-1">This month</p>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Swaps</CardTitle>
-              <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-purple-800">Pending Swaps</CardTitle>
+              <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                <ArrowRightLeft className="h-5 w-5 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingSwaps}</div>
+              <div className="text-3xl font-bold text-purple-900">{stats.pendingSwaps}</div>
+              <p className="text-xs text-purple-600 mt-1">Awaiting review</p>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed Swaps</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-green-800">Completed Swaps</CardTitle>
+              <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                <Users className="h-5 w-5 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.acceptedSwaps}</div>
+              <div className="text-3xl font-bold text-green-900">{stats.acceptedSwaps}</div>
+              <p className="text-xs text-green-600 mt-1">Successfully completed</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg max-w-lg">
+        <div className="flex space-x-2 mb-8 bg-white p-2 rounded-2xl shadow-lg max-w-lg border border-gray-100">
           <Button
             variant={activeTab === 'calendar' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('calendar')}
-            className="flex-1"
+            className={`flex-1 px-6 py-3 rounded-xl transition-all duration-300 ${
+              activeTab === 'calendar' 
+                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
+                : 'hover:bg-gray-100'
+            }`}
           >
             <Calendar className="h-4 w-4 mr-2" />
             Calendar
@@ -355,7 +370,11 @@ const Dashboard = () => {
             variant={activeTab === 'premiums' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('premiums')}
-            className="flex-1"
+            className={`flex-1 px-6 py-3 rounded-xl transition-all duration-300 ${
+              activeTab === 'premiums' 
+                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
+                : 'hover:bg-gray-100'
+            }`}
           >
             <DollarSign className="h-4 w-4 mr-2" />
             Premiums
@@ -364,7 +383,11 @@ const Dashboard = () => {
             variant={activeTab === 'team' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('team')}
-            className="flex-1"
+            className={`flex-1 px-6 py-3 rounded-xl transition-all duration-300 ${
+              activeTab === 'team' 
+                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
+                : 'hover:bg-gray-100'
+            }`}
           >
             <Users className="h-4 w-4 mr-2" />
             Team
@@ -372,49 +395,49 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
           <Button
             onClick={() => navigate('/upload')}
-            className="flex items-center justify-center h-16 bg-gradient-secondary hover:opacity-90"
+            className="flex items-center justify-center h-20 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
           >
-            <Upload className="h-5 w-5 mr-2" />
+            <Upload className="h-6 w-6 mr-2" />
             Upload Roster PDF
           </Button>
           
           <Button
             onClick={() => navigate('/shifts/create')}
             variant="outline"
-            className="flex items-center justify-center h-16"
+            className="flex items-center justify-center h-20 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105"
           >
-            <Plus className="h-5 w-5 mr-2" />
+            <Plus className="h-6 w-6 mr-2" />
             Add Manual Shift
           </Button>
           
           <Button
             onClick={() => navigate('/swaps/create')}
             variant="outline"
-            className="flex items-center justify-center h-16"
+            className="flex items-center justify-center h-20 border-2 border-gray-200 hover:border-purple-300 hover:bg-purple-50 font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105"
           >
-            <ArrowRightLeft className="h-5 w-5 mr-2" />
+            <ArrowRightLeft className="h-6 w-6 mr-2" />
             Request Swap
           </Button>
           
           <Button
             onClick={() => navigate('/swaps')}
             variant="outline"
-            className="flex items-center justify-center h-16"
+            className="flex items-center justify-center h-20 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105"
           >
-            <ArrowRightLeft className="h-5 w-5 mr-2" />
+            <ArrowRightLeft className="h-6 w-6 mr-2" />
             Manage Swaps
           </Button>
 
           <Button
             onClick={() => setDeleteAllDialogOpen(true)}
             variant="destructive"
-            className="flex items-center justify-center h-16"
+            className="flex items-center justify-center h-20 border-2 border-red-200 hover:border-red-300 hover:bg-red-600 hover:text-white font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105"
             disabled={stats.totalShifts === 0}
           >
-            <Trash2 className="h-5 w-5 mr-2" />
+            <Trash2 className="h-6 w-6 mr-2" />
             Delete All Shifts
           </Button>
         </div>

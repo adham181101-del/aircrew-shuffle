@@ -125,3 +125,524 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Enhanced Calendar Styles */
+.react-calendar {
+  @apply w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.react-calendar__navigation {
+  @apply bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200 p-4;
+}
+
+.react-calendar__navigation button {
+  @apply bg-white hover:bg-blue-50 text-gray-700 hover:text-blue-700 border border-gray-200 hover:border-blue-300 rounded-lg px-4 py-2 font-semibold transition-all duration-200 transform hover:scale-105;
+}
+
+.react-calendar__navigation button:disabled {
+  @apply bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed hover:scale-100;
+}
+
+.react-calendar__navigation__label {
+  @apply text-xl font-bold text-gray-900;
+}
+
+.react-calendar__month-view__weekdays {
+  @apply bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-200;
+}
+
+.react-calendar__month-view__weekdays__weekday {
+  @apply p-3 text-center text-sm font-semibold text-gray-700 uppercase tracking-wide;
+}
+
+.react-calendar__month-view__days {
+  @apply bg-white;
+}
+
+.react-calendar__tile {
+  @apply relative p-2 min-h-[80px] bg-white hover:bg-blue-50 transition-all duration-200 border border-transparent hover:border-blue-200;
+}
+
+.react-calendar__tile:enabled:hover {
+  @apply bg-blue-50 border-blue-200;
+}
+
+.react-calendar__tile--active {
+  @apply bg-blue-100 border-blue-300;
+}
+
+.react-calendar__tile--now {
+  @apply bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-300;
+}
+
+.react-calendar__tile--now::before {
+  content: '';
+  @apply absolute top-1 right-1 w-2 h-2 bg-yellow-500 rounded-full;
+}
+
+.react-calendar__tile--has-shifts {
+  @apply bg-gradient-to-br from-blue-50 to-indigo-50;
+}
+
+.react-calendar__tile--has-shifts::after {
+  content: '';
+  @apply absolute bottom-1 left-1 w-2 h-2 bg-blue-500 rounded-full;
+}
+
+.react-calendar__tile abbr {
+  @apply text-sm font-semibold text-gray-900 block mb-2;
+}
+
+/* Shift color classes */
+.shift-morning {
+  @apply bg-gradient-to-r from-yellow-400 to-orange-500 shadow-lg;
+}
+
+.shift-afternoon {
+  @apply bg-gradient-to-r from-orange-400 to-red-500 shadow-lg;
+}
+
+.shift-evening {
+  @apply bg-gradient-to-r from-purple-400 to-indigo-500 shadow-lg;
+}
+
+.shift-swapped {
+  @apply bg-gradient-to-r from-green-400 to-emerald-500 shadow-lg;
+}
+
+.shift-day {
+  @apply bg-gradient-to-r from-blue-400 to-cyan-500 shadow-lg;
+}
+
+/* Calendar container enhancements */
+.calendar-container {
+  @apply p-6 bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl border border-gray-100;
+}
+
+/* Mobile calendar container */
+@media (max-width: 768px) {
+  .calendar-container {
+    @apply p-3 mx-0 rounded-xl;
+    margin: 0 !important;
+    padding: 12px !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* Email field mobile optimization */
+@media (max-width: 768px) {
+  input[type="email"] {
+    @apply text-sm;
+    font-size: 14px !important;
+    word-break: break-all !important;
+  }
+  
+  .break-all {
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+  }
+  
+  .truncate {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  
+  /* Fix tabs on mobile */
+  .react-tabs__tab-list {
+    @apply flex-col space-y-2;
+  }
+  
+  .react-tabs__tab {
+    @apply w-full text-center;
+  }
+  
+  /* Fix ManageSwaps tabs */
+  [data-radix-tabs-trigger] {
+    @apply flex-1;
+  }
+  
+  [data-radix-tabs-list] {
+    @apply flex flex-col sm:flex-row w-full space-y-2 sm:space-y-0 sm:space-x-2;
+  }
+  
+  [data-radix-tabs-trigger][data-state="active"] {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg;
+  }
+  
+  [data-radix-tabs-trigger][data-state="inactive"] {
+    @apply bg-white text-gray-700 hover:bg-gray-50;
+  }
+  
+  /* Ensure proper spacing in ManageSwaps */
+  .manage-swaps-tabs {
+    @apply space-y-8;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-list] {
+    @apply w-full bg-white p-4 rounded-2xl shadow-lg border border-gray-100 relative z-20;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-list] > div {
+    @apply flex flex-col w-full space-y-4;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-trigger] {
+    @apply w-full px-6 py-4 rounded-xl transition-all duration-300 relative z-10 h-16 flex items-center justify-center box-border;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-trigger][data-state="active"] {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-trigger][data-state="inactive"] {
+    @apply bg-gray-50 text-gray-700 hover:bg-gray-100;
+  }
+  
+  /* Ensure proper spacing between tabs and content */
+  .manage-swaps-tabs [data-radix-tabs-content] {
+    @apply mt-8 pt-8 relative z-10;
+  }
+  
+  /* Fix content section spacing */
+  .manage-swaps-content {
+    @apply space-y-6;
+  }
+  
+  .manage-swaps-content h2 {
+    @apply text-2xl font-bold text-gray-900 mb-2;
+  }
+  
+  .manage-swaps-content p {
+    @apply text-gray-600;
+  }
+  
+  /* Force proper tab grouping and prevent overlap */
+  .manage-swaps-tabs [data-radix-tabs-list] {
+    @apply relative z-20 overflow-hidden isolate;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-content] {
+    @apply relative z-10 mt-8;
+  }
+  
+  /* Ensure tabs container has proper height and spacing */
+  .manage-swaps-tabs [data-radix-tabs-list] > div {
+    @apply min-h-[200px] flex flex-col justify-center space-y-4;
+  }
+  
+  /* Prevent any tab from floating outside the container */
+  .manage-swaps-tabs [data-radix-tabs-trigger] {
+    @apply relative z-10;
+  }
+  
+  /* Create clear visual boundary for tabs */
+  .manage-swaps-tabs [data-radix-tabs-list] {
+    @apply relative z-20 overflow-hidden isolate;
+  }
+  
+  /* Ensure content starts below tabs with clear separation */
+  .manage-swaps-tabs [data-radix-tabs-content] {
+    @apply relative z-10 mt-8 pt-8 border-t border-gray-200;
+  }
+  
+  /* Add visual separator between tabs and content */
+  .manage-swaps-tabs [data-radix-tabs-list]::after {
+    content: '';
+    @apply absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent;
+  }
+  
+  /* Ensure consistent tab button shapes */
+  .manage-swaps-tabs [data-radix-tabs-trigger] {
+    @apply h-16 w-full flex items-center justify-center box-border;
+  }
+  
+  /* Prevent content overlap */
+  .manage-swaps-tabs [data-radix-tabs-content] {
+    @apply pt-8 mt-8;
+  }
+  
+  /* Force proper tab alignment and prevent floating */
+  .manage-swaps-tabs [data-radix-tabs-list] {
+    @apply relative z-20 overflow-hidden isolate;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-list] > div {
+    @apply relative z-10;
+  }
+  
+  /* Ensure each tab has exactly the same dimensions */
+  .manage-swaps-tabs [data-radix-tabs-trigger] {
+    @apply h-16 w-full flex items-center justify-center box-border;
+  }
+  
+  /* Add extra padding to content to prevent overlap */
+  .manage-swaps-tabs [data-radix-tabs-content] {
+    @apply pt-8 mt-8;
+  }
+  
+  /* Ensure the first content section has extra top margin */
+  .manage-swaps-tabs [data-radix-tabs-content]:first-of-type {
+    @apply mt-8;
+  }
+  
+  /* Remove any background shapes or artifacts */
+  .manage-swaps-tabs [data-radix-tabs-trigger]::before,
+  .manage-swaps-tabs [data-radix-tabs-trigger]::after {
+    @apply hidden;
+  }
+  
+  /* Ensure clean tab backgrounds */
+  .manage-swaps-tabs [data-radix-tabs-trigger] {
+    @apply bg-transparent;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-trigger][data-state="inactive"] {
+    @apply bg-gray-50;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-trigger][data-state="active"] {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600;
+  }
+  
+  /* Add a clear visual break between tabs and content */
+  .manage-swaps-tabs [data-radix-tabs-list] {
+    @apply mb-8;
+  }
+  
+  /* Force content to start below tabs with no overlap */
+  .manage-swaps-tabs [data-radix-tabs-content] {
+    @apply mt-8 pt-8;
+  }
+  
+  /* Remove any pseudo-elements that might create background shapes */
+  .manage-swaps-tabs [data-radix-tabs-trigger],
+  .manage-swaps-tabs [data-radix-tabs-list],
+  .manage-swaps-tabs [data-radix-tabs-content] {
+    @apply before:content-none after:content-none;
+  }
+  
+  /* Ensure all tabs are exactly the same size */
+  .manage-swaps-tabs [data-radix-tabs-trigger] {
+    @apply h-16 w-full px-6 py-4 rounded-xl;
+  }
+  
+  /* Force consistent tab container height */
+  .manage-swaps-tabs [data-radix-tabs-list] > div {
+    @apply min-h-[200px] flex flex-col justify-center space-y-4;
+  }
+  
+  /* Add extra spacing below tabs */
+  .manage-swaps-tabs [data-radix-tabs-list] {
+    @apply mb-12;
+  }
+  
+  /* Completely remove any background artifacts or shapes */
+  .manage-swaps-tabs [data-radix-tabs-trigger]::before,
+  .manage-swaps-tabs [data-radix-tabs-trigger]::after,
+  .manage-swaps-tabs [data-radix-tabs-list]::before,
+  .manage-swaps-tabs [data-radix-tabs-list]::after {
+    @apply hidden content-none;
+  }
+  
+  /* Ensure consistent background colors throughout the app */
+  body, html {
+    @apply bg-gradient-to-br from-slate-50 to-blue-50;
+  }
+  
+  /* Remove any default backgrounds that might interfere */
+  .manage-swaps-tabs {
+    @apply bg-transparent;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-content] {
+    @apply bg-transparent;
+  }
+  
+  /* Ensure the entire app has consistent background */
+  #root, #__next {
+    @apply bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen;
+  }
+  
+  /* Remove any default margins or padding that might show background */
+  .manage-swaps-tabs {
+    @apply bg-transparent m-0 p-0;
+  }
+  
+  /* Ensure tabs have clean backgrounds with no artifacts */
+  .manage-swaps-tabs [data-radix-tabs-trigger] {
+    @apply bg-transparent border-0 shadow-none;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-trigger][data-state="inactive"] {
+    @apply bg-gray-50;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-trigger][data-state="active"] {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600;
+  }
+  
+  /* Remove any box shadows or borders that might create visual artifacts */
+  .manage-swaps-tabs [data-radix-tabs-trigger]::before,
+  .manage-swaps-tabs [data-radix-tabs-trigger]::after {
+    @apply hidden content-none;
+  }
+  
+  /* Completely eliminate any background shapes or artifacts */
+  .manage-swaps-tabs [data-radix-tabs-trigger],
+  .manage-swaps-tabs [data-radix-tabs-list],
+  .manage-swaps-tabs [data-radix-tabs-content] {
+    @apply before:content-none after:content-none;
+  }
+  
+  /* Force clean backgrounds on all tab elements */
+  [data-radix-tabs-trigger],
+  [data-radix-tabs-list],
+  [data-radix-tabs-content] {
+    @apply before:content-none after:content-none;
+  }
+  
+  /* Remove any remaining background artifacts */
+  .manage-swaps-tabs [data-radix-tabs-trigger]::before,
+  .manage-swaps-tabs [data-radix-tabs-trigger]::after,
+  .manage-swaps-tabs [data-radix-tabs-list]::before,
+  .manage-swaps-tabs [data-radix-tabs-list]::after,
+  .manage-swaps-tabs [data-radix-tabs-content]::before,
+  .manage-swaps-tabs [data-radix-tabs-content]::after,
+  .manage-swaps-tabs [role="tablist"]::before,
+  .manage-swaps-tabs [role="tablist"]::after,
+  .manage-swaps-tabs [role="tab"]::before,
+  .manage-swaps-tabs [role="tab"]::after {
+    @apply hidden content-none;
+  }
+  
+  /* Target the specific Radix UI elements that might be creating the shape */
+  [role="tablist"] {
+    @apply bg-transparent;
+  }
+  
+  [role="tab"] {
+    @apply bg-transparent;
+  }
+  
+  /* Force all tab-related elements to have transparent backgrounds */
+  .manage-swaps-tabs [data-radix-tabs-trigger],
+  .manage-swaps-tabs [data-radix-tabs-list],
+  .manage-swaps-tabs [data-radix-tabs-content],
+  .manage-swaps-tabs [role="tablist"],
+  .manage-swaps-tabs [role="tab"] {
+    @apply bg-transparent before:content-none after:content-none;
+  }
+  
+  /* Remove any default browser styles that might create shapes */
+  .manage-swaps-tabs * {
+    @apply before:content-none after:content-none;
+  }
+  
+  /* Force clean backgrounds on all possible tab elements */
+  [data-radix-tabs-trigger],
+  [data-radix-tabs-list],
+  [data-radix-tabs-content],
+  [role="tablist"],
+  [role="tab"] {
+    @apply before:content-none after:content-none bg-transparent;
+  }
+  
+  /* Remove any remaining visual artifacts */
+  .manage-swaps-tabs [data-radix-tabs-trigger]::before,
+  .manage-swaps-tabs [data-radix-tabs-trigger]::after,
+  .manage-swaps-tabs [data-radix-tabs-list]::before,
+  .manage-swaps-tabs [data-radix-tabs-list]::after,
+  .manage-swaps-tabs [data-radix-tabs-content]::before,
+  .manage-swaps-tabs [data-radix-tabs-content]::after,
+  .manage-swaps-tabs [role="tablist"]::before,
+  .manage-swaps-tabs [role="tablist"]::after,
+  .manage-swaps-tabs [role="tab"]::before,
+  .manage-swaps-tabs [role="tab"]::after {
+    @apply hidden content-none;
+  }
+  
+  /* Fix delete button hover states to ensure text remains visible */
+  button[class*="delete"],
+  .delete-button,
+  [data-testid*="delete"],
+  .btn-delete {
+    @apply hover:text-white hover:bg-red-600;
+  }
+  
+  /* Ensure delete buttons maintain proper contrast on hover */
+  button:hover[class*="delete"],
+  .delete-button:hover,
+  [data-testid*="delete"]:hover,
+  .btn-delete:hover {
+    @apply text-white bg-red-600;
+  }
+  
+  /* Fix any button with "delete" in the class name */
+  [class*="delete"]:hover {
+    @apply text-white bg-red-600;
+  }
+  
+  /* Ensure delete buttons don't lose text visibility */
+  button:not([class*="bg-"]):hover[class*="delete"] {
+    @apply text-white bg-red-600;
+  }
+  
+  /* Force delete button text to remain visible */
+  button[class*="delete"]:hover span,
+  button[class*="delete"]:hover div,
+  .delete-button:hover span,
+  .delete-button:hover div {
+    @apply text-white;
+  }
+  
+  /* Fix destructive variant button hover states */
+  button[data-variant="destructive"]:hover,
+  button[class*="destructive"]:hover,
+  .destructive:hover {
+    @apply text-white bg-red-600;
+  }
+  
+  /* Ensure destructive buttons maintain text visibility on hover */
+  button[data-variant="destructive"]:hover *,
+  button[class*="destructive"]:hover *,
+  .destructive:hover * {
+    @apply text-white;
+  }
+  
+  /* Fix any button with destructive styling */
+  button[class*="bg-destructive"]:hover,
+  button[class*="text-destructive"]:hover {
+    @apply text-white bg-red-600;
+  }
+  
+  /* Ensure all destructive button elements maintain white text on hover */
+  button[class*="destructive"]:hover span,
+  button[class*="destructive"]:hover div,
+  button[class*="destructive"]:hover svg,
+  button[class*="destructive"]:hover * {
+    @apply text-white;
+  }
+}
+
+/* Completely remove any background from TabsList container */
+.manage-swaps-tabs [data-radix-tabs-list] {
+  @apply bg-transparent shadow-none border-none;
+}
+
+/* Ensure no visual elements behind tabs */
+.manage-swaps-tabs [data-radix-tabs-list]::before,
+.manage-swaps-tabs [data-radix-tabs-list]::after {
+  @apply hidden content-none;
+}
+
+/* Force TabsList to have absolutely no background */
+.manage-swaps-tabs [data-radix-tabs-list] {
+  @apply bg-transparent;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Fix delete button hover states to ensure text remains visible */

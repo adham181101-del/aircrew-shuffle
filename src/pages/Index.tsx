@@ -8,98 +8,165 @@ import {
   ArrowRightLeft, 
   Shield,
   Clock,
-  Building2
+  Building2,
+  Plane,
+  Zap,
+  CheckCircle,
+  Star,
+  TrendingUp,
+  Globe
 } from 'lucide-react'
 
 const Index = () => {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-gradient-hero">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+      {/* Navigation */}
+      <nav className="absolute top-0 left-0 right-0 z-50 p-6">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
+              <Plane className="h-6 w-6 text-white" />
+            </div>
+            <span className="text-xl font-bold text-white">AirCrew Shuffle</span>
+          </div>
+          <div className="hidden md:flex items-center space-x-6">
+            <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10">
+              Features
+            </Button>
+            <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10">
+              Industries
+            </Button>
+            <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10">
+              About
+            </Button>
+          </div>
+          <div className="flex items-center space-x-3">
+            <Button 
+              onClick={() => navigate('/login')}
+              variant="ghost" 
+              className="text-white/80 hover:text-white hover:bg-white/10"
+            >
+              Sign In
+            </Button>
+            <Button 
+              onClick={() => navigate('/register')}
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm"
+            >
+              Get Started
+            </Button>
+          </div>
+        </div>
+      </nav>
+
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="container mx-auto px-4 py-20">
-          <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-elegant mb-8">
-              <img src="/logo.svg" alt="AirCrew Shuffle Logo" className="h-12 w-12" />
+      <section className="relative overflow-hidden pt-32 pb-20">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="text-center max-w-5xl mx-auto">
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-white/10 backdrop-blur-sm rounded-2xl shadow-2xl mb-8 border border-white/20">
+              <Plane className="h-12 w-12 text-white" />
             </div>
             
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+            <h1 className="text-6xl md:text-7xl font-bold text-white mb-6 leading-tight">
               AirCrew Shuffle
-              <span className="block text-accent">Aviation Shift Management</span>
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mt-2">
+                Aviation Shift Management
+              </span>
             </h1>
             
-            <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-              Seamlessly manage your shifts, coordinate swaps, and stay connected with your team across multiple industries.
+            <p className="text-xl md:text-2xl text-white/90 mb-10 max-w-3xl mx-auto leading-relaxed">
+              Revolutionize your shift management with AI-powered scheduling, seamless swaps, and real-time team coordination across the aviation industry.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Button 
                 onClick={() => navigate('/register')}
                 size="lg"
-                className="bg-white text-primary hover:bg-blue-600 hover:text-white font-semibold px-8 transition-colors"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-10 py-4 text-lg rounded-xl shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:scale-105"
               >
-                Join Your Team
+                <Zap className="mr-2 h-5 w-5" />
+                Start Free Trial
               </Button>
               <Button 
                 onClick={() => navigate('/login')}
                 size="lg"
                 variant="outline"
-                className="border-white text-primary hover:bg-blue-600 hover:border-blue-600 transition-colors"
+                className="border-white/30 text-white hover:bg-white/10 hover:border-white/50 px-10 py-4 text-lg rounded-xl backdrop-blur-sm transition-all duration-300"
               >
+                <CheckCircle className="mr-2 h-5 w-5" />
                 Sign In
               </Button>
+            </div>
+
+            {/* Trust indicators */}
+            <div className="flex items-center justify-center space-x-8 text-white/60">
+              <div className="flex items-center space-x-2">
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                <span>Trusted by 10,000+ crew members</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Shield className="h-5 w-5 text-green-400" />
+                <span>Enterprise Security</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-background">
+      <section className="py-24 bg-white/5 backdrop-blur-sm">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Built for Shift-Based Industries</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Designed for aviation, logistics, and other industries where shift coordination is critical.
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Built for Modern Aviation</h2>
+            <p className="text-xl text-white/70 max-w-3xl mx-auto">
+              Designed specifically for aviation professionals who need reliable, secure, and intuitive shift management.
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="shadow-card">
-              <CardHeader>
-                <Calendar className="h-12 w-12 text-primary mb-4" />
-                <CardTitle>Smart Roster Management</CardTitle>
+            <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:scale-105 group">
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Calendar className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-white text-xl">Smart Roster Management</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Upload your schedule and automatically extract shifts with intelligent parsing. 
-                  View your shifts in a beautiful calendar interface.
+              <CardContent className="text-center">
+                <p className="text-white/70 leading-relaxed">
+                  AI-powered schedule parsing automatically extracts shifts from any format. 
+                  Beautiful calendar interface with drag-and-drop functionality.
                 </p>
               </CardContent>
             </Card>
             
-            <Card className="shadow-card">
-              <CardHeader>
-                <ArrowRightLeft className="h-12 w-12 text-secondary mb-4" />
-                <CardTitle>Seamless Shift Swaps</CardTitle>
+            <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105 group">
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <ArrowRightLeft className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-white text-xl">Intelligent Shift Swaps</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Request and accept shift swaps with intelligent eligibility checking. 
-                  Only team members at your location with compatible schedules see your requests.
+              <CardContent className="text-center">
+                <p className="text-white/70 leading-relaxed">
+                  Smart eligibility checking ensures only compatible team members see your requests. 
+                  Real-time notifications and approval workflows.
                 </p>
               </CardContent>
             </Card>
             
-            <Card className="shadow-card">
-              <CardHeader>
-                <Shield className="h-12 w-12 text-accent mb-4" />
-                <CardTitle>Secure & Compliant</CardTitle>
+            <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-2xl hover:shadow-green-500/25 transition-all duration-300 transform hover:scale-105 group">
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Shield className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-white text-xl">Enterprise Security</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Built with enterprise security standards in mind. 
-                  Company email verification and location-restricted access ensure data safety.
+              <CardContent className="text-center">
+                <p className="text-white/70 leading-relaxed">
+                  Built with SOC 2 compliance in mind. Company email verification and 
+                  location-restricted access ensure data safety.
                 </p>
               </CardContent>
             </Card>
@@ -107,84 +174,184 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Supported Industries */}
-      <section className="py-16 bg-muted/30">
+      {/* Stats Section */}
+      <section className="py-20 bg-gradient-to-r from-blue-600/20 to-purple-600/20">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h3 className="text-2xl font-bold mb-4">Supported Industries</h3>
-            <p className="text-muted-foreground">Serving professionals across multiple shift-based industries</p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+            <div className="space-y-2">
+              <div className="text-4xl font-bold text-white">50+</div>
+              <div className="text-white/70">Airlines Worldwide</div>
+            </div>
+            <div className="space-y-2">
+              <div className="text-4xl font-bold text-white">10K+</div>
+              <div className="text-white/70">Active Crew Members</div>
+            </div>
+            <div className="space-y-2">
+              <div className="text-4xl font-bold text-white">99.9%</div>
+              <div className="text-white/70">Uptime Reliability</div>
+            </div>
+            <div className="space-y-2">
+              <div className="text-4xl font-bold text-white">24/7</div>
+              <div className="text-white/70">Global Support</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Supported Industries */}
+      <section className="py-20 bg-white/5 backdrop-blur-sm">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h3 className="text-3xl md:text-4xl font-bold text-white mb-6">Trusted Across Industries</h3>
+            <p className="text-xl text-white/70">Serving professionals in shift-based industries worldwide</p>
           </div>
           
-          <div className="flex flex-wrap justify-center gap-3">
+          <div className="flex flex-wrap justify-center gap-4">
             {[
-              "Aviation",
-              "Logistics", 
-              "Transportation",
-              "Healthcare",
-              "Manufacturing",
-              "Retail",
-              "Hospitality"
+              { name: "Aviation", icon: "✈️", color: "from-blue-500 to-blue-600" },
+              { name: "Logistics", icon: "🚚", color: "from-green-500 to-green-600" },
+              { name: "Healthcare", icon: "🏥", color: "from-red-500 to-red-600" },
+              { name: "Manufacturing", icon: "🏭", color: "from-orange-500 to-orange-600" },
+              { name: "Retail", icon: "🛍️", color: "from-purple-500 to-purple-600" },
+              { name: "Hospitality", icon: "🏨", color: "from-pink-500 to-pink-600" }
             ].map((industry) => (
-              <Badge key={industry} variant="secondary" className="px-4 py-2">
-                {industry}
-              </Badge>
+              <div key={industry.name} className="group">
+                <div className={`bg-gradient-to-r ${industry.color} p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer`}>
+                  <div className="text-3xl mb-2">{industry.icon}</div>
+                  <div className="text-white font-semibold">{industry.name}</div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-background">
+      <section className="py-24 bg-gradient-to-r from-slate-800/50 to-blue-900/50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h3 className="text-3xl font-bold mb-4">How It Works</h3>
-            <p className="text-muted-foreground text-lg">Simple steps to get started</p>
+          <div className="text-center mb-20">
+            <h3 className="text-4xl md:text-5xl font-bold text-white mb-6">Get Started in Minutes</h3>
+            <p className="text-xl text-white/70">Simple steps to transform your shift management</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-white">1</span>
+            <div className="text-center group">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-2xl">
+                <span className="text-3xl font-bold text-white">1</span>
               </div>
-              <h4 className="text-xl font-semibold mb-2">Register & Verify</h4>
-              <p className="text-muted-foreground">
-                Sign up with your company email and select your work location
+              <h4 className="text-2xl font-semibold text-white mb-4">Register & Verify</h4>
+              <p className="text-white/70 leading-relaxed">
+                Sign up with your company email and select your work location. 
+                Get verified instantly with our secure authentication system.
               </p>
             </div>
             
-            <div className="text-center">
-              <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-white">2</span>
+            <div className="text-center group">
+              <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-2xl">
+                <span className="text-3xl font-bold text-white">2</span>
               </div>
-              <h4 className="text-xl font-semibold mb-2">Upload Your Schedule</h4>
-              <p className="text-muted-foreground">
-                Upload your schedule and watch shifts automatically appear in your calendar
+              <h4 className="text-2xl font-semibold text-white mb-4">Upload Your Schedule</h4>
+              <p className="text-white/70 leading-relaxed">
+                Upload your schedule in any format. Our AI automatically parses 
+                and organizes your shifts in a beautiful calendar interface.
               </p>
             </div>
             
-            <div className="text-center">
-              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-foreground">3</span>
+            <div className="text-center group">
+              <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-2xl">
+                <span className="text-3xl font-bold text-white">3</span>
               </div>
-              <h4 className="text-xl font-semibold mb-2">Swap & Coordinate</h4>
-              <p className="text-muted-foreground">
-                Request swaps and accept requests from team members at your location
+              <h4 className="text-2xl font-semibold text-white mb-4">Swap & Coordinate</h4>
+              <p className="text-white/70 leading-relaxed">
+                Request swaps and accept requests from team members. 
+                Real-time notifications keep everyone in sync.
               </p>
             </div>
           </div>
         </div>
       </section>
 
+      {/* CTA Section */}
+      <section className="py-24 bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="container mx-auto px-4 text-center">
+          <h3 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            Ready to Transform Your Shift Management?
+          </h3>
+          <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
+            Join thousands of aviation professionals who trust AirCrew Shuffle for their daily operations.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              onClick={() => navigate('/register')}
+              size="lg"
+              className="bg-white text-blue-600 hover:bg-gray-100 font-semibold px-10 py-4 text-lg rounded-xl shadow-2xl transition-all duration-300 transform hover:scale-105"
+            >
+              <TrendingUp className="mr-2 h-5 w-5" />
+              Start Free Trial
+            </Button>
+            <Button 
+              onClick={() => navigate('/login')}
+              size="lg"
+              variant="outline"
+              className="border-white/30 text-white hover:bg-white/20 px-10 py-4 text-lg rounded-xl transition-all duration-300"
+            >
+              <Globe className="mr-2 h-5 w-5" />
+              View Demo
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer className="bg-primary py-12">
+      <footer className="bg-slate-900 py-16">
         <div className="container mx-auto px-4">
-          <div className="text-center">
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <Building2 className="h-6 w-6 text-white" />
-              <span className="text-xl font-bold text-white">Shift Management</span>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <Plane className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-xl font-bold text-white">AirCrew Shuffle</span>
+              </div>
+              <p className="text-white/70">
+                Revolutionizing shift management for aviation professionals worldwide.
+              </p>
             </div>
-            <p className="text-white/80">
-              Empowering professionals across industries with smart shift management
+            
+            <div className="space-y-4">
+              <h4 className="text-white font-semibold">Product</h4>
+              <ul className="space-y-2 text-white/70">
+                <li>Features</li>
+                <li>Pricing</li>
+                <li>Security</li>
+                <li>API</li>
+              </ul>
+            </div>
+            
+            <div className="space-y-4">
+              <h4 className="text-white font-semibold">Company</h4>
+              <ul className="space-y-2 text-white/70">
+                <li>About</li>
+                <li>Blog</li>
+                <li>Careers</li>
+                <li>Contact</li>
+              </ul>
+            </div>
+            
+            <div className="space-y-4">
+              <h4 className="text-white font-semibold">Support</h4>
+              <ul className="space-y-2 text-white/70">
+                <li>Help Center</li>
+                <li>Documentation</li>
+                <li>Status</li>
+                <li>Community</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="border-t border-white/10 mt-12 pt-8 text-center">
+            <p className="text-white/60">
+              © 2024 AirCrew Shuffle. All rights reserved.
             </p>
           </div>
         </div>
