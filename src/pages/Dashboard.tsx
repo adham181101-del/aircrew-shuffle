@@ -93,17 +93,21 @@ const Dashboard = () => {
 
       const acceptedSwapsCount = acceptedSwapsData?.length || 0;
       
-      setStats({
+      // Update stats after all data is fetched
+      const newStats = {
         totalShifts: userShifts.length,
         pendingSwaps: pendingSwapsData.length, // This is incoming requests
         acceptedSwaps: acceptedSwapsCount // This is properly counted accepted swaps
-      })
+      };
+      
+      setStats(newStats);
       
       console.log('Dashboard stats updated:', {
         totalShifts: userShifts.length,
         incomingRequests: pendingSwapsData.length,
         acceptedSwaps: acceptedSwapsCount
       });
+      console.log('New stats object:', newStats);
 
     } catch (error) {
       toast({
@@ -161,6 +165,9 @@ const Dashboard = () => {
 
   const fetchPendingSwaps = async (userId: string) => {
     try {
+      console.log('=== FETCHING INCOMING REQUESTS ===');
+      console.log('User ID:', userId);
+      
       // Only fetch incoming swap requests (where user is the accepter)
       // These are requests sent TO you that need your response
       const { data: incomingData, error: incomingError } = await supabase
@@ -179,7 +186,19 @@ const Dashboard = () => {
         return [];
       }
 
+      console.log('Raw incoming data:', incomingData);
       console.log('Incoming pending swaps found:', incomingData?.length || 0);
+      
+      if (incomingData && incomingData.length > 0) {
+        console.log('Sample incoming request:', {
+          id: incomingData[0].id,
+          requester_id: incomingData[0].requester_id,
+          accepter_id: incomingData[0].accepter_id,
+          status: incomingData[0].status,
+          requester_staff: incomingData[0].requester_staff
+        });
+      }
+      
       return incomingData || [];
     } catch (error) {
       console.error('Error in fetchPendingSwaps:', error);
@@ -362,6 +381,10 @@ const Dashboard = () => {
             <CardContent>
               <div className="text-3xl font-bold text-purple-900">{stats.pendingSwaps}</div>
               <p className="text-xs text-purple-600 mt-1">Awaiting review</p>
+              {/* Debug info */}
+              <div className="text-xs text-purple-500 mt-1">
+                Debug: stats.pendingSwaps = {stats.pendingSwaps} | pendingSwaps.length = {pendingSwaps.length}
+              </div>
             </CardContent>
           </Card>
           
