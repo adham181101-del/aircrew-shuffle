@@ -10,6 +10,16 @@ import { format } from "date-fns";
 import { getCurrentUser, type Staff } from "@/lib/auth";
 import { validateWHL, executeShiftSwap } from '@/lib/shifts';
 import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type SwapRequestWithDetails = {
   id: string;
@@ -39,6 +49,8 @@ const ManageSwaps = () => {
   const [selectedCounterShift, setSelectedCounterShift] = useState<string>("");
   const [showCounterOffer, setShowCounterOffer] = useState<string | null>(null);
   const [loadingCounterShifts, setLoadingCounterShifts] = useState(false);
+  const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
+  const [requestToRevoke, setRequestToRevoke] = useState<string | null>(null);
 
   useEffect(() => {
     loadUserAndRequests();
@@ -628,6 +640,92 @@ const ManageSwaps = () => {
     }
   };
 
+  const handleRevokeRequest = async (swapId: string) => {
+    try {
+      console.log('=== REVOKING SWAP REQUEST ===');
+      console.log('Swap ID:', swapId);
+      
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "User not authenticated",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // First, get the swap request details to confirm it belongs to the current user
+      const { data: swapRequest, error: fetchError } = await supabase
+        .from('swap_requests')
+        .select('*')
+        .eq('id', swapId)
+        .eq('requester_id', user.id) // Ensure only the requester can revoke
+        .single();
+
+      if (fetchError || !swapRequest) {
+        toast({
+          title: "Error",
+          description: "Swap request not found or you don't have permission to revoke it",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Only allow revoking pending requests
+      if (swapRequest.status !== 'pending') {
+        toast({
+          title: "Cannot Revoke",
+          description: "Only pending requests can be revoked",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Delete the swap request completely
+      const { error: deleteError } = await supabase
+        .from('swap_requests')
+        .delete()
+        .eq('id', swapId);
+
+      if (deleteError) {
+        console.error('Error revoking swap request:', deleteError);
+        throw deleteError;
+      }
+
+      console.log('Swap request revoked successfully');
+
+      toast({
+        title: "Request Revoked",
+        description: "Your swap request has been cancelled and removed from all recipients",
+      });
+
+      // Refresh the requests
+      if (user) {
+        await loadMyRequests(user.id);
+      }
+    } catch (error) {
+      console.error('Error in handleRevokeRequest:', error);
+      toast({
+        title: "Error",
+        description: "Failed to revoke swap request",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const openRevokeDialog = (swapId: string) => {
+    setRequestToRevoke(swapId);
+    setRevokeDialogOpen(true);
+  };
+
+  const confirmRevoke = async () => {
+    if (requestToRevoke) {
+      await handleRevokeRequest(requestToRevoke);
+      setRevokeDialogOpen(false);
+      setRequestToRevoke(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <header className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-xl">
@@ -1086,6 +1184,52 @@ const ManageSwaps = () => {
                                 </p>
                               </div>
                             )}
+
+                            {/* Action Buttons */}
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              {request.status === 'pending' && (
+                                <>
+                                  <Button
+                                    onClick={() => openRevokeDialog(request.id)}
+                                    variant="destructive"
+                                    size="sm"
+                                    className="bg-red-600 hover:bg-red-700 text-white"
+                                  >
+                                    Revoke Request
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                                    onClick={() => navigate('/swaps')}
+                                  >
+                                    View Details
+                                  </Button>
+                                </>
+                              )}
+                              
+                              {request.status === 'accepted' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-green-300 text-green-700 hover:bg-green-50"
+                                  onClick={() => navigate('/swaps')}
+                                >
+                                  View Swap Details
+                                </Button>
+                              )}
+                              
+              {request.status === 'declined' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-red-300 text-red-700 hover:bg-red-50"
+                  onClick={() => navigate('/swaps')}
+                >
+                  View Details
+                </Button>
+              )}
+            </div>
                           </CardContent>
                         </Card>
                       ))}
@@ -1215,8 +1359,26 @@ const ManageSwaps = () => {
             </Tabs>
           )}
         </main>
+
+        {/* Revoke Confirmation Dialog */}
+        <AlertDialog open={revokeDialogOpen} onOpenChange={setRevokeDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete your swap request and remove it from all recipients.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmRevoke} className="bg-red-600 hover:bg-red-700">
+                Revoke
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
-};
+  };
 
 export default ManageSwaps;
