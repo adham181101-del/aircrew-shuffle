@@ -168,20 +168,18 @@ const Dashboard = () => {
       console.log('=== FETCHING INCOMING REQUESTS ===');
       console.log('User ID:', userId);
       
-      // Only fetch incoming swap requests (where user is the accepter)
-      // These are requests sent TO you that need your response
+      // Use the EXACT same query as ManageSwaps to see if it works
       const { data: incomingData, error: incomingError } = await supabase
         .from('swap_requests')
         .select(`
           *,
-          requester_staff:staff!swap_requests_requester_id_fkey(email, staff_number),
-          requester_shift:shifts!swap_requests_requester_shift_id_fkey(date, time)
+          requester_staff:staff!swap_requests_requester_id_fkey(*),
+          requester_shift:shifts!swap_requests_requester_shift_id_fkey(*)
         `)
         .eq('accepter_id', userId)
-        .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      console.log('Supabase query result:');
+      console.log('Supabase query result (using ManageSwaps query):');
       console.log('  - Data:', incomingData);
       console.log('  - Error:', incomingError);
       console.log('  - Data length:', incomingData?.length || 0);
@@ -216,20 +214,25 @@ const Dashboard = () => {
         });
       }
 
+      // Now filter for only pending requests (like the original query intended)
+      const pendingIncomingData = incomingData?.filter(swap => swap.status === 'pending') || [];
+      console.log('Filtered pending incoming data:', pendingIncomingData);
+      console.log('Pending incoming swaps found:', pendingIncomingData.length);
+
       console.log('Raw incoming data:', incomingData);
-      console.log('Incoming pending swaps found:', incomingData?.length || 0);
+      console.log('Incoming pending swaps found:', pendingIncomingData.length);
       
-      if (incomingData && incomingData.length > 0) {
-        console.log('Sample incoming request:', {
-          id: incomingData[0].id,
-          requester_id: incomingData[0].requester_id,
-          accepter_id: incomingData[0].accepter_id,
-          status: incomingData[0].status,
-          requester_staff: incomingData[0].requester_staff
+      if (pendingIncomingData && pendingIncomingData.length > 0) {
+        console.log('Sample pending incoming request:', {
+          id: pendingIncomingData[0].id,
+          requester_id: pendingIncomingData[0].requester_id,
+          accepter_id: pendingIncomingData[0].accepter_id,
+          status: pendingIncomingData[0].status,
+          requester_staff: pendingIncomingData[0].requester_staff
         });
       }
       
-      return incomingData || [];
+      return pendingIncomingData;
     } catch (error) {
       console.error('Error in fetchPendingSwaps:', error);
       return [];
