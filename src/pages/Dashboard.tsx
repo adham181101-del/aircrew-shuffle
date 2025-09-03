@@ -80,11 +80,6 @@ const Dashboard = () => {
         return;
       }
       
-      console.log('=== DASHBOARD USER COMPARISON ===');
-      console.log('useAuth user ID:', user.id);
-      console.log('getCurrentUser ID:', currentUser.id);
-      console.log('IDs match:', user.id === currentUser.id);
-      
       const userShifts = await getUserShifts(currentUser.id)
       setShifts(userShifts)
       
@@ -113,13 +108,6 @@ const Dashboard = () => {
       };
       
       setStats(newStats);
-      
-      console.log('Dashboard stats updated:', {
-        totalShifts: userShifts.length,
-        incomingRequests: incomingRequestsData.length, // All incoming requests (like ManageSwaps)
-        acceptedSwaps: acceptedSwapsCount
-      });
-      console.log('New stats object:', newStats);
 
     } catch (error) {
       toast({
@@ -142,11 +130,6 @@ const Dashboard = () => {
         console.error('No current user found in refresh');
         return;
       }
-      
-      console.log('=== REFRESH USER COMPARISON ===');
-      console.log('useAuth user ID:', user.id);
-      console.log('getCurrentUser ID:', currentUser.id);
-      console.log('IDs match:', user.id === currentUser.id);
       
       // Refresh pending swaps (incoming requests) using getCurrentUser ID
       const incomingRequestsData = await loadIncomingRequests(currentUser.id);
@@ -172,11 +155,6 @@ const Dashboard = () => {
         acceptedSwaps: acceptedSwapsCount
       }));
       
-      console.log('Dashboard stats refreshed:', {
-        incomingRequests: incomingRequestsData.length,
-        acceptedSwaps: acceptedSwapsCount
-      });
-      
     } catch (error) {
       console.error('Error refreshing dashboard stats:', error);
     }
@@ -189,8 +167,6 @@ const Dashboard = () => {
 
   const loadIncomingRequests = async (userId: string) => {
     try {
-      console.log('=== FETCHING INCOMING REQUESTS (EXACT SAME AS MANAGESWAPS) ===');
-      console.log('User ID:', userId);
       
       // EXACT SAME QUERY AS MANAGESWAPS
       const { data, error } = await supabase
@@ -208,19 +184,6 @@ const Dashboard = () => {
         return [];
       }
 
-      console.log('Incoming requests data (exact same as ManageSwaps):', data);
-      console.log('Number of incoming requests:', data?.length || 0);
-      
-      if (data && data.length > 0) {
-        console.log('First request details:', {
-          id: data[0].id,
-          requester_staff: data[0].requester_staff,
-          requester_shift: data[0].requester_shift,
-          status: data[0].status
-        });
-      }
-
-      // Return data exactly like ManageSwaps does
       return data || [];
     } catch (error) {
       console.error('Error in loadIncomingRequests:', error);
@@ -408,10 +371,6 @@ const Dashboard = () => {
               <p className="text-xs text-purple-600 mt-1">
                 Total incoming requests
               </p>
-              {/* Debug info */}
-              <div className="text-xs text-gray-500 mt-2 p-2 bg-gray-100 rounded">
-                Debug: stats.pendingSwaps = {stats.pendingSwaps} | incomingRequests.length = {incomingRequests.length}
-              </div>
             </CardContent>
           </Card>
           
