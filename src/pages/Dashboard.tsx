@@ -334,12 +334,6 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Test Notification Bar - Always Visible for Debugging */}
-        <div className="bg-red-100 border border-red-300 rounded-lg p-4 mb-4">
-          <strong>TEST NOTIFICATION BAR - This should always be visible</strong><br/>
-          If you can see this red box, the notification system is working.
-        </div>
-
         {/* Notification Bar for Pending Requests */}
         {pendingSwaps.length > 0 && (
           <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 mb-6 shadow-lg">
@@ -404,22 +398,6 @@ const Dashboard = () => {
             </div>
           </div>
         )}
-
-        {/* Debug Info - Remove this after testing */}
-        <div className="bg-gray-100 p-2 mb-4 rounded text-xs">
-          Debug: pendingSwaps.length = {pendingSwaps.length} | 
-          loading = {loading.toString()} | 
-          user = {user ? 'logged in' : 'not logged in'}
-        </div>
-
-        {/* Additional Debug Info */}
-        <div className="bg-yellow-100 p-2 mb-4 rounded text-xs border border-yellow-300">
-          <strong>Notification Bar Debug:</strong><br/>
-          • pendingSwaps.length &gt; 0: {pendingSwaps.length > 0 ? 'TRUE' : 'FALSE'}<br/>
-          • pendingSwaps array: {JSON.stringify(pendingSwaps.slice(0, 2))}<br/>
-          • First request status: {pendingSwaps[0]?.status || 'N/A'}<br/>
-          • First request requester: {pendingSwaps[0]?.requester_staff?.staff_number || 'N/A'}
-        </div>
 
         {/* Navigation Tabs */}
         <div className="dashboard-nav-tabs flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-8 bg-white p-2 rounded-2xl shadow-lg w-full max-w-lg border border-gray-100">
