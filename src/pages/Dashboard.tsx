@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ShiftCalendar } from '@/components/calendar/ShiftCalendar'
 import { getUserShifts, deleteAllShifts, type Shift } from '@/lib/shifts'
@@ -108,7 +108,7 @@ const Dashboard = () => {
       // Update stats after all data is fetched
       const newStats = {
         totalShifts: userShifts.length,
-        pendingSwaps: pendingSwapsData.length, // This is incoming requests
+        pendingSwaps: pendingSwapsData.length, // This is all incoming requests (not just pending)
         acceptedSwaps: acceptedSwapsCount // This is properly counted accepted swaps
       };
       
@@ -116,7 +116,7 @@ const Dashboard = () => {
       
       console.log('Dashboard stats updated:', {
         totalShifts: userShifts.length,
-        incomingRequests: pendingSwapsData.length,
+        incomingRequests: pendingSwapsData.length, // All incoming requests
         acceptedSwaps: acceptedSwapsCount
       });
       console.log('New stats object:', newStats);
@@ -485,10 +485,15 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
+              <CardDescription className="text-xs text-purple-600">
+                All incoming swap requests (pending + accepted)
+              </CardDescription>
               <div className="text-3xl font-bold text-purple-900">{stats.pendingSwaps}</div>
-              <p className="text-xs text-purple-600 mt-1">Awaiting review</p>
+              <p className="text-xs text-purple-600 mt-1">
+                Total incoming requests
+              </p>
               {/* Debug info */}
-              <div className="text-xs text-purple-500 mt-1">
+              <div className="text-xs text-gray-500 mt-2 p-2 bg-gray-100 rounded">
                 Debug: stats.pendingSwaps = {stats.pendingSwaps} | pendingSwaps.length = {pendingSwaps.length}
               </div>
             </CardContent>
@@ -512,19 +517,24 @@ const Dashboard = () => {
         {pendingSwaps.length > 0 && (
           <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 mb-6 shadow-lg">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse"></div>
-                <span className="text-amber-800 font-semibold">Incoming Swap Requests</span>
+              <div className="flex items-center space-x-2">
+                <Bell className="h-5 w-5 text-amber-600" />
+                <span className="font-medium text-amber-800">
+                  {pendingSwaps.length} Incoming Swap Request{pendingSwaps.length > 1 ? 's' : ''}
+                </span>
               </div>
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-amber-700">Requests to Review:</span>
-                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
-                    {pendingSwaps.length}
-                  </Badge>
-                </div>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/manage-swaps')}
+                className="text-amber-700 hover:text-amber-900 hover:bg-amber-50"
+              >
+                View All
+              </Button>
             </div>
+            <p className="text-sm text-amber-700 mt-2">
+              You have {pendingSwaps.length} incoming swap request{pendingSwaps.length > 1 ? 's' : ''} (pending + accepted)
+            </p>
             
             {/* Quick Action Buttons */}
             <div className="mt-3 pt-3 border-t border-amber-200">
