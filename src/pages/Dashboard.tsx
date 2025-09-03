@@ -284,7 +284,7 @@ const Dashboard = () => {
           
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-semibold text-purple-800">Pending Swaps</CardTitle>
+              <CardTitle className="text-sm font-semibold text-purple-800">Incoming Requests</CardTitle>
               <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
                 <ArrowRightLeft className="h-5 w-5 text-white" />
               </div>
