@@ -77,65 +77,76 @@ const CreateSwapRequest = () => {
       // Use the new database function for better performance
       console.log('Fetching eligible staff using database function...');
       
-      const { data: eligibleStaffData, error: eligibleError } = await supabase
-        .rpc('get_eligible_staff_for_swap', {
-          requester_base_location: user.base_location,
-          swap_date: shift.date,
-          requester_id: user.id
-        } as any);
+      // Try to use the database function first, fallback to manual query if it fails
+      // Note: Using 'as any' because the Supabase client doesn't have this RPC function typed
+      // This is a known limitation - the function exists in the database but not in the TypeScript types
+      try {
+        const { data: eligibleStaffData, error: eligibleError } = await (supabase as any)
+          .rpc('get_eligible_staff_for_swap', {
+            requester_base_location: user.base_location,
+            swap_date: shift.date,
+            requester_id: user.id
+          });
 
-      if (eligibleError) {
-        console.error('Error fetching eligible staff:', eligibleError);
-        
-        // Fallback to manual query if function fails
-        console.log('Falling back to manual query...');
-        const { data: baseStaff, error: staffError } = await supabase
-          .from('staff')
-          .select('*')
-          .eq('base_location', user.base_location)
-          .neq('id', user.id);
-
-        if (staffError) {
-          console.error('Error fetching staff:', staffError);
-          throw staffError;
+        if (eligibleError) {
+          console.error('Error fetching eligible staff:', eligibleError);
+          throw eligibleError;
         }
 
-        console.log(`Found ${baseStaff?.length || 0} staff members at ${user.base_location}`);
-        
-        // Get all shifts for the selected date to see who's working
-        console.log('Fetching shifts for the selected date...');
-        const { data: shiftsOnDate, error: shiftsError } = await supabase
-          .from('shifts')
-          .select('staff_id')
-          .eq('date', shift.date);
-
-        if (shiftsError) {
-          console.error('Error fetching shifts:', shiftsError);
-          throw shiftsError;
+        if (eligibleStaffData && Array.isArray(eligibleStaffData)) {
+          console.log(`Found ${eligibleStaffData.length} eligible staff members using database function`);
+          setEligibleStaff(eligibleStaffData);
+          return;
+        } else {
+          console.log('No eligible staff data returned from function');
+          setEligibleStaff([]);
+          return;
         }
-
-        // Create a set of staff IDs who are working on this date
-        const workingStaffIds = new Set(shiftsOnDate?.map(s => s.staff_id) || []);
-        
-        // Filter to eligible staff (those who are OFF on the selected date)
-        const eligibleList = baseStaff?.filter(staff => !workingStaffIds.has(staff.id)) || [];
-        
-        console.log(`\n=== FALLBACK RESULTS ===`);
-        console.log(`Total staff at ${user.base_location}: ${baseStaff?.length || 0}`);
-        console.log(`Staff working on ${shift.date}: ${workingStaffIds.size}`);
-        console.log(`Eligible staff (OFF): ${eligibleList.length}`);
-        
-        setEligibleStaff(eligibleList);
-        return;
+      } catch (rpcError) {
+        console.log('RPC function failed, falling back to manual query...');
+        // Continue to fallback method below
       }
 
-      if (eligibleStaffData && Array.isArray(eligibleStaffData)) {
-        console.log(`Found ${eligibleStaffData.length} eligible staff members using database function`);
-        setEligibleStaff(eligibleStaffData);
-      } else {
-        console.log('No eligible staff data returned from function');
-        setEligibleStaff([]);
+      // Fallback to manual query if function fails
+      console.log('Falling back to manual query...');
+      const { data: baseStaff, error: staffError } = await supabase
+        .from('staff')
+        .select('*')
+        .eq('base_location', user.base_location)
+        .neq('id', user.id);
+
+      if (staffError) {
+        console.error('Error fetching staff:', staffError);
+        throw staffError;
       }
+
+      console.log(`Found ${baseStaff?.length || 0} staff members at ${user.base_location}`);
+      
+      // Get all shifts for the selected date to see who's working
+      console.log('Fetching shifts for the selected date...');
+      const { data: shiftsOnDate, error: shiftsError } = await supabase
+        .from('shifts')
+        .select('staff_id')
+        .eq('date', shift.date);
+
+      if (shiftsError) {
+        console.error('Error fetching shifts:', shiftsError);
+        throw shiftsError;
+      }
+
+      // Create a set of staff IDs who are working on this date
+      const workingStaffIds = new Set(shiftsOnDate?.map(s => s.staff_id) || []);
+      
+      // Filter to eligible staff (those who are OFF on the selected date)
+      const eligibleList = baseStaff?.filter(staff => !workingStaffIds.has(staff.id)) || [];
+      
+      console.log(`\n=== FALLBACK RESULTS ===`);
+      console.log(`Total staff at ${user.base_location}: ${baseStaff?.length || 0}`);
+      console.log(`Staff working on ${shift.date}: ${workingStaffIds.size}`);
+      console.log(`Eligible staff (OFF): ${eligibleList.length}`);
+      
+      setEligibleStaff(eligibleList);
+      return;
     } catch (error) {
       console.error('Error finding eligible staff:', error);
       toast({
@@ -164,6 +175,16 @@ const CreateSwapRequest = () => {
       toast({
         title: "No Eligible Staff",
         description: "No staff members are available to cover this shift",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Additional validation
+    if (!selectedShiftData) {
+      toast({
+        title: "Invalid Shift",
+        description: "Selected shift data is invalid",
         variant: "destructive"
       });
       return;
