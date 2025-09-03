@@ -352,12 +352,12 @@ const Dashboard = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="dashboard-nav-tabs flex space-x-2 mb-8 bg-white p-2 rounded-2xl shadow-lg w-full max-w-lg border border-gray-100">
+        <div className="dashboard-nav-tabs flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-8 bg-white p-2 rounded-2xl shadow-lg w-full max-w-lg border border-gray-100">
           <Button
             variant={activeTab === 'calendar' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('calendar')}
-            className={`flex-1 px-6 py-3 rounded-xl transition-all duration-300 ${
+            className={`w-full sm:flex-1 px-4 sm:px-6 py-3 rounded-xl transition-all duration-300 ${
               activeTab === 'calendar' 
                 ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
                 : 'hover:bg-gray-100'
@@ -370,7 +370,7 @@ const Dashboard = () => {
             variant={activeTab === 'premiums' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('premiums')}
-            className={`flex-1 px-6 py-3 rounded-xl transition-all duration-300 ${
+            className={`w-full sm:flex-1 px-4 sm:px-6 py-3 rounded-xl transition-all duration-300 ${
               activeTab === 'premiums' 
                 ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
                 : 'hover:bg-gray-100'
@@ -383,7 +383,7 @@ const Dashboard = () => {
             variant={activeTab === 'team' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('team')}
-            className={`flex-1 px-6 py-3 rounded-xl transition-all duration-300 ${
+            className={`w-full sm:flex-1 px-4 sm:px-6 py-3 rounded-xl transition-all duration-300 ${
               activeTab === 'team' 
                 ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
                 : 'hover:bg-gray-100'

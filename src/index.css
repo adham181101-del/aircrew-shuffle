@@ -652,14 +652,24 @@
     @apply w-full max-w-none px-2;
   }
   
-  /* Ensure buttons don't get cut off */
+  /* Ensure buttons stack vertically on mobile */
+  .dashboard-nav-tabs {
+    @apply flex-col space-y-2;
+  }
+  
+  /* Make buttons full width on mobile */
   .dashboard-nav-tabs button {
-    @apply min-w-0 px-3 py-2 text-sm;
+    @apply w-full min-w-0 px-4 py-3 text-sm;
   }
   
   /* Make button text smaller on mobile */
   .dashboard-nav-tabs button span {
-    @apply text-xs;
+    @apply text-sm;
+  }
+  
+  /* Ensure proper spacing between stacked buttons */
+  .dashboard-nav-tabs button + button {
+    @apply mt-2;
   }
 }
 
