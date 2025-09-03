@@ -59,7 +59,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false)
   const [deletingAll, setDeletingAll] = useState(false)
-  const [pendingSwaps, setPendingSwaps] = useState<any[]>([])
+  const [incomingRequests, setIncomingRequests] = useState<any[]>([])
 
   useEffect(() => {
     if (user) {
@@ -88,9 +88,9 @@ const Dashboard = () => {
       const userShifts = await getUserShifts(currentUser.id)
       setShifts(userShifts)
       
-      // Fetch pending swap requests (incoming requests) using getCurrentUser ID
-      const pendingSwapsData = await fetchPendingSwaps(currentUser.id)
-      setPendingSwaps(pendingSwapsData)
+      // Fetch incoming requests using getCurrentUser ID (EXACT SAME AS MANAGESWAPS)
+      const incomingRequestsData = await loadIncomingRequests(currentUser.id)
+      setIncomingRequests(incomingRequestsData)
       
       // Fetch accepted swaps count from swap_requests table using getCurrentUser ID
       const { data: acceptedSwapsData, error: acceptedError } = await supabase
@@ -108,7 +108,7 @@ const Dashboard = () => {
       // Update stats after all data is fetched
       const newStats = {
         totalShifts: userShifts.length,
-        pendingSwaps: pendingSwapsData.length, // This is all incoming requests (not just pending)
+        pendingSwaps: incomingRequestsData.length, // This is all incoming requests (like ManageSwaps)
         acceptedSwaps: acceptedSwapsCount // This is properly counted accepted swaps
       };
       
@@ -116,7 +116,7 @@ const Dashboard = () => {
       
       console.log('Dashboard stats updated:', {
         totalShifts: userShifts.length,
-        incomingRequests: pendingSwapsData.length, // All incoming requests
+        incomingRequests: incomingRequestsData.length, // All incoming requests (like ManageSwaps)
         acceptedSwaps: acceptedSwapsCount
       });
       console.log('New stats object:', newStats);
@@ -149,8 +149,8 @@ const Dashboard = () => {
       console.log('IDs match:', user.id === currentUser.id);
       
       // Refresh pending swaps (incoming requests) using getCurrentUser ID
-      const pendingSwapsData = await fetchPendingSwaps(currentUser.id);
-      setPendingSwaps(pendingSwapsData);
+      const incomingRequestsData = await loadIncomingRequests(currentUser.id);
+      setIncomingRequests(incomingRequestsData);
       
       // Refresh accepted swaps count using getCurrentUser ID
       const { data: acceptedSwapsData, error: acceptedError } = await supabase
@@ -168,12 +168,12 @@ const Dashboard = () => {
       
       setStats(prev => ({
         ...prev,
-        pendingSwaps: pendingSwapsData.length,
+        pendingSwaps: incomingRequestsData.length,
         acceptedSwaps: acceptedSwapsCount
       }));
       
       console.log('Dashboard stats refreshed:', {
-        incomingRequests: pendingSwapsData.length,
+        incomingRequests: incomingRequestsData.length,
         acceptedSwaps: acceptedSwapsCount
       });
       
@@ -187,28 +187,13 @@ const Dashboard = () => {
     // Keeping it for backward compatibility but it's not used
   }
 
-  const fetchPendingSwaps = async (userId: string) => {
+  const loadIncomingRequests = async (userId: string) => {
     try {
-      console.log('=== FETCHING INCOMING REQUESTS ===');
+      console.log('=== FETCHING INCOMING REQUESTS (EXACT SAME AS MANAGESWAPS) ===');
       console.log('User ID:', userId);
-      console.log('User ID type:', typeof userId);
-      console.log('User ID length:', userId.length);
       
-      // Test 1: Simple query without joins first
-      console.log('=== TEST 1: Simple query without joins ===');
-      const { data: simpleData, error: simpleError } = await supabase
-        .from('swap_requests')
-        .select('id, accepter_id, status')
-        .eq('accepter_id', userId);
-
-      console.log('Simple query result:');
-      console.log('  - Data:', simpleData);
-      console.log('  - Error:', simpleError);
-      console.log('  - Count:', simpleData?.length || 0);
-
-      // Test 2: Query with exact same structure as ManageSwaps
-      console.log('=== TEST 2: Exact ManageSwaps query ===');
-      const { data: incomingData, error: incomingError } = await supabase
+      // EXACT SAME QUERY AS MANAGESWAPS
+      const { data, error } = await supabase
         .from('swap_requests')
         .select(`
           *,
@@ -218,96 +203,27 @@ const Dashboard = () => {
         .eq('accepter_id', userId)
         .order('created_at', { ascending: false });
 
-      console.log('ManageSwaps-style query result:');
-      console.log('  - Data:', incomingData);
-      console.log('  - Error:', incomingError);
-      console.log('  - Data length:', incomingData?.length || 0);
-
-      if (incomingError) {
-        console.error('Error fetching incoming pending swaps:', incomingError);
+      if (error) {
+        console.error('Error fetching incoming requests:', error);
         return [];
       }
 
-      // Test 3: Check if the issue is with the user ID comparison
-      console.log('=== TEST 3: Check user ID comparison ===');
-      if (simpleData && simpleData.length > 0) {
-        simpleData.forEach((swap, index) => {
-          console.log(`Swap ${index + 1}:`, {
-            id: swap.id,
-            accepter_id: swap.accepter_id,
-            status: swap.status,
-            accepter_id_type: typeof swap.accepter_id,
-            accepter_id_length: swap.accepter_id?.length,
-            userId_match: swap.accepter_id === userId,
-            userId_strict_match: swap.accepter_id === userId,
-            accepter_id_trimmed: swap.accepter_id?.trim(),
-            userId_trimmed: userId.trim(),
-            trimmed_match: swap.accepter_id?.trim() === userId.trim()
-          });
-        });
-      }
-
-      // Test 4: Check if there are ANY swap requests for this user
-      console.log('=== TEST 4: All swaps for user ===');
-      const { data: allSwapsForUser, error: allSwapsError } = await supabase
-        .from('swap_requests')
-        .select('id, status, accepter_id, requester_id')
-        .or(`accepter_id.eq.${userId},requester_id.eq.${userId}`);
-
-      console.log('All swaps for user (as accepter OR requester):');
-      console.log('  - Data:', allSwapsForUser);
-      console.log('  - Error:', allSwapsError);
-      console.log('  - Total swaps found:', allSwapsForUser?.length || 0);
-
-      if (allSwapsForUser && allSwapsForUser.length > 0) {
-        console.log('Breakdown of swaps:');
-        allSwapsForUser.forEach((swap, index) => {
-          console.log(`  Swap ${index + 1}:`, {
-            id: swap.id,
-            status: swap.status,
-            accepter_id: swap.accepter_id,
-            requester_id: swap.requester_id,
-            isUserAccepter: swap.accepter_id === userId,
-            isUserRequester: swap.requester_id === userId
-          });
-        });
-      }
-
-      // Test 5: Manual filtering to see what we get
-      console.log('=== TEST 5: Manual filtering ===');
-      const pendingIncomingData = incomingData?.filter(swap => swap.status === 'pending') || [];
-      console.log('Filtered pending incoming data:', pendingIncomingData);
-      console.log('Pending incoming swaps found:', pendingIncomingData.length);
-
-      // Test 6: Check if the issue is with the filter
-      if (incomingData && incomingData.length > 0) {
-        console.log('All incoming data statuses:');
-        incomingData.forEach((swap, index) => {
-          console.log(`  Swap ${index + 1}:`, {
-            id: swap.id,
-            status: swap.status,
-            status_type: typeof swap.status
-          });
-        });
-      }
-
-      console.log('=== FINAL RESULT ===');
-      console.log('Raw incoming data:', incomingData);
-      console.log('Incoming pending swaps found:', pendingIncomingData.length);
+      console.log('Incoming requests data (exact same as ManageSwaps):', data);
+      console.log('Number of incoming requests:', data?.length || 0);
       
-      if (pendingIncomingData && pendingIncomingData.length > 0) {
-        console.log('Sample pending incoming request:', {
-          id: pendingIncomingData[0].id,
-          requester_id: pendingIncomingData[0].requester_id,
-          accepter_id: pendingIncomingData[0].accepter_id,
-          status: pendingIncomingData[0].status,
-          requester_staff: pendingIncomingData[0].requester_staff
+      if (data && data.length > 0) {
+        console.log('First request details:', {
+          id: data[0].id,
+          requester_staff: data[0].requester_staff,
+          requester_shift: data[0].requester_shift,
+          status: data[0].status
         });
       }
-      
-      return pendingIncomingData;
+
+      // Return data exactly like ManageSwaps does
+      return data || [];
     } catch (error) {
-      console.error('Error in fetchPendingSwaps:', error);
+      console.error('Error in loadIncomingRequests:', error);
       return [];
     }
   }
@@ -494,7 +410,7 @@ const Dashboard = () => {
               </p>
               {/* Debug info */}
               <div className="text-xs text-gray-500 mt-2 p-2 bg-gray-100 rounded">
-                Debug: stats.pendingSwaps = {stats.pendingSwaps} | pendingSwaps.length = {pendingSwaps.length}
+                Debug: stats.pendingSwaps = {stats.pendingSwaps} | incomingRequests.length = {incomingRequests.length}
               </div>
             </CardContent>
           </Card>
@@ -514,13 +430,13 @@ const Dashboard = () => {
         </div>
 
         {/* Notification Bar for Incoming Requests */}
-        {pendingSwaps.length > 0 && (
+        {incomingRequests.length > 0 && (
           <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 mb-6 shadow-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Bell className="h-5 w-5 text-amber-600" />
                 <span className="font-medium text-amber-800">
-                  {pendingSwaps.length} Incoming Swap Request{pendingSwaps.length > 1 ? 's' : ''}
+                  {incomingRequests.length} Incoming Swap Request{incomingRequests.length > 1 ? 's' : ''}
                 </span>
               </div>
               <Button
@@ -533,14 +449,14 @@ const Dashboard = () => {
               </Button>
             </div>
             <p className="text-sm text-amber-700 mt-2">
-              You have {pendingSwaps.length} incoming swap request{pendingSwaps.length > 1 ? 's' : ''} (pending + accepted)
+              You have {incomingRequests.length} incoming swap request{incomingRequests.length > 1 ? 's' : ''} (pending + accepted)
             </p>
             
             {/* Quick Action Buttons */}
             <div className="mt-3 pt-3 border-t border-amber-200">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-amber-700">
-                  You have {pendingSwaps.length} incoming swap request{pendingSwaps.length > 1 ? 's' : ''} waiting for your response
+                  You have {incomingRequests.length} incoming swap request{incomingRequests.length > 1 ? 's' : ''} waiting for your response
                 </span>
                 <div className="flex space-x-2">
                   <Button
@@ -550,7 +466,7 @@ const Dashboard = () => {
                   >
                     Review All
                   </Button>
-                  {pendingSwaps.length === 1 && (
+                  {incomingRequests.length === 1 && (
                     <Button
                       onClick={() => navigate('/swaps')}
                       size="sm"
@@ -564,18 +480,18 @@ const Dashboard = () => {
               </div>
               
               {/* Show details for single request */}
-              {pendingSwaps.length === 1 && (
+              {incomingRequests.length === 1 && (
                 <div className="mt-2 text-xs text-amber-600">
-                  From: {pendingSwaps[0].requester_staff?.staff_number || 'Staff Member'} • 
-                  Date: {pendingSwaps[0].requester_shift?.date || 'Unknown'} • 
-                  Time: {pendingSwaps[0].requester_shift?.time || 'Unknown'}
+                  From: {incomingRequests[0].requester_staff?.staff_number || 'Staff Member'} • 
+                  Date: {incomingRequests[0].requester_shift?.date || 'Unknown'} • 
+                  Time: {incomingRequests[0].requester_shift?.time || 'Unknown'}
                 </div>
               )}
               
               {/* Show summary for multiple requests */}
-              {pendingSwaps.length > 1 && (
+              {incomingRequests.length > 1 && (
                 <div className="mt-2 text-xs text-amber-600">
-                  From {pendingSwaps.length} different crew members • 
+                  From {incomingRequests.length} different crew members • 
                   Various dates and times
                 </div>
               )}
