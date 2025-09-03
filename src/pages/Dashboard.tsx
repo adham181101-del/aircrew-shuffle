@@ -343,7 +343,7 @@ const Dashboard = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-semibold text-blue-800">Total Shifts</CardTitle>
               <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -352,11 +352,10 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-blue-900">{stats.totalShifts}</div>
-              <p className="text-xs text-blue-600 mt-1">This month</p>
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-semibold text-purple-800">Incoming Requests</CardTitle>
               <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
@@ -364,17 +363,11 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <CardDescription className="text-xs text-purple-600">
-                All incoming swap requests (pending + accepted)
-              </CardDescription>
               <div className="text-3xl font-bold text-purple-900">{stats.pendingSwaps}</div>
-              <p className="text-xs text-purple-600 mt-1">
-                Total incoming requests
-              </p>
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+          <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-semibold text-green-800">Completed Swaps</CardTitle>
               <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
@@ -383,7 +376,6 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-green-900">{stats.acceptedSwaps}</div>
-              <p className="text-xs text-green-600 mt-1">Successfully completed</p>
             </CardContent>
           </Card>
         </div>
