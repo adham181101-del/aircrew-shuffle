@@ -104,7 +104,8 @@ const Dashboard = () => {
 
   const fetchPendingSwaps = async (userId: string) => {
     try {
-      // Fetch incoming swap requests (where user is the accepter)
+      // Only fetch incoming swap requests (where user is the accepter)
+      // These are requests sent TO you that need your response
       const { data: incomingData, error: incomingError } = await supabase
         .from('swap_requests')
         .select(`
@@ -121,34 +122,8 @@ const Dashboard = () => {
         return [];
       }
 
-      // Fetch outgoing swap requests (where user is the requester)
-      const { data: outgoingData, error: outgoingError } = await supabase
-        .from('swap_requests')
-        .select(`
-          *,
-          accepter_staff:staff!swap_requests_accepter_id_fkey(email, staff_number),
-          requester_shift:shifts!swap_requests_requester_shift_id_fkey(date, time)
-        `)
-        .eq('requester_id', userId)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
-
-      if (outgoingError) {
-        console.error('Error fetching outgoing pending swaps:', outgoingError);
-        return [];
-      }
-
-      // Combine both incoming and outgoing requests
-      const allPendingSwaps = [
-        ...(incomingData || []),
-        ...(outgoingData || [])
-      ];
-
-      console.log('Total pending swaps found:', allPendingSwaps.length);
-      console.log('Incoming:', incomingData?.length || 0);
-      console.log('Outgoing:', outgoingData?.length || 0);
-
-      return allPendingSwaps;
+      console.log('Incoming pending swaps found:', incomingData?.length || 0);
+      return incomingData || [];
     } catch (error) {
       console.error('Error in fetchPendingSwaps:', error);
       return [];
@@ -334,17 +309,17 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Notification Bar for Pending Requests */}
+        {/* Notification Bar for Incoming Requests */}
         {pendingSwaps.length > 0 && (
           <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 mb-6 shadow-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse"></div>
-                <span className="text-amber-800 font-semibold">Pending Swap Requests</span>
+                <span className="text-amber-800 font-semibold">Incoming Swap Requests</span>
               </div>
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-amber-700">Total Pending:</span>
+                  <span className="text-sm text-amber-700">Requests to Review:</span>
                   <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
                     {pendingSwaps.length}
                   </Badge>
@@ -356,7 +331,7 @@ const Dashboard = () => {
             <div className="mt-3 pt-3 border-t border-amber-200">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-amber-700">
-                  You have {pendingSwaps.length} pending swap request{pendingSwaps.length > 1 ? 's' : ''} waiting for your response
+                  You have {pendingSwaps.length} incoming swap request{pendingSwaps.length > 1 ? 's' : ''} waiting for your response
                 </span>
                 <div className="flex space-x-2">
                   <Button
