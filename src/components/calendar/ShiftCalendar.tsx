@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { getUserShifts, getShiftTimeOfDay, deleteShift, updateShiftTime, type Shift } from '@/lib/shifts'
 import { useToast } from '@/hooks/use-toast'
 import { getCurrentUser, type Staff } from '@/lib/auth'
-import { Calendar as CalendarIcon, Plus } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, Clock } from 'lucide-react'
 import 'react-calendar/dist/Calendar.css'
 import {
   AlertDialog,
@@ -121,17 +121,19 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   }
 
   const getShiftColorClass = (timeOfDay: string, isSwapped: boolean) => {
-    if (isSwapped) return 'bg-calendar-shift-swapped'
+    if (isSwapped) {
+      return 'shift-swapped'
+    }
     
     switch (timeOfDay) {
       case 'morning':
-        return 'bg-calendar-shift-morning'
+        return 'shift-morning'
       case 'afternoon':
-        return 'bg-calendar-shift-afternoon'
-      case 'night':
-        return 'bg-calendar-shift-evening' // Using existing evening color for night shifts
+        return 'shift-afternoon'
+      case 'evening':
+        return 'shift-evening'
       default:
-        return 'bg-muted'
+        return 'shift-day'
     }
   }
 
@@ -150,9 +152,9 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           return (
             <div
               key={shift.id}
-              className={`w-full text-xs px-1 py-0.5 rounded text-center font-medium cursor-pointer
+              className={`w-full text-xs px-1 py-1 rounded-lg text-center font-semibold cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-105
                 ${getShiftColorClass(timeOfDay, shift.is_swapped)}
-                ${shift.is_swapped ? 'text-foreground/70' : 'text-foreground'}
+                ${shift.is_swapped ? 'text-white/90' : 'text-white'}
               `}
               onClick={(e) => {
                 e.stopPropagation()
@@ -160,8 +162,8 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
               }}
               title={`${startTime}-${endTime}`}
             >
-              <span className="hidden sm:inline">{startTime}-{endTime}</span>
-              <span className="sm:hidden">{startTime}</span>
+              {/* Show full time with minutes on all devices */}
+              <span className="font-medium text-[10px] leading-tight">{startTime}</span>
             </div>
           )
         })}
@@ -175,15 +177,18 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
     const dayShifts = getShiftsForDate(date)
     if (dayShifts.length === 0) return ''
     
-    return 'has-shifts'
+    return 'has-shifts relative'
   }
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-6">
+      <Card className="bg-white shadow-lg border border-gray-100">
+        <CardContent className="p-8">
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading your shifts...</p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -194,83 +199,151 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <CalendarIcon className="h-5 w-5" />
-            <CardTitle>Shift Calendar</CardTitle>
+      <Card className="bg-white shadow-xl border border-gray-100">
+        <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-100 rounded-t-2xl">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <CalendarIcon className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl text-gray-900">Shift Calendar</CardTitle>
+                <p className="text-gray-600">View and manage your scheduled shifts</p>
+              </div>
+            </div>
+            {onCreateShift && (
+              <Button 
+                onClick={onCreateShift} 
+                size="lg" 
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Add Shift
+              </Button>
+            )}
           </div>
-          {onCreateShift && (
-            <Button onClick={onCreateShift} size="sm" variant="outline">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Shift
-            </Button>
-          )}
         </CardHeader>
-        <CardContent>
+        
+        <CardContent className="p-4 sm:p-8">
           <div className="calendar-container">
-            <Calendar
-              onChange={(value) => setSelectedDate(value as Date)}
-              value={selectedDate}
-              tileContent={tileContent}
-              tileClassName={tileClassName}
-              className="react-calendar"
-            />
+            <div className="mb-4 sm:mb-6 text-center">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2">Your Shift Schedule</h3>
+              <p className="text-sm sm:text-base text-gray-600">Click on any date to view shift details</p>
+            </div>
+            
+            <div className="w-full overflow-x-auto">
+              <Calendar
+                onChange={(value) => setSelectedDate(value as Date)}
+                value={selectedDate}
+                tileContent={tileContent}
+                tileClassName={tileClassName}
+                className="react-calendar"
+                minDetail="month"
+                maxDetail="month"
+                showNeighboringMonth={false}
+              />
+            </div>
           </div>
           
-          <div className="flex flex-wrap gap-2 mt-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded bg-calendar-shift-morning"></div>
-              <span className="text-sm">Morning</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded bg-calendar-shift-afternoon"></div>
-              <span className="text-sm">Afternoon</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded bg-calendar-shift-evening"></div>
-              <span className="text-sm">Night</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded bg-calendar-shift-swapped"></div>
-              <span className="text-sm">Swapped</span>
+          {/* Legend */}
+          <div className="mt-6 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-100">
+            <h4 className="font-semibold text-gray-900 mb-3 text-center text-sm">Shift Types</h4>
+            <div className="flex flex-wrap justify-center gap-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 shadow-sm"></div>
+                <span className="text-xs font-medium text-gray-700">Morning</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-orange-400 to-red-500 shadow-sm"></div>
+                <span className="text-xs font-medium text-gray-700">Afternoon</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-400 to-indigo-500 shadow-sm"></div>
+                <span className="text-xs font-medium text-gray-700">Night</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 shadow-sm"></div>
+                <span className="text-xs font-medium text-gray-700">Swapped</span>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
+      {/* Selected Date Details */}
       {selectedDate && selectedDateShifts.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Shifts for {selectedDate.toLocaleDateString()}
-            </CardTitle>
+        <Card className="bg-white shadow-xl border border-gray-100">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100 rounded-t-2xl">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <Calendar className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-xl text-gray-900">
+                  {selectedDate.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </CardTitle>
+                <p className="text-sm text-gray-600">
+                  {selectedDateShifts.length} shift{selectedDateShifts.length > 1 ? 's' : ''} scheduled
+                </p>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {selectedDateShifts.map((shift) => {
-                const timeOfDay = getShiftTimeOfDay(shift.time)
-                return (
-                  <div
-                    key={shift.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <Badge variant={getShiftBadgeVariant(timeOfDay, shift.is_swapped)}>
+          
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {selectedDateShifts.map((shift) => (
+                <div 
+                  key={shift.id} 
+                  className="p-4 border-2 border-gray-100 rounded-xl hover:border-blue-200 transition-all duration-200 hover:shadow-md"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${getShiftColorClass(getShiftTimeOfDay(shift.time), shift.is_swapped)}`}>
+                        <Clock className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-lg">
+                          {shift.time} Shift
+                        </h4>
+                        <p className="text-gray-600">
+                          {getShiftTimeOfDay(shift.time).charAt(0).toUpperCase() + getShiftTimeOfDay(shift.time).slice(1)} • {shift.is_swapped ? 'Swapped' : 'Regular'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      {shift.is_swapped && (
+                        <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                          Swapped
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="border-blue-200 text-blue-700">
                         {shift.time}
                       </Badge>
-                      {shift.is_swapped && (
-                        <span className="text-sm text-muted-foreground">
-                          (Swapped)
-                        </span>
-                      )}
                     </div>
-                    <div className="flex items-center gap-2">
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <div className="flex items-center space-x-2">
                       {onShiftClick && (
-                        <Button size="sm" variant="outline" onClick={() => onShiftClick?.(shift)}>
-                          Details
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => onShiftClick?.(shift)}
+                          className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        >
+                          View Details
                         </Button>
                       )}
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
                       <Button
                         size="sm"
                         variant="outline"
@@ -281,8 +354,9 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                           setEditEnd(e)
                           setEditOpen(true)
                         }}
+                        className="text-green-600 border-green-200 hover:bg-green-50"
                       >
-                        Edit
+                        Edit Shift
                       </Button>
                       <Button
                         size="sm"
@@ -291,13 +365,14 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                           setShiftPendingDelete(shift)
                           setDeleteOpen(true)
                         }}
+                        className="text-red-600 border-red-200 hover:bg-red-50"
                       >
                         Delete
                       </Button>
                     </div>
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

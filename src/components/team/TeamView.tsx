@@ -213,137 +213,160 @@ export const TeamView = () => {
     return Array.from(months).sort().reverse()
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Team Schedule</h2>
-          <p className="text-muted-foreground">See who you're working with each day</p>
-          <p className="text-xs text-muted-foreground mt-1">Showing current and future dates only</p>
-        </div>
-        
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Select month" />
-          </SelectTrigger>
-          <SelectContent>
-            {getMonthOptions().map(month => (
-              <SelectItem key={month} value={month}>
-                {new Date(month + '-01').toLocaleDateString('en-US', { 
-                  year: 'numeric', 
-                  month: 'long' 
+      <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <Users className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Team Overview</h2>
+              <p className="text-gray-600">See who's working each day this month</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <Clock className="h-4 w-4" />
+              <span>Month:</span>
+            </div>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-40 bg-white border-gray-200 rounded-lg">
+                <SelectValue placeholder="Select month" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 12 }, (_, i) => {
+                  const date = new Date()
+                  date.setMonth(date.getMonth() + i)
+                  const monthValue = date.toISOString().slice(0, 7)
+                  const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                  return (
+                    <SelectItem key={monthValue} value={monthValue}>
+                      {monthLabel}
+                    </SelectItem>
+                  )
                 })}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
-      {/* Team Data */}
-      {teamData.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Users className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Team Data</h3>
-            <p className="text-muted-foreground text-center">
-              {selectedMonth 
-                ? "No future shifts found for this month. The team schedule only shows current and upcoming dates."
-                : "Select a month to view team schedule."
-              }
-            </p>
-          </CardContent>
-        </Card>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading team data...</p>
+          </div>
+        </div>
+      ) : teamData.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Users className="h-8 w-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No team data available</h3>
+          <p className="text-gray-600">Select a different month or check your shift data</p>
+        </div>
       ) : (
-        <div className="grid gap-4">
-          {teamData.map((day) => (
-            <Card key={day.date}>
-              <CardHeader>
+        <div className="grid gap-6">
+          {teamData.map((dayTeam) => (
+            <Card key={dayTeam.date} className="bg-white shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+              <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-100 rounded-t-2xl">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    {day.dayName}
-                  </CardTitle>
-                  <Badge variant="secondary">
-                    {day.totalMembers} {day.totalMembers === 1 ? 'member' : 'members'}
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                      <Calendar className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-gray-900">{dayTeam.dayName}</CardTitle>
+                      <p className="text-sm text-gray-600">
+                        {dayTeam.totalMembers} team members • {dayTeam.teamMembers.filter(m => m.role === 'Working Today').length} working today
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200 px-3 py-1">
+                    {dayTeam.date}
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="grid gap-3">
-                  {day.teamMembers.map((member) => {
-                    const isWorking = member.role === 'Working Today'
-                    const isLocationHeader = member.role === 'location_header'
-                    
-                    if (isLocationHeader) {
+              
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {dayTeam.teamMembers.map((member) => {
+                    if (member.role === 'location_header') {
                       return (
-                        <div 
-                          key={member.id} 
-                          className="bg-blue-50 dark:bg-blue-950/20 p-3 border border-blue-200 dark:border-blue-800 rounded-lg"
-                        >
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-5 w-5 text-blue-600" />
-                            <div>
-                              <p className="font-semibold text-blue-800 dark:text-blue-200">{member.name}</p>
-                              <p className="text-sm text-blue-600 dark:text-blue-300">{member.staffNumber}</p>
+                        <div key={member.id} className="flex items-center space-x-3 py-2">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <MapPin className="h-4 w-4 text-blue-600" />
+                              <h4 className="font-semibold text-blue-900 text-lg">{member.name}</h4>
                             </div>
+                            <p className="text-sm text-blue-700 ml-6">{member.staffNumber}</p>
                           </div>
                         </div>
                       )
                     }
+
+                    const isWorking = member.role === 'Working Today'
+                    const isOffDuty = member.role === 'Off Duty'
                     
                     return (
-                      <div 
-                        key={member.id} 
-                        className={`flex items-center justify-between p-3 border rounded-lg ${
-                          isWorking ? 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800' : 'bg-gray-50 border-gray-200 dark:bg-gray-800 dark:border-gray-600'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            isWorking ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-700'
+                      <div key={member.id} className="flex items-center space-x-4 p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-all duration-200 hover:shadow-sm">
+                        <div className="flex-shrink-0">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                            isWorking 
+                              ? 'bg-gradient-to-br from-green-500 to-emerald-600' 
+                              : isOffDuty 
+                                ? 'bg-gradient-to-br from-gray-400 to-gray-500'
+                                : 'bg-gradient-to-br from-blue-500 to-purple-600'
                           }`}>
-                            <Users className={`h-5 w-5 ${isWorking ? 'text-green-600' : 'text-gray-500'}`} />
-                          </div>
-                          <div>
-                            <p className="font-medium">{member.name}</p>
-                            <p className="text-sm text-muted-foreground">{member.staffNumber}</p>
+                            <span className="text-white font-semibold text-sm">
+                              {member.name.charAt(0).toUpperCase()}
+                            </span>
                           </div>
                         </div>
-                        <div className="text-right">
-                                                     <div className="flex items-center gap-2 mb-1">
-                             <Clock className="h-4 w-4 text-muted-foreground" />
-                             <span className={`text-sm font-medium ${
-                               isWorking ? 'text-green-700 dark:text-green-300' : 'text-gray-500 dark:text-gray-400'
-                             }`}>
-                               {member.shiftTime}
-                             </span>
-                           </div>
-                           <div className="flex items-center gap-2">
-                             <MapPin className="h-4 w-4 text-muted-foreground" />
-                             <span className="text-sm text-muted-foreground">{member.baseLocation}</span>
-                           </div>
-                           {isWorking && (
-                             <Badge variant="default" className="mt-1 bg-green-600 dark:bg-green-500">
-                               Working Today
-                             </Badge>
-                           )}
-                           {member.workingDetails && (
-                             <p className={`text-xs mt-1 ${
-                               isWorking ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'
-                             }`}>
-                               {member.workingDetails}
-                             </p>
-                           )}
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <h4 className="font-semibold text-gray-900 truncate">{member.name}</h4>
+                            <Badge 
+                              variant={isWorking ? "default" : "secondary"}
+                              className={`${
+                                isWorking 
+                                  ? 'bg-green-100 text-green-800 border-green-200' 
+                                  : 'bg-gray-100 text-gray-600 border-gray-200'
+                              }`}
+                            >
+                              {isWorking ? '🟢 Working' : '⚪ Off Duty'}
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-600">
+                            <div className="flex items-center space-x-1">
+                              <span className="font-medium">Staff:</span>
+                              <span className="font-mono">{member.staffNumber}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <span className="font-medium">Location:</span>
+                              <span>{member.baseLocation}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <span className="font-medium">Status:</span>
+                              <span className={isWorking ? 'text-green-700 font-medium' : 'text-gray-500'}>
+                                {member.workingDetails}
+                              </span>
+                            </div>
+                          </div>
                         </div>
+                        
+                        {isWorking && (
+                          <div className="flex-shrink-0">
+                            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                          </div>
+                        )}
                       </div>
                     )
                   })}

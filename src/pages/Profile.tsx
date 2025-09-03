@@ -179,13 +179,26 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Profile Settings</h1>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => navigate('/dashboard')}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      {/* Header */}
+      <header className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-xl">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
+                <User className="h-7 w-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">Profile Settings</h1>
+                <p className="text-white/80">Manage your account and preferences</p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/dashboard')}
+                className="w-full sm:w-auto bg-white text-blue-600 border-blue-300 hover:bg-blue-50 px-6 py-2 rounded-xl transition-all duration-300"
+              >
                 Back to Dashboard
               </Button>
             </div>
@@ -193,23 +206,28 @@ const Profile = () => {
         </div>
       </header>
 
+      {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="max-w-3xl mx-auto space-y-6">
           {/* Profile Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Profile Information
-              </CardTitle>
-              <CardDescription>
-                Update your personal and work information
-              </CardDescription>
+          <Card className="bg-white shadow-xl border border-gray-100">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-100 rounded-t-2xl">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <User className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl text-gray-900">Profile Information</CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Update your personal and work information
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {editing ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="staff_number">Staff Number</Label>
                       <Input
@@ -227,6 +245,7 @@ const Profile = () => {
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         placeholder="Enter email"
+                        className="break-all"
                       />
                     </div>
                   </div>
@@ -273,7 +292,7 @@ const Profile = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <Label className="text-sm font-medium text-muted-foreground">Staff Number</Label>
                       <p className="flex items-center gap-2">
@@ -283,9 +302,9 @@ const Profile = () => {
                     </div>
                     <div className="space-y-1">
                       <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                      <p className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        {user?.email || 'Not set'}
+                      <p className="flex items-center gap-2 break-all">
+                        <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <span className="truncate">{user?.email || 'Not set'}</span>
                       </p>
                     </div>
                   </div>
@@ -321,15 +340,19 @@ const Profile = () => {
           <Separator />
 
           {/* Change Password */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lock className="h-5 w-5" />
-                Change Password
-              </CardTitle>
-              <CardDescription>
-                Update your account password
-              </CardDescription>
+          <Card className="bg-white shadow-xl border border-gray-100">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-green-50 border-b border-gray-100 rounded-t-2xl">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                  <Lock className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl text-gray-900">Change Password</CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Update your account password
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-4">

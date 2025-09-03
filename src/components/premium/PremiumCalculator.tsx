@@ -293,11 +293,13 @@ export const PremiumCalculator = () => {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="pt-6">
+      <Card className="bg-white shadow-lg border border-gray-100">
+        <CardContent className="p-8">
           <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-            <span className="ml-2">Loading premium calculations...</span>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading premium calculations...</p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -307,19 +309,24 @@ export const PremiumCalculator = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Premium Pay Calculator
-          </CardTitle>
+      <Card className="bg-white shadow-xl border border-gray-100">
+        <CardHeader className="bg-gradient-to-r from-gray-50 to-green-50 border-b border-gray-100 rounded-t-2xl">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+              <DollarSign className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-2xl text-gray-900">Premium Pay Calculator</CardTitle>
+              <p className="text-gray-600">Calculate your shift premiums and allowances</p>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <label className="text-sm font-medium mb-2 block">Pay Period</label>
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">Pay Period</label>
               <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger>
+                <SelectTrigger className="h-12 text-base border-2 border-gray-200 hover:border-green-300 focus:border-green-500 rounded-xl transition-all duration-300">
                   <SelectValue placeholder="Select a pay period" />
                 </SelectTrigger>
                 <SelectContent>
@@ -337,44 +344,56 @@ export const PremiumCalculator = () => {
 
       {/* Summary Stats */}
       {selectedPeriod && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Shifts</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-blue-800">Total Shifts</CardTitle>
+              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                <Calendar className="h-5 w-5 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totals.totalShifts}</div>
+              <div className="text-3xl font-bold text-blue-900">{totals.totalShifts}</div>
+              <p className="text-xs text-blue-600 mt-1">This period</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Premium Shifts</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-purple-800">Premium Shifts</CardTitle>
+              <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totals.totalPremiumShifts}</div>
+              <div className="text-3xl font-bold text-purple-900">{totals.totalPremiumShifts}</div>
+              <p className="text-xs text-purple-600 mt-1">With premiums</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-orange-800">Total Hours</CardTitle>
+              <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
+                <Clock className="h-5 w-5 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totals.totalHours.toFixed(1)}</div>
+              <div className="text-3xl font-bold text-orange-900">{totals.totalHours.toFixed(1)}</div>
+              <p className="text-xs text-orange-600 mt-1">Hours worked</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Premium Pay</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-green-800">Premium Pay</CardTitle>
+              <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">£{totals.totalPremiumAmount.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-green-900">£{totals.totalPremiumAmount.toFixed(2)}</div>
+              <p className="text-xs text-green-600 mt-1">Total premiums</p>
             </CardContent>
           </Card>
         </div>
@@ -382,15 +401,20 @@ export const PremiumCalculator = () => {
 
       {/* Premium Shifts Breakdown */}
       {premiumShifts.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Premium Shifts Breakdown</CardTitle>
+        <Card className="bg-white shadow-xl border border-gray-100">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-green-50 border-b border-gray-100 rounded-t-2xl">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+              <CardTitle className="text-xl text-gray-900">Premium Shifts Breakdown</CardTitle>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
+          <CardContent className="p-6">
+            <div className="space-y-4">
               {premiumShifts.map((premiumShift, index) => (
-                <div key={index} className="p-3 border rounded-lg">
-                  <div className="flex items-center justify-between">
+                <div key={index} className="p-4 border-2 border-gray-100 rounded-xl hover:border-green-200 transition-all duration-200 hover:shadow-md">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <div>
                         <p className="font-medium">
