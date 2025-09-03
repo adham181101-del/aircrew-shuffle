@@ -231,8 +231,17 @@ const ManageSwaps = () => {
       const today = new Date();
       
       // Use target month if provided, otherwise use current month
-      const startDate = targetMonth ? new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1) : today;
-      const endDate = targetMonth ? new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0) : new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+      let startDate, endDate;
+      if (targetMonth) {
+        // For target month, start from the 1st of that month
+        startDate = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1);
+        // End on the last day of that month
+        endDate = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0);
+      } else {
+        // For current month, start from today
+        startDate = today;
+        endDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+      }
       
       // Generate dates for the specified month or next 30 days
       const daysInMonth = targetMonth ? 
@@ -245,6 +254,7 @@ const ManageSwaps = () => {
         return date.toISOString().split('T')[0]; // YYYY-MM-DD format
       });
 
+      console.log('Target month:', targetMonth ? `${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}` : 'Current month');
       console.log('Date range:', { startDate: startDate.toISOString().split('T')[0], endDate: endDate.toISOString().split('T')[0] });
       console.log('Days in month:', daysInMonth);
       console.log('Generated dates:', nextDays);
@@ -269,6 +279,7 @@ const ManageSwaps = () => {
             console.log(`❌ ${date} - Not from target month ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}, skipping`);
             return false;
           }
+          console.log(`✅ ${date} - From target month ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}`);
         }
         
         // Check if user has any shifts on this date
@@ -324,8 +335,19 @@ const ManageSwaps = () => {
 
       console.log('Available dates for counter-offer:', availableDates);
 
+      // Final filter: ensure all dates are from the target month if specified
+      let finalAvailableDates = availableDates;
+      if (targetMonth) {
+        finalAvailableDates = availableDates.filter(date => {
+          const dateObj = new Date(date);
+          return dateObj.getMonth() === targetMonth.getMonth() && 
+                 dateObj.getFullYear() === targetMonth.getFullYear();
+        });
+        console.log(`Final filtered dates for ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}:`, finalAvailableDates);
+      }
+
       // Create mock shift objects for the available dates
-      const availableShiftsForCounterOffer = availableDates.map(date => ({
+      const availableShiftsForCounterOffer = finalAvailableDates.map(date => ({
         id: `counter-offer-${date}`,
         date: date,
         time: 'Available for swap',
