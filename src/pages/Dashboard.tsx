@@ -22,7 +22,8 @@ import {
   Bell,
   X,
   User,
-  Menu
+  Menu,
+  RefreshCw
 } from 'lucide-react'
 import { PremiumCalculator } from '@/components/premium/PremiumCalculator'
 import { TeamView } from '@/components/team/TeamView'
@@ -75,16 +76,34 @@ const Dashboard = () => {
       const userShifts = await getUserShifts(user.id)
       setShifts(userShifts)
       
-      // Fetch pending swap requests
+      // Fetch pending swap requests (incoming requests)
       const pendingSwapsData = await fetchPendingSwaps(user.id)
       setPendingSwaps(pendingSwapsData)
       
+      // Fetch accepted swaps count from swap_requests table
+      const { data: acceptedSwapsData, error: acceptedError } = await supabase
+        .from('swap_requests')
+        .select('id')
+        .eq('accepter_id', user.id)
+        .eq('status', 'accepted');
+
+      if (acceptedError) {
+        console.error('Error fetching accepted swaps:', acceptedError);
+      }
+
+      const acceptedSwapsCount = acceptedSwapsData?.length || 0;
+      
       setStats({
         totalShifts: userShifts.length,
-        pendingSwaps: pendingSwapsData.length,
-        acceptedSwaps: userShifts.filter(s => s.is_swapped).length
+        pendingSwaps: pendingSwapsData.length, // This is incoming requests
+        acceptedSwaps: acceptedSwapsCount // This is properly counted accepted swaps
       })
       
+      console.log('Dashboard stats updated:', {
+        totalShifts: userShifts.length,
+        incomingRequests: pendingSwapsData.length,
+        acceptedSwaps: acceptedSwapsCount
+      });
 
     } catch (error) {
       toast({
@@ -96,6 +115,44 @@ const Dashboard = () => {
       setLoading(false)
     }
   }
+
+  const refreshDashboardStats = async () => {
+    if (!user) return;
+    
+    try {
+      // Refresh pending swaps (incoming requests)
+      const pendingSwapsData = await fetchPendingSwaps(user.id);
+      setPendingSwaps(pendingSwapsData);
+      
+      // Refresh accepted swaps count
+      const { data: acceptedSwapsData, error: acceptedError } = await supabase
+        .from('swap_requests')
+        .select('id')
+        .eq('accepter_id', user.id)
+        .eq('status', 'accepted');
+
+      if (acceptedError) {
+        console.error('Error refreshing accepted swaps:', acceptedError);
+        return;
+      }
+
+      const acceptedSwapsCount = acceptedSwapsData?.length || 0;
+      
+      setStats(prev => ({
+        ...prev,
+        pendingSwaps: pendingSwapsData.length,
+        acceptedSwaps: acceptedSwapsCount
+      }));
+      
+      console.log('Dashboard stats refreshed:', {
+        incomingRequests: pendingSwapsData.length,
+        acceptedSwaps: acceptedSwapsCount
+      });
+      
+    } catch (error) {
+      console.error('Error refreshing dashboard stats:', error);
+    }
+  };
 
   const checkAuthAndLoadData = async () => {
     // This function is no longer needed since we use AuthContext
@@ -267,6 +324,19 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {/* Refresh Button */}
+        <div className="flex justify-end mb-4">
+          <Button
+            onClick={refreshDashboardStats}
+            variant="outline"
+            size="sm"
+            className="border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Stats
+          </Button>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
