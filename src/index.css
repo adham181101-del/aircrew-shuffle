@@ -360,6 +360,39 @@
     @apply mt-8 pt-8;
   }
   
+  /* Increase top margin to prevent overlap with My Requests button */
+  .manage-swaps-tabs [data-radix-tabs-content] {
+    @apply mt-12 pt-8;
+  }
+  
+  /* Ensure specific sections have extra clearance */
+  .manage-swaps-tabs [data-radix-tabs-content][value="incoming"],
+  .manage-swaps-tabs [data-radix-tabs-content][value="counter-offers"],
+  .manage-swaps-tabs [data-radix-tabs-content][value="accepted-swaps"] {
+    @apply mt-16 pt-8;
+  }
+  
+  /* My Requests section can keep the standard spacing since it's positioned correctly */
+  .manage-swaps-tabs [data-radix-tabs-content][value="my-requests"] {
+    @apply mt-12 pt-8;
+  }
+  
+  /* Add visual separator and ensure no overlap */
+  .manage-swaps-tabs [data-radix-tabs-content]::before {
+    content: '';
+    @apply block w-full h-4 bg-transparent;
+  }
+  
+  /* Force content to start below all tab buttons */
+  .manage-swaps-tabs [data-radix-tabs-content] {
+    @apply relative;
+  }
+  
+  /* Ensure content has proper z-index and positioning */
+  .manage-swaps-tabs [data-radix-tabs-content] > *:first-child {
+    @apply mt-4;
+  }
+  
   /* Remove any background shapes or artifacts */
   .manage-swaps-tabs [data-radix-tabs-trigger]::before,
   .manage-swaps-tabs [data-radix-tabs-trigger]::after {
