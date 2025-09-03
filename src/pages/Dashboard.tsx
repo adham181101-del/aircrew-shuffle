@@ -104,7 +104,8 @@ const Dashboard = () => {
 
   const fetchPendingSwaps = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // Fetch incoming swap requests (where user is the accepter)
+      const { data: incomingData, error: incomingError } = await supabase
         .from('swap_requests')
         .select(`
           *,
@@ -115,12 +116,39 @@ const Dashboard = () => {
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching pending swaps:', error);
+      if (incomingError) {
+        console.error('Error fetching incoming pending swaps:', incomingError);
         return [];
       }
 
-      return data || [];
+      // Fetch outgoing swap requests (where user is the requester)
+      const { data: outgoingData, error: outgoingError } = await supabase
+        .from('swap_requests')
+        .select(`
+          *,
+          accepter_staff:staff!swap_requests_accepter_id_fkey(email, staff_number),
+          requester_shift:shifts!swap_requests_requester_shift_id_fkey(date, time)
+        `)
+        .eq('requester_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (outgoingError) {
+        console.error('Error fetching outgoing pending swaps:', outgoingError);
+        return [];
+      }
+
+      // Combine both incoming and outgoing requests
+      const allPendingSwaps = [
+        ...(incomingData || []),
+        ...(outgoingData || [])
+      ];
+
+      console.log('Total pending swaps found:', allPendingSwaps.length);
+      console.log('Incoming:', incomingData?.length || 0);
+      console.log('Outgoing:', outgoingData?.length || 0);
+
+      return allPendingSwaps;
     } catch (error) {
       console.error('Error in fetchPendingSwaps:', error);
       return [];
@@ -370,6 +398,13 @@ const Dashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Debug Info - Remove this after testing */}
+        <div className="bg-gray-100 p-2 mb-4 rounded text-xs">
+          Debug: pendingSwaps.length = {pendingSwaps.length} | 
+          loading = {loading.toString()} | 
+          user = {user ? 'logged in' : 'not logged in'}
+        </div>
 
         {/* Navigation Tabs */}
         <div className="dashboard-nav-tabs flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-8 bg-white p-2 rounded-2xl shadow-lg w-full max-w-lg border border-gray-100">
