@@ -59,7 +59,6 @@ const Dashboard = () => {
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false)
   const [deletingAll, setDeletingAll] = useState(false)
   const [pendingSwaps, setPendingSwaps] = useState<any[]>([])
-  const [showSwapNotification, setShowSwapNotification] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -86,10 +85,7 @@ const Dashboard = () => {
         acceptedSwaps: userShifts.filter(s => s.is_swapped).length
       })
       
-      // Show notification if there are pending swaps
-      if (pendingSwapsData.length > 0) {
-        setShowSwapNotification(true)
-      }
+
     } catch (error) {
       toast({
         title: "Error loading dashboard",
@@ -264,48 +260,7 @@ const Dashboard = () => {
         </div>
       </header>
 
-      {/* Pending Swaps Notification */}
-      {showSwapNotification && pendingSwaps.length > 0 && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                  <Bell className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-                    You have {pendingSwaps.length} pending swap request{pendingSwaps.length > 1 ? 's' : ''} to review
-                  </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300">
-                    {pendingSwaps.length === 1 
-                      ? `From ${pendingSwaps[0].requester_staff?.staff_number || 'Staff Member'}`
-                      : `From ${pendingSwaps.length} different crew members`
-                    }
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  size="sm"
-                  onClick={() => navigate('/swaps')}
-                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg shadow-md"
-                >
-                  Review Requests
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowSwapNotification(false)}
-                  className="text-amber-600 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/20 p-2"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
@@ -350,6 +305,71 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Notification Bar for Pending Requests */}
+        {pendingSwaps.length > 0 && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 mb-6 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse"></div>
+                <span className="text-amber-800 font-semibold">Pending Swap Requests</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-amber-700">Total Pending:</span>
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
+                    {pendingSwaps.length}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+            
+            {/* Quick Action Buttons */}
+            <div className="mt-3 pt-3 border-t border-amber-200">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-amber-700">
+                  You have {pendingSwaps.length} pending swap request{pendingSwaps.length > 1 ? 's' : ''} waiting for your response
+                </span>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => navigate('/swaps')}
+                    size="sm"
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2"
+                  >
+                    Review All
+                  </Button>
+                  {pendingSwaps.length === 1 && (
+                    <Button
+                      onClick={() => navigate('/swaps')}
+                      size="sm"
+                      variant="outline"
+                      className="border-amber-300 text-amber-700 hover:bg-amber-100 px-4 py-2"
+                    >
+                      Quick Review
+                    </Button>
+                  )}
+                </div>
+              </div>
+              
+              {/* Show details for single request */}
+              {pendingSwaps.length === 1 && (
+                <div className="mt-2 text-xs text-amber-600">
+                  From: {pendingSwaps[0].requester_staff?.staff_number || 'Staff Member'} • 
+                  Date: {pendingSwaps[0].requester_shift?.date || 'Unknown'} • 
+                  Time: {pendingSwaps[0].requester_shift?.time || 'Unknown'}
+                </div>
+              )}
+              
+              {/* Show summary for multiple requests */}
+              {pendingSwaps.length > 1 && (
+                <div className="mt-2 text-xs text-amber-600">
+                  From {pendingSwaps.length} different crew members • 
+                  Various dates and times
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Navigation Tabs */}
         <div className="dashboard-nav-tabs flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-8 bg-white p-2 rounded-2xl shadow-lg w-full max-w-lg border border-gray-100">
