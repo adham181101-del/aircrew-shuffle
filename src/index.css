@@ -323,25 +323,6 @@
     @apply relative z-20 overflow-hidden isolate;
   }
   
-  .manage-swaps-tabs [data-radix-tabs-content] {
-    @apply relative z-10 mt-8;
-  }
-  
-  /* Ensure tabs container has proper height and spacing */
-  .manage-swaps-tabs [data-radix-tabs-list] > div {
-    @apply min-h-[200px] flex flex-col justify-center space-y-4;
-  }
-  
-  /* Prevent any tab from floating outside the container */
-  .manage-swaps-tabs [data-radix-tabs-trigger] {
-    @apply relative z-10;
-  }
-  
-  /* Create clear visual boundary for tabs */
-  .manage-swaps-tabs [data-radix-tabs-list] {
-    @apply relative z-20 overflow-hidden isolate;
-  }
-  
   /* Ensure content starts below tabs with clear separation */
   .manage-swaps-tabs [data-radix-tabs-content] {
     @apply relative z-10 mt-8 pt-8 border-t border-gray-200;
@@ -358,33 +339,25 @@
     @apply h-16 w-full flex items-center justify-center box-border;
   }
   
-  /* Prevent content overlap */
-  .manage-swaps-tabs [data-radix-tabs-content] {
-    @apply pt-8 mt-8;
-  }
-  
-  /* Force proper tab alignment and prevent floating */
-  .manage-swaps-tabs [data-radix-tabs-list] {
-    @apply relative z-20 overflow-hidden isolate;
-  }
-  
-  .manage-swaps-tabs [data-radix-tabs-list] > div {
-    @apply relative z-10;
-  }
-  
   /* Ensure each tab has exactly the same dimensions */
   .manage-swaps-tabs [data-radix-tabs-trigger] {
     @apply h-16 w-full flex items-center justify-center box-border;
   }
   
-  /* Add extra padding to content to prevent overlap */
-  .manage-swaps-tabs [data-radix-tabs-content] {
-    @apply pt-8 mt-8;
-  }
-  
   /* Ensure the first content section has extra top margin */
   .manage-swaps-tabs [data-radix-tabs-content]:first-of-type {
     @apply mt-8;
+  }
+  
+  /* Ensure ALL tab content sections have consistent spacing */
+  .manage-swaps-tabs [data-radix-tabs-content] {
+    @apply mt-8 pt-8;
+  }
+  
+  /* Add extra spacing for specific tab content sections if needed */
+  .manage-swaps-tabs [data-radix-tabs-content][value="counter-offers"],
+  .manage-swaps-tabs [data-radix-tabs-content][value="my-requests"] {
+    @apply mt-8 pt-8;
   }
   
   /* Remove any background shapes or artifacts */
