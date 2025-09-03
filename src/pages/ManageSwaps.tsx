@@ -828,12 +828,15 @@ const ManageSwaps = () => {
     
     setCurrentMonth(newMonth);
     
+    // Use showCounterOffer instead of currentSwapId since that's what's actually working
+    const activeSwapId = showCounterOffer;
+    
     // Refresh available shifts for the new month
-    if (currentSwapId && user) {
-      console.log('Current swap ID:', currentSwapId);
+    if (activeSwapId && user) {
+      console.log('Active swap ID from showCounterOffer:', activeSwapId);
       console.log('User ID:', user.id);
       
-      const swapRequest = incomingRequests.find(req => req.id === currentSwapId);
+      const swapRequest = incomingRequests.find(req => req.id === activeSwapId);
       console.log('Found swap request:', swapRequest);
       
       if (swapRequest?.requester_shift?.date) {
@@ -844,13 +847,13 @@ const ManageSwaps = () => {
         setAvailableShifts([]);
         
         // Fetch new shifts for the new month
-        fetchAvailableShifts(user.id, swapRequest.requester_shift.date, currentSwapId, newMonth);
+        fetchAvailableShifts(user.id, swapRequest.requester_shift.date, activeSwapId, newMonth);
       } else {
         console.log('No swap request or requester shift date found');
       }
     } else {
-      console.log('No current swap ID or user');
-      console.log('  - currentSwapId is:', currentSwapId);
+      console.log('No active swap ID or user');
+      console.log('  - activeSwapId is:', activeSwapId);
       console.log('  - user is:', user);
     }
   };
@@ -859,11 +862,14 @@ const ManageSwaps = () => {
     const today = new Date();
     setCurrentMonth(today);
     
+    // Use showCounterOffer instead of currentSwapId since that's what's actually working
+    const activeSwapId = showCounterOffer;
+    
     // Refresh available shifts for current month
-    if (currentSwapId && user) {
-      const swapRequest = incomingRequests.find(req => req.id === currentSwapId);
+    if (activeSwapId && user) {
+      const swapRequest = incomingRequests.find(req => req.id === activeSwapId);
       if (swapRequest?.requester_shift?.date) {
-        fetchAvailableShifts(user.id, swapRequest.requester_shift.date, currentSwapId, today);
+        fetchAvailableShifts(user.id, swapRequest.requester_shift.date, activeSwapId, today);
       }
     }
   };
