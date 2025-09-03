@@ -386,6 +386,10 @@ const ManageSwaps = () => {
   const handleShowCounterOffer = async (swapId: string) => {
     if (!user) return;
     
+    console.log('=== SHOWING COUNTER OFFER ===');
+    console.log('Swap ID:', swapId);
+    console.log('User:', user.id);
+    
     // Find the swap request to get the requester's shift date
     const swapRequest = incomingRequests.find(req => req.id === swapId);
     if (!swapRequest || !swapRequest.requester_shift?.date) {
@@ -397,11 +401,18 @@ const ManageSwaps = () => {
       return;
     }
     
+    console.log('Found swap request:', swapRequest);
+    console.log('Setting currentSwapId to:', swapId);
+    
     setShowCounterOffer(swapId);
     setSelectedCounterShift("");
     setCurrentSwapId(swapId);
     setCurrentMonth(new Date()); // Reset to current month
+    
+    console.log('State variables set, calling fetchAvailableShifts...');
     await fetchAvailableShifts(user.id, swapRequest.requester_shift.date, swapId, new Date());
+    
+    console.log('handleShowCounterOffer completed');
   };
 
   const handleAcceptSwap = async (swapId: string) => {
@@ -800,6 +811,10 @@ const ManageSwaps = () => {
     console.log('=== NAVIGATING MONTH ===');
     console.log('Current month before:', currentMonth);
     console.log('Direction:', direction);
+    console.log('Current state values:');
+    console.log('  - currentSwapId:', currentSwapId);
+    console.log('  - user:', user ? user.id : 'null');
+    console.log('  - showCounterOffer:', showCounterOffer);
     
     const newMonth = new Date(currentMonth);
     if (direction === 'prev') {
@@ -835,6 +850,8 @@ const ManageSwaps = () => {
       }
     } else {
       console.log('No current swap ID or user');
+      console.log('  - currentSwapId is:', currentSwapId);
+      console.log('  - user is:', user);
     }
   };
 
