@@ -235,7 +235,10 @@ const ManageSwaps = () => {
       const endDate = targetMonth ? new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0) : new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
       
       // Generate dates for the specified month or next 30 days
-      const daysInMonth = Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+      const daysInMonth = targetMonth ? 
+        new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0).getDate() : 
+        Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+      
       const nextDays = Array.from({ length: daysInMonth }, (_, i) => {
         const date = new Date(startDate);
         date.setDate(startDate.getDate() + i);
@@ -243,7 +246,11 @@ const ManageSwaps = () => {
       });
 
       console.log('Date range:', { startDate: startDate.toISOString().split('T')[0], endDate: endDate.toISOString().split('T')[0] });
+      console.log('Days in month:', daysInMonth);
       console.log('Generated dates:', nextDays);
+      if (targetMonth) {
+        console.log(`Filtering for month: ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}`);
+      }
 
       // Find dates where user is OFF and can work the requester's shift
       const availableDates = nextDays.filter(date => {
@@ -251,6 +258,17 @@ const ManageSwaps = () => {
         if (new Date(date) < today) {
           console.log(`❌ ${date} - Past date, skipping`);
           return false;
+        }
+        
+        // If we have a target month, ensure the date is from that month
+        if (targetMonth) {
+          const dateObj = new Date(date);
+          const isFromTargetMonth = dateObj.getMonth() === targetMonth.getMonth() && 
+                                  dateObj.getFullYear() === targetMonth.getFullYear();
+          if (!isFromTargetMonth) {
+            console.log(`❌ ${date} - Not from target month ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}, skipping`);
+            return false;
+          }
         }
         
         // Check if user has any shifts on this date
