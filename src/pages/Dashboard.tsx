@@ -73,18 +73,30 @@ const Dashboard = () => {
     try {
       setLoading(true)
       
-      const userShifts = await getUserShifts(user.id)
+      // Use getCurrentUser() to match ManageSwaps approach
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        console.error('No current user found');
+        return;
+      }
+      
+      console.log('=== DASHBOARD USER COMPARISON ===');
+      console.log('useAuth user ID:', user.id);
+      console.log('getCurrentUser ID:', currentUser.id);
+      console.log('IDs match:', user.id === currentUser.id);
+      
+      const userShifts = await getUserShifts(currentUser.id)
       setShifts(userShifts)
       
-      // Fetch pending swap requests (incoming requests)
-      const pendingSwapsData = await fetchPendingSwaps(user.id)
+      // Fetch pending swap requests (incoming requests) using getCurrentUser ID
+      const pendingSwapsData = await fetchPendingSwaps(currentUser.id)
       setPendingSwaps(pendingSwapsData)
       
-      // Fetch accepted swaps count from swap_requests table
+      // Fetch accepted swaps count from swap_requests table using getCurrentUser ID
       const { data: acceptedSwapsData, error: acceptedError } = await supabase
         .from('swap_requests')
         .select('id')
-        .eq('accepter_id', user.id)
+        .eq('accepter_id', currentUser.id)
         .eq('status', 'accepted');
 
       if (acceptedError) {
@@ -124,15 +136,27 @@ const Dashboard = () => {
     if (!user) return;
     
     try {
-      // Refresh pending swaps (incoming requests)
-      const pendingSwapsData = await fetchPendingSwaps(user.id);
+      // Use getCurrentUser() to match ManageSwaps approach
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        console.error('No current user found in refresh');
+        return;
+      }
+      
+      console.log('=== REFRESH USER COMPARISON ===');
+      console.log('useAuth user ID:', user.id);
+      console.log('getCurrentUser ID:', currentUser.id);
+      console.log('IDs match:', user.id === currentUser.id);
+      
+      // Refresh pending swaps (incoming requests) using getCurrentUser ID
+      const pendingSwapsData = await fetchPendingSwaps(currentUser.id);
       setPendingSwaps(pendingSwapsData);
       
-      // Refresh accepted swaps count
+      // Refresh accepted swaps count using getCurrentUser ID
       const { data: acceptedSwapsData, error: acceptedError } = await supabase
         .from('swap_requests')
         .select('id')
-        .eq('accepter_id', user.id)
+        .eq('accepter_id', currentUser.id)
         .eq('status', 'accepted');
 
       if (acceptedError) {
@@ -167,8 +191,23 @@ const Dashboard = () => {
     try {
       console.log('=== FETCHING INCOMING REQUESTS ===');
       console.log('User ID:', userId);
+      console.log('User ID type:', typeof userId);
+      console.log('User ID length:', userId.length);
       
-      // Use the EXACT same query as ManageSwaps to see if it works
+      // Test 1: Simple query without joins first
+      console.log('=== TEST 1: Simple query without joins ===');
+      const { data: simpleData, error: simpleError } = await supabase
+        .from('swap_requests')
+        .select('id, accepter_id, status')
+        .eq('accepter_id', userId);
+
+      console.log('Simple query result:');
+      console.log('  - Data:', simpleData);
+      console.log('  - Error:', simpleError);
+      console.log('  - Count:', simpleData?.length || 0);
+
+      // Test 2: Query with exact same structure as ManageSwaps
+      console.log('=== TEST 2: Exact ManageSwaps query ===');
       const { data: incomingData, error: incomingError } = await supabase
         .from('swap_requests')
         .select(`
@@ -179,7 +218,7 @@ const Dashboard = () => {
         .eq('accepter_id', userId)
         .order('created_at', { ascending: false });
 
-      console.log('Supabase query result (using ManageSwaps query):');
+      console.log('ManageSwaps-style query result:');
       console.log('  - Data:', incomingData);
       console.log('  - Error:', incomingError);
       console.log('  - Data length:', incomingData?.length || 0);
@@ -189,7 +228,27 @@ const Dashboard = () => {
         return [];
       }
 
-      // Let's also check if there are ANY swap requests for this user
+      // Test 3: Check if the issue is with the user ID comparison
+      console.log('=== TEST 3: Check user ID comparison ===');
+      if (simpleData && simpleData.length > 0) {
+        simpleData.forEach((swap, index) => {
+          console.log(`Swap ${index + 1}:`, {
+            id: swap.id,
+            accepter_id: swap.accepter_id,
+            status: swap.status,
+            accepter_id_type: typeof swap.accepter_id,
+            accepter_id_length: swap.accepter_id?.length,
+            userId_match: swap.accepter_id === userId,
+            userId_strict_match: swap.accepter_id === userId,
+            accepter_id_trimmed: swap.accepter_id?.trim(),
+            userId_trimmed: userId.trim(),
+            trimmed_match: swap.accepter_id?.trim() === userId.trim()
+          });
+        });
+      }
+
+      // Test 4: Check if there are ANY swap requests for this user
+      console.log('=== TEST 4: All swaps for user ===');
       const { data: allSwapsForUser, error: allSwapsError } = await supabase
         .from('swap_requests')
         .select('id, status, accepter_id, requester_id')
@@ -214,11 +273,25 @@ const Dashboard = () => {
         });
       }
 
-      // Now filter for only pending requests (like the original query intended)
+      // Test 5: Manual filtering to see what we get
+      console.log('=== TEST 5: Manual filtering ===');
       const pendingIncomingData = incomingData?.filter(swap => swap.status === 'pending') || [];
       console.log('Filtered pending incoming data:', pendingIncomingData);
       console.log('Pending incoming swaps found:', pendingIncomingData.length);
 
+      // Test 6: Check if the issue is with the filter
+      if (incomingData && incomingData.length > 0) {
+        console.log('All incoming data statuses:');
+        incomingData.forEach((swap, index) => {
+          console.log(`  Swap ${index + 1}:`, {
+            id: swap.id,
+            status: swap.status,
+            status_type: typeof swap.status
+          });
+        });
+      }
+
+      console.log('=== FINAL RESULT ===');
       console.log('Raw incoming data:', incomingData);
       console.log('Incoming pending swaps found:', pendingIncomingData.length);
       
