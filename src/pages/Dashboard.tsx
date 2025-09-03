@@ -181,9 +181,39 @@ const Dashboard = () => {
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
+      console.log('Supabase query result:');
+      console.log('  - Data:', incomingData);
+      console.log('  - Error:', incomingError);
+      console.log('  - Data length:', incomingData?.length || 0);
+
       if (incomingError) {
         console.error('Error fetching incoming pending swaps:', incomingError);
         return [];
+      }
+
+      // Let's also check if there are ANY swap requests for this user
+      const { data: allSwapsForUser, error: allSwapsError } = await supabase
+        .from('swap_requests')
+        .select('id, status, accepter_id, requester_id')
+        .or(`accepter_id.eq.${userId},requester_id.eq.${userId}`);
+
+      console.log('All swaps for user (as accepter OR requester):');
+      console.log('  - Data:', allSwapsForUser);
+      console.log('  - Error:', allSwapsError);
+      console.log('  - Total swaps found:', allSwapsForUser?.length || 0);
+
+      if (allSwapsForUser && allSwapsForUser.length > 0) {
+        console.log('Breakdown of swaps:');
+        allSwapsForUser.forEach((swap, index) => {
+          console.log(`  Swap ${index + 1}:`, {
+            id: swap.id,
+            status: swap.status,
+            accepter_id: swap.accepter_id,
+            requester_id: swap.requester_id,
+            isUserAccepter: swap.accepter_id === userId,
+            isUserRequester: swap.requester_id === userId
+          });
+        });
       }
 
       console.log('Raw incoming data:', incomingData);
