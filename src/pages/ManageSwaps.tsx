@@ -708,9 +708,11 @@ const ManageSwaps = () => {
             </TabsList>
             
             {/* Add spacing below tabs */}
-            <div className="h-8"></div>
+            <div className="h-16"></div>
 
               <TabsContent value="incoming" className="manage-swaps-content space-y-6">
+                {/* Spacer to prevent overlap with tabs */}
+                <div className="h-8"></div>
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Incoming Swap Requests</h2>
@@ -896,6 +898,8 @@ const ManageSwaps = () => {
               </TabsContent>
 
               <TabsContent value="counter-offers" className="manage-swaps-content space-y-6">
+                {/* Spacer to prevent overlap with tabs */}
+                <div className="h-8"></div>
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Counter Offers to Review</h2>
@@ -993,6 +997,8 @@ const ManageSwaps = () => {
               </TabsContent>
 
               <TabsContent value="my-requests" className="manage-swaps-content space-y-6">
+                {/* Spacer to prevent overlap with tabs */}
+                <div className="h-8"></div>
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Swap Requests</h2>
@@ -1081,6 +1087,8 @@ const ManageSwaps = () => {
               <div className="h-8"></div>
 
               <TabsContent value="accepted-swaps" className="manage-swaps-content space-y-6">
+                {/* Spacer to prevent overlap with tabs */}
+                <div className="h-8"></div>
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Accepted Swaps</h2>

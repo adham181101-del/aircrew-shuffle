@@ -393,6 +393,50 @@
     @apply mt-4;
   }
   
+  /* Target the actual TabsContent elements by their value attributes */
+  .manage-swaps-tabs [data-radix-tabs-content][data-state="active"] {
+    @apply mt-20 pt-8;
+  }
+  
+  /* Specific spacing for each tab content section */
+  .manage-swaps-tabs [data-radix-tabs-content][data-state="active"][value="incoming"] {
+    @apply mt-24 pt-8;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-content][data-state="active"][value="counter-offers"] {
+    @apply mt-24 pt-8;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-content][data-state="active"][value="my-requests"] {
+    @apply mt-20 pt-8;
+  }
+  
+  .manage-swaps-tabs [data-radix-tabs-content][data-state="active"][value="accepted-swaps"] {
+    @apply mt-24 pt-8;
+  }
+  
+  /* Force all content sections to have adequate top margin */
+  .manage-swaps-content {
+    @apply mt-8 pt-8;
+  }
+  
+  /* Ensure specific content sections have extra spacing */
+  .manage-swaps-content:has(h2:contains("Incoming")),
+  .manage-swaps-content:has(h2:contains("Counter Offers")),
+  .manage-swaps-content:has(h2:contains("Accepted Swaps")) {
+    @apply mt-16 pt-8;
+  }
+  
+  /* Add extra margin to the first element in each content section */
+  .manage-swaps-content > div:first-child {
+    @apply mt-8;
+  }
+  
+  /* Ensure headings have proper spacing */
+  .manage-swaps-content h2 {
+    @apply mt-8 mb-4;
+  }
+  
   /* Remove any background shapes or artifacts */
   .manage-swaps-tabs [data-radix-tabs-trigger]::before,
   .manage-swaps-tabs [data-radix-tabs-trigger]::after {
