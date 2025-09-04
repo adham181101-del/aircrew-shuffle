@@ -231,7 +231,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
               <p className="text-sm sm:text-base text-gray-600">Click on any date to view shift details</p>
             </div>
             
-            <div className="w-full overflow-x-auto">
+            <div className="w-full overflow-x-auto calendar-container">
               <Calendar
                 onChange={(value) => setSelectedDate(value as Date)}
                 value={selectedDate}
@@ -433,10 +433,25 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           background: none;
           border: none;
           color: hsl(var(--foreground));
+          cursor: pointer;
+          padding: 0.5rem;
+          border-radius: 0.375rem;
+          transition: all 0.2s ease;
         }
         
         .calendar-container .react-calendar__navigation button:hover {
           background-color: hsl(var(--accent));
+          color: hsl(var(--accent-foreground));
+        }
+        
+        .calendar-container .react-calendar__navigation button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        
+        .calendar-container .react-calendar__navigation button:not(:disabled):hover {
+          background-color: hsl(var(--accent));
+          color: hsl(var(--accent-foreground));
         }
       `}</style>
 
