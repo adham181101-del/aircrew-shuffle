@@ -365,7 +365,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                           setShiftPendingDelete(shift)
                           setDeleteOpen(true)
                         }}
-                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        className="text-white bg-red-600 border-red-600 hover:bg-red-700 hover:text-white"
                       >
                         Delete
                       </Button>
