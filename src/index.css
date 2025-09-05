@@ -196,7 +196,7 @@
 
 /* Shift color classes */
 .shift-morning {
-  @apply bg-gradient-to-r from-yellow-400 to-orange-500 shadow-lg;
+  @apply bg-gradient-to-r from-blue-400 to-cyan-500 shadow-lg;
 }
 
 .shift-afternoon {
@@ -204,7 +204,7 @@
 }
 
 .shift-evening {
-  @apply bg-gradient-to-r from-purple-400 to-indigo-500 shadow-lg;
+  @apply bg-gradient-to-r from-purple-600 to-indigo-700 shadow-lg;
 }
 
 .shift-swapped {

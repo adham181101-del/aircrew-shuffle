@@ -231,16 +231,22 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
               <p className="text-sm sm:text-base text-gray-600">Click on any date to view shift details</p>
             </div>
             
-            <div className="w-full overflow-x-auto calendar-container">
+            <div className="w-full overflow-x-auto">
               <Calendar
                 onChange={(value) => setSelectedDate(value as Date)}
                 value={selectedDate}
                 tileContent={tileContent}
                 tileClassName={tileClassName}
                 className="react-calendar"
-                minDetail="month"
+                minDetail="year"
                 maxDetail="month"
                 showNeighboringMonth={false}
+                navigationLabel={({ date, view }) => {
+                  if (view === 'month') {
+                    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                  }
+                  return date.toLocaleDateString('en-US', { year: 'numeric' });
+                }}
               />
             </div>
           </div>
@@ -250,7 +256,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
             <h4 className="font-semibold text-gray-900 mb-3 text-center text-sm">Shift Types</h4>
             <div className="flex flex-wrap justify-center gap-3">
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 shadow-sm"></div>
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-cyan-500 shadow-sm"></div>
                 <span className="text-xs font-medium text-gray-700">Morning</span>
               </div>
               <div className="flex items-center space-x-2">
@@ -258,7 +264,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 <span className="text-xs font-medium text-gray-700">Afternoon</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-400 to-indigo-500 shadow-sm"></div>
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-600 to-indigo-700 shadow-sm"></div>
                 <span className="text-xs font-medium text-gray-700">Night</span>
               </div>
               <div className="flex items-center space-x-2">
@@ -434,24 +440,99 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           border: none;
           color: hsl(var(--foreground));
           cursor: pointer;
-          padding: 0.5rem;
-          border-radius: 0.375rem;
-          transition: all 0.2s ease;
+          pointer-events: auto;
+          z-index: 10;
+          position: relative;
         }
         
         .calendar-container .react-calendar__navigation button:hover {
           background-color: hsl(var(--accent));
-          color: hsl(var(--accent-foreground));
         }
         
-        .calendar-container .react-calendar__navigation button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
+        .calendar-container .react-calendar__navigation {
+          position: relative;
+          z-index: 10;
         }
         
-        .calendar-container .react-calendar__navigation button:not(:disabled):hover {
+        .calendar-container .react-calendar__navigation__label {
+          cursor: pointer;
+          pointer-events: auto;
+          z-index: 10;
+          position: relative;
+        }
+        
+        .calendar-container .react-calendar__navigation__label:hover {
           background-color: hsl(var(--accent));
-          color: hsl(var(--accent-foreground));
+        }
+        
+        /* Ensure the month/year label is clickable */
+        .calendar-container .react-calendar__navigation__label button {
+          cursor: pointer;
+          pointer-events: auto;
+          z-index: 10;
+          position: relative;
+          background: none;
+          border: none;
+          font-size: 1rem;
+          color: hsl(var(--foreground));
+        }
+        
+        .calendar-container .react-calendar__navigation__label button:hover {
+          background-color: hsl(var(--accent));
+        }
+        
+        /* Remove any potential blocking elements */
+        .calendar-container .react-calendar__navigation * {
+          pointer-events: auto;
+        }
+        
+        /* Style the month/year selection dropdown */
+        .calendar-container .react-calendar__year-view__months__month,
+        .calendar-container .react-calendar__decade-view__years__year {
+          cursor: pointer;
+          padding: 0.5rem;
+          border-radius: 0.375rem;
+          transition: background-color 0.2s;
+        }
+        
+        .calendar-container .react-calendar__year-view__months__month:hover,
+        .calendar-container .react-calendar__decade-view__years__year:hover {
+          background-color: hsl(var(--accent));
+        }
+        
+        .calendar-container .react-calendar__year-view__months__month--active,
+        .calendar-container .react-calendar__decade-view__years__year--active {
+          background-color: hsl(var(--primary));
+          color: hsl(var(--primary-foreground));
+        }
+        
+        /* Ensure dropdown views are properly styled */
+        .calendar-container .react-calendar__year-view,
+        .calendar-container .react-calendar__decade-view {
+          padding: 1rem;
+        }
+        
+        /* Fix mobile layout - prevent navigation from overlapping calendar */
+        @media (max-width: 768px) {
+          .calendar-container .react-calendar__navigation {
+            margin-bottom: 1rem;
+            padding: 0.5rem 0;
+          }
+          
+          .calendar-container .react-calendar__navigation__label {
+            font-size: 1.1rem;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+          }
+          
+          .calendar-container .react-calendar__navigation button {
+            padding: 0.5rem;
+            margin: 0.25rem;
+          }
+          
+          .calendar-container .react-calendar__month-view__weekdays {
+            margin-top: 0.5rem;
+          }
         }
       `}</style>
 
