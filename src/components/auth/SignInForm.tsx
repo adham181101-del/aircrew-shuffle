@@ -66,7 +66,7 @@ export const SignInForm = () => {
           <Input
             id="email"
             type="email"
-            placeholder="your.name@ba.com"
+            placeholder="your.email@company.com"
             value={formData.email}
             onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
             required
