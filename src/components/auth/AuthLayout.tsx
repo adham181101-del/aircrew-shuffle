@@ -1,7 +1,9 @@
 import { ReactNode } from 'react'
 import { Card } from '@/components/ui/card'
-import { Plane, Shield, Clock } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Plane, Shield, Clock, ArrowLeft } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
+import { useNavigate } from 'react-router-dom'
 
 interface AuthLayoutProps {
   children: ReactNode
@@ -11,6 +13,7 @@ interface AuthLayoutProps {
 
 export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
   const { theme } = useTheme()
+  const navigate = useNavigate()
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-hidden">
@@ -23,12 +26,26 @@ export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-blue-600/5 to-purple-600/5 rounded-full blur-3xl"></div>
       
       {/* Header */}
-      <div className="absolute top-8 left-8 z-10">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
-            {theme.logo}
+      <div className="absolute top-4 left-4 right-4 md:top-8 md:left-8 md:right-8 z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 md:space-x-3">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
+              {theme.logo}
+            </div>
+            <span className="text-lg md:text-2xl font-bold text-white">{theme.displayName}</span>
           </div>
-          <span className="text-2xl font-bold text-white">{theme.displayName}</span>
+          
+          {/* Back to Home Button */}
+          <Button
+            onClick={() => navigate('/')}
+            variant="ghost"
+            size="sm"
+            className="text-white/80 hover:text-white hover:bg-white/10 border border-white/20 backdrop-blur-sm transition-all duration-300"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Back to Home</span>
+            <span className="sm:hidden">Back</span>
+          </Button>
         </div>
       </div>
 
