@@ -249,174 +249,26 @@ export const executeShiftSwap = async (swapRequest: any): Promise<void> => {
   console.log('Swap request:', swapRequest);
   
   try {
-    // Get the requester's shift details
-    const { data: requesterShift, error: requesterError } = await supabase
-      .from('shifts')
-      .select('*')
-      .eq('id', swapRequest.requester_shift_id)
-      .single();
+    // Use the secure database function to execute the shift swap
+    const { data, error } = await supabase.rpc('execute_shift_swap', {
+      swap_request_id: swapRequest.id,
+      requester_shift_id: swapRequest.requester_shift_id,
+      accepter_id: swapRequest.accepter_id,
+      counter_offer_date: swapRequest.counter_offer_date || null,
+      accepter_shift_id: swapRequest.accepter_shift_id || null
+    });
 
-    if (requesterError) {
-      console.error('Error fetching requester shift:', requesterError);
-      throw requesterError;
+    if (error) {
+      console.error('Error executing shift swap via RPC:', error);
+      throw error;
     }
 
-    console.log('Requester shift:', requesterShift);
-
-    // If this is a counter-offer, we need to handle both shifts
-    if (swapRequest.counter_offer_date) {
-      console.log('Processing counter-offer swap');
-      
-      // DELETE the original requester shift first
-      const { error: deleteRequesterError } = await supabase
-        .from('shifts')
-        .delete()
-        .eq('id', swapRequest.requester_shift_id);
-
-      if (deleteRequesterError) {
-        console.error('Error deleting requester shift:', deleteRequesterError);
-        throw deleteRequesterError;
-      }
-
-      // Create a new shift for the accepter (they get the requester's shift)
-      const { error: accepterShiftError } = await supabase
-        .from('shifts')
-        .insert({
-          staff_id: swapRequest.accepter_id,
-          date: requesterShift.date,
-          time: requesterShift.time,
-          is_swapped: true
-        });
-
-      if (accepterShiftError) {
-        console.error('Error creating accepter shift:', accepterShiftError);
-        throw accepterShiftError;
-      }
-
-      // Create a new shift for the requester (they get the counter-offer date)
-      const { error: requesterNewShiftError } = await supabase
-        .from('shifts')
-        .insert({
-          staff_id: swapRequest.requester_id,
-          date: swapRequest.counter_offer_date,
-          time: requesterShift.time, // Use the same time as the original shift
-          is_swapped: true
-        });
-
-      if (requesterNewShiftError) {
-        console.error('Error creating requester new shift:', requesterNewShiftError);
-        throw requesterNewShiftError;
-      }
-
-      console.log('Counter-offer swap executed successfully');
-    } else {
-      // This is a direct swap (no counter-offer)
-      console.log('Processing direct swap');
-      
-      // Get the accepter's shift details if they have one
-      if (swapRequest.accepter_shift_id) {
-        const { data: accepterShift, error: accepterError } = await supabase
-          .from('shifts')
-          .select('*')
-          .eq('id', swapRequest.accepter_shift_id)
-          .single();
-
-        if (accepterError) {
-          console.error('Error fetching accepter shift:', accepterError);
-          throw accepterError;
-        }
-
-        console.log('Accepter shift:', accepterShift);
-
-        // DELETE both original shifts first
-        const { error: deleteAccepterError } = await supabase
-          .from('shifts')
-          .delete()
-          .eq('id', swapRequest.accepter_shift_id);
-
-        if (deleteAccepterError) {
-          console.error('Error deleting accepter shift:', deleteAccepterError);
-          throw deleteAccepterError;
-        }
-
-        const { error: deleteRequesterError } = await supabase
-          .from('shifts')
-          .delete()
-          .eq('id', swapRequest.requester_shift_id);
-
-        if (deleteRequesterError) {
-          console.error('Error deleting requester shift:', deleteRequesterError);
-          throw deleteRequesterError;
-        }
-
-        // Create a new shift for the accepter (they get the requester's shift)
-        const { error: accepterNewShiftError } = await supabase
-          .from('shifts')
-          .insert({
-            staff_id: swapRequest.accepter_id,
-            date: requesterShift.date,
-            time: requesterShift.time,
-            is_swapped: true
-          });
-
-        if (accepterNewShiftError) {
-          console.error('Error creating accepter new shift:', accepterNewShiftError);
-          throw accepterNewShiftError;
-        }
-
-        // Create a new shift for the requester (they get the accepter's shift)
-        const { error: requesterNewShiftError } = await supabase
-          .from('shifts')
-          .insert({
-            staff_id: swapRequest.requester_id,
-            date: accepterShift.date,
-            time: accepterShift.time,
-            is_swapped: true
-          });
-
-        if (requesterNewShiftError) {
-          console.error('Error creating requester new shift:', requesterNewShiftError);
-          throw requesterNewShiftError;
-        }
-      } else {
-        // Accepter doesn't have a shift, just give them the requester's shift
-        // DELETE the original requester shift first
-        const { error: deleteRequesterError } = await supabase
-          .from('shifts')
-          .delete()
-          .eq('id', swapRequest.requester_shift_id);
-
-        if (deleteRequesterError) {
-          console.error('Error deleting requester shift:', deleteRequesterError);
-          throw deleteRequesterError;
-        }
-
-        const { error: accepterShiftError } = await supabase
-          .from('shifts')
-          .insert({
-            staff_id: swapRequest.accepter_id,
-            date: requesterShift.date,
-            time: requesterShift.time,
-            is_swapped: true
-          });
-
-        if (accepterShiftError) {
-          console.error('Error creating accepter shift:', accepterShiftError);
-          throw accepterShiftError;
-        }
-      }
-
-      console.log('Direct swap executed successfully');
+    if (!data.success) {
+      console.error('Shift swap failed:', data.error);
+      throw new Error(data.error || 'Shift swap failed');
     }
 
-    console.log('Shift swap completed successfully');
-    
-    // Notify both parties that their calendars have been updated
-    console.log('Notifying both parties of calendar updates...');
-    
-    // The frontend will handle the calendar refresh and page reload
-    // This ensures both parties see the updated shifts immediately
-    
+    console.log('Shift swap executed successfully:', data);
   } catch (error) {
     console.error('Error executing shift swap:', error);
     throw error;
