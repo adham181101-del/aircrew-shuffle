@@ -16,9 +16,11 @@ import {
   TrendingUp,
   Globe
 } from 'lucide-react'
+import { useTheme } from '@/contexts/ThemeContext'
 
 const Index = () => {
   const navigate = useNavigate()
+  const { theme } = useTheme()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
@@ -27,9 +29,9 @@ const Index = () => {
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
-              <Plane className="h-6 w-6 text-white" />
+              {theme.logo}
             </div>
-            <span className="text-xl font-bold text-white">AirCrew Shuffle</span>
+            <span className="text-xl font-bold text-white">{theme.displayName}</span>
           </div>
           <div className="hidden md:flex items-center space-x-6">
             <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10">
@@ -66,18 +68,18 @@ const Index = () => {
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center max-w-5xl mx-auto">
             <div className="inline-flex items-center justify-center w-24 h-24 bg-white/10 backdrop-blur-sm rounded-2xl shadow-2xl mb-8 border border-white/20">
-              <Plane className="h-12 w-12 text-white" />
+              {theme.logo}
             </div>
             
             <h1 className="text-6xl md:text-7xl font-bold text-white mb-6 leading-tight">
-              AirCrew Shuffle
+              {theme.heroTitle}
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mt-2">
-                Aviation Shift Management
+                {theme.heroSubtitle}
               </span>
             </h1>
             
             <p className="text-xl md:text-2xl text-white/90 mb-10 max-w-3xl mx-auto leading-relaxed">
-              Revolutionize your shift management with AI-powered scheduling, seamless swaps, and real-time team coordination across the aviation industry.
+              {theme.heroDescription}
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -119,57 +121,28 @@ const Index = () => {
       <section className="py-24 bg-white/5 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Built for Modern Aviation</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">{theme.features.title}</h2>
             <p className="text-xl text-white/70 max-w-3xl mx-auto">
-              Designed specifically for aviation professionals who need reliable, secure, and intuitive shift management.
+              {theme.features.description}
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:scale-105 group">
-              <CardHeader className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <Calendar className="h-8 w-8 text-white" />
-                </div>
-                <CardTitle className="text-white text-xl">Smart Roster Management</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-white/70 leading-relaxed">
-                  AI-powered schedule parsing automatically extracts shifts from any format. 
-                  Beautiful calendar interface with drag-and-drop functionality.
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105 group">
-              <CardHeader className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <ArrowRightLeft className="h-8 w-8 text-white" />
-                </div>
-                <CardTitle className="text-white text-xl">Intelligent Shift Swaps</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-white/70 leading-relaxed">
-                  Smart eligibility checking ensures only compatible team members see your requests. 
-                  Real-time notifications and approval workflows.
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-2xl hover:shadow-green-500/25 transition-all duration-300 transform hover:scale-105 group">
-              <CardHeader className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <Shield className="h-8 w-8 text-white" />
-                </div>
-                <CardTitle className="text-white text-xl">Enterprise Security</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-white/70 leading-relaxed">
-                  Built with SOC 2 compliance in mind. Company email verification and 
-                  location-restricted access ensure data safety.
-                </p>
-              </CardContent>
-            </Card>
+            {theme.features.features.map((feature, index) => (
+              <Card key={index} className="bg-white/5 backdrop-blur-sm border-white/10 shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:scale-105 group">
+                <CardHeader className="text-center">
+                  <div className={`w-16 h-16 bg-gradient-to-br ${index === 0 ? 'from-blue-500 to-purple-600' : index === 1 ? 'from-purple-500 to-pink-600' : 'from-green-500 to-teal-600'} rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                    {feature.icon}
+                  </div>
+                  <CardTitle className="text-white text-xl">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-white/70 leading-relaxed">
+                    {feature.description}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
@@ -178,22 +151,12 @@ const Index = () => {
       <section className="py-20 bg-gradient-to-r from-blue-600/20 to-purple-600/20">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-            <div className="space-y-2">
-              <div className="text-4xl font-bold text-white">50+</div>
-              <div className="text-white/70">Airlines Worldwide</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-4xl font-bold text-white">10K+</div>
-              <div className="text-white/70">Active Crew Members</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-4xl font-bold text-white">99.9%</div>
-              <div className="text-white/70">Uptime Reliability</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-4xl font-bold text-white">24/7</div>
-              <div className="text-white/70">Global Support</div>
-            </div>
+            {theme.stats.map((stat, index) => (
+              <div key={index} className="space-y-2">
+                <div className="text-4xl font-bold text-white">{stat.value}</div>
+                <div className="text-white/70">{stat.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -207,14 +170,7 @@ const Index = () => {
           </div>
           
           <div className="flex flex-wrap justify-center gap-4">
-            {[
-              { name: "Aviation", icon: "✈️", color: "from-blue-500 to-blue-600" },
-              { name: "Logistics", icon: "🚚", color: "from-green-500 to-green-600" },
-              { name: "Healthcare", icon: "🏥", color: "from-red-500 to-red-600" },
-              { name: "Manufacturing", icon: "🏭", color: "from-orange-500 to-orange-600" },
-              { name: "Retail", icon: "🛍️", color: "from-purple-500 to-purple-600" },
-              { name: "Hospitality", icon: "🏨", color: "from-pink-500 to-pink-600" }
-            ].map((industry) => (
+            {theme.industries.map((industry) => (
               <div key={industry.name} className="group">
                 <div className={`bg-gradient-to-r ${industry.color} p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer`}>
                   <div className="text-3xl mb-2">{industry.icon}</div>
@@ -275,10 +231,10 @@ const Index = () => {
       <section className="py-24 bg-gradient-to-r from-blue-600 to-purple-600">
         <div className="container mx-auto px-4 text-center">
           <h3 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Ready to Transform Your Shift Management?
+            {theme.cta.title}
           </h3>
           <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
-            Join thousands of aviation professionals who trust AirCrew Shuffle for their daily operations.
+            {theme.cta.description}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -309,12 +265,12 @@ const Index = () => {
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <Plane className="h-6 w-6 text-white" />
+                  {theme.logo}
                 </div>
-                <span className="text-xl font-bold text-white">AirCrew Shuffle</span>
+                <span className="text-xl font-bold text-white">{theme.displayName}</span>
               </div>
               <p className="text-white/70">
-                Revolutionizing shift management for aviation professionals worldwide.
+                {theme.footer.description}
               </p>
             </div>
             
@@ -351,7 +307,7 @@ const Index = () => {
           
           <div className="border-t border-white/10 mt-12 pt-8 text-center">
             <p className="text-white/60">
-              © 2024 AirCrew Shuffle. All rights reserved.
+              © 2024 {theme.displayName}. All rights reserved.
             </p>
           </div>
         </div>
