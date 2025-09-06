@@ -26,7 +26,7 @@ export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-blue-600/5 to-purple-600/5 rounded-full blur-3xl"></div>
       
       {/* Header */}
-      <div className="absolute top-4 left-4 right-4 md:top-8 md:left-8 md:right-8 z-10">
+      <div className="absolute top-4 left-4 right-4 md:top-8 md:left-8 md:right-8 z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 md:space-x-3">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
@@ -37,10 +37,19 @@ export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
           
           {/* Back to Home Button */}
           <Button
-            onClick={() => navigate('/')}
-            variant="ghost"
+            onClick={() => {
+              console.log('Back to home button clicked')
+              try {
+                navigate('/')
+              } catch (error) {
+                console.error('Navigation error:', error)
+                // Fallback to window.location if navigate fails
+                window.location.href = '/'
+              }
+            }}
+            variant="outline"
             size="sm"
-            className="text-white/80 hover:text-white hover:bg-white/10 border border-white/20 backdrop-blur-sm transition-all duration-300"
+            className="text-white hover:text-white bg-white/5 hover:bg-white/15 border-white/30 hover:border-white/50 backdrop-blur-sm transition-all duration-300 cursor-pointer z-50 relative shadow-lg"
           >
             <ArrowLeft className="h-4 w-4 mr-1 md:mr-2" />
             <span className="hidden sm:inline">Back to Home</span>
