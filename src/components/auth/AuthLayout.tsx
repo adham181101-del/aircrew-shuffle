@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
 import { Card } from '@/components/ui/card'
 import { Plane, Shield, Clock } from 'lucide-react'
+import { useTheme } from '@/contexts/ThemeContext'
 
 interface AuthLayoutProps {
   children: ReactNode
@@ -9,6 +10,8 @@ interface AuthLayoutProps {
 }
 
 export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
+  const { theme } = useTheme()
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-hidden">
       {/* Background Pattern */}
@@ -23,9 +26,9 @@ export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
       <div className="absolute top-8 left-8 z-10">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
-            <Plane className="h-7 w-7 text-white" />
+            {theme.logo}
           </div>
-          <span className="text-2xl font-bold text-white">AirCrew Shuffle</span>
+          <span className="text-2xl font-bold text-white">{theme.displayName}</span>
         </div>
       </div>
 
@@ -35,7 +38,7 @@ export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
           {/* Logo and Title */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur-sm rounded-2xl shadow-2xl mb-6 border border-white/20">
-              <div className="text-3xl">✈️</div>
+              {theme.logo}
             </div>
             <h1 className="text-4xl font-bold text-white mb-3">{title}</h1>
             {subtitle && (
@@ -61,7 +64,7 @@ export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
               </div>
             </div>
             <p className="text-white/40 text-xs mt-4">
-              © 2024 AirCrew Shuffle. All rights reserved.
+              © 2024 {theme.displayName}. All rights reserved.
             </p>
           </div>
         </div>
