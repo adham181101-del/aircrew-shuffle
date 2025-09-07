@@ -23,7 +23,9 @@ import {
   X,
   User,
   Menu,
-  RefreshCw
+  RefreshCw,
+  Shield,
+  FileText
 } from 'lucide-react'
 import { PremiumCalculator } from '@/components/premium/PremiumCalculator'
 import { TeamView } from '@/components/team/TeamView'
@@ -308,10 +310,22 @@ const Dashboard = () => {
                     <Menu className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem onClick={() => navigate('/profile')}>
                     <User className="h-4 w-4 mr-2" />
                     Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/data-rights')}>
+                    <Shield className="h-4 w-4 mr-2" />
+                    Data Rights
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/security')}>
+                    <Shield className="h-4 w-4 mr-2" />
+                    Security Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/privacy-policy')}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Privacy Policy
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
                     <LogOut className="h-4 w-4 mr-2" />

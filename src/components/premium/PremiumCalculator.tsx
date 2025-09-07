@@ -332,7 +332,7 @@ export const PremiumCalculator = () => {
                 <SelectContent>
                   {PAY_CALENDAR_2025.map(period => (
                     <SelectItem key={period.month} value={period.month}>
-                      {period.month} (Cutoff: {new Date(period.cutoffDate).toLocaleDateString()})
+                      {period.month} (Cutoff: {new Date(period.cutoffDate).toLocaleDateString('en-GB')})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -418,7 +418,7 @@ export const PremiumCalculator = () => {
                     <div className="flex items-center gap-3">
                       <div>
                         <p className="font-medium">
-                          {new Date(premiumShift.shift.date).toLocaleDateString()}
+                          {new Date(premiumShift.shift.date).toLocaleDateString('en-GB')}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {premiumShift.shift.time}

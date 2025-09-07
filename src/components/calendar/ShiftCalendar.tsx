@@ -101,7 +101,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   }, [user])
 
   const getShiftsForDate = (date: Date): Shift[] => {
-    const dateStr = date.toLocaleDateString('en-CA') // YYYY-MM-DD format in local timezone
+    const dateStr = date.toLocaleDateString('en-GB') // DD/MM/YYYY format in local timezone
     return shifts.filter(shift => shift.date === dateStr)
   }
 
@@ -243,9 +243,9 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 showNeighboringMonth={false}
                 navigationLabel={({ date, view }) => {
                   if (view === 'month') {
-                    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                    return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
                   }
-                  return date.toLocaleDateString('en-US', { year: 'numeric' });
+                  return date.toLocaleDateString('en-GB', { year: 'numeric' });
                 }}
               />
             </div>
@@ -286,7 +286,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
               </div>
               <div>
                 <CardTitle className="text-xl text-gray-900">
-                  {selectedDate.toLocaleDateString('en-US', { 
+                  {selectedDate.toLocaleDateString('en-GB', { 
                     weekday: 'long', 
                     year: 'numeric', 
                     month: 'long', 

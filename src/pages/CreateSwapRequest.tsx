@@ -289,7 +289,7 @@ const CreateSwapRequest = () => {
                       ) : (
                         userShifts.map((shift) => (
                           <SelectItem key={shift.id} value={shift.id}>
-                            {new Date(shift.date).toLocaleDateString()} - {shift.time}
+                            {new Date(shift.date).toLocaleDateString('en-GB')} - {shift.time}
                           </SelectItem>
                         ))
                       )}
@@ -311,7 +311,7 @@ const CreateSwapRequest = () => {
                             <Calendar className="h-5 w-5 text-green-600" />
                             <div>
                               <p className="text-sm text-green-600 font-medium">Date</p>
-                              <p className="text-green-800 font-semibold">{new Date(selectedShiftData.date).toLocaleDateString()}</p>
+                              <p className="text-green-800 font-semibold">{new Date(selectedShiftData.date).toLocaleDateString('en-GB')}</p>
                             </div>
                           </div>
                           <div className="flex items-center space-x-3 bg-white p-4 rounded-lg border border-green-200">
