@@ -7,6 +7,7 @@ import { ArrowLeftRight, Clock, MapPin, User, Calendar, MessageSquare } from "lu
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { enGB } from "date-fns/locale";
 import { getCurrentUser, type Staff } from "@/lib/auth";
 import { validateWHL, executeShiftSwap } from '@/lib/shifts';
 import { supabase } from "@/integrations/supabase/client";
@@ -251,7 +252,11 @@ const ManageSwaps = () => {
       const nextDays = Array.from({ length: daysInMonth }, (_, i) => {
         const date = new Date(startDate);
         date.setDate(startDate.getDate() + i);
-        return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        // Convert to DD/MM/YYYY format for UK
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
       });
 
       console.log('Target month:', targetMonth ? `${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}` : 'Current month');
@@ -824,7 +829,7 @@ const ManageSwaps = () => {
     }
     
     console.log('New month:', newMonth);
-    console.log('New month string:', newMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
+    console.log('New month string:', newMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }));
     
     setCurrentMonth(newMonth);
     
@@ -1007,7 +1012,7 @@ const ManageSwaps = () => {
                               Request from {request.requester_staff?.staff_number}
                             </CardTitle>
                                 <div className="flex items-center space-x-4 text-sm text-gray-600">
-                                  <span>Sent {new Date(request.created_at).toLocaleDateString()}</span>
+                                  <span>Sent {new Date(request.created_at).toLocaleDateString('en-GB')}</span>
                                   <Badge variant="outline" className="border-orange-300 text-orange-700 bg-orange-50">
                                     Pending Response
                             </Badge>
@@ -1076,7 +1081,7 @@ const ManageSwaps = () => {
                                     
                                     <div className="text-center">
                                       <h5 className="font-semibold text-blue-900">
-                                        {currentMonth.toLocaleDateString('en-US', { 
+                                        {currentMonth.toLocaleDateString('en-GB', { 
                                           month: 'long', 
                                           year: 'numeric' 
                                         })}
@@ -1124,13 +1129,13 @@ const ManageSwaps = () => {
                                           >
                                             <div className="text-center">
                                               <div className="text-sm font-medium text-gray-900">
-                                                {new Date(shift.date).toLocaleDateString('en-US', { 
+                                                {new Date(shift.date).toLocaleDateString('en-GB', { 
                                                   month: 'short', 
                                                   day: 'numeric' 
                                                 })}
                                                 </div>
                                               <div className="text-xs text-gray-500">
-                                                {new Date(shift.date).toLocaleDateString('en-US', { 
+                                                {new Date(shift.date).toLocaleDateString('en-GB', { 
                                                   weekday: 'short' 
                                                 })}
                                                 </div>
@@ -1141,7 +1146,7 @@ const ManageSwaps = () => {
                                       </div>
                                     ) : (
                                     <div className="text-sm text-red-700">
-                                      ❌ No dates available for counter-offer in {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                      ❌ No dates available for counter-offer in {currentMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
                                       </div>
                                     )}
                                   </div>
@@ -1230,7 +1235,7 @@ const ManageSwaps = () => {
                             </Badge>
                           </div>
                           <CardDescription>
-                            Received {format(new Date(request.created_at), 'MMM d, yyyy')}
+                            Received {format(new Date(request.created_at), 'd MMM yyyy', { locale: enGB })}
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -1325,7 +1330,7 @@ const ManageSwaps = () => {
                             </Badge>
                           </div>
                           <CardDescription>
-                            Sent {format(new Date(request.created_at), 'MMM d, yyyy')}
+                            Sent {format(new Date(request.created_at), 'd MMM yyyy', { locale: enGB })}
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -1472,7 +1477,7 @@ const ManageSwaps = () => {
                                     }
                                   </CardTitle>
                                   <div className="flex items-center space-x-4 text-sm text-gray-600">
-                                    <span>Accepted {new Date(swap.created_at).toLocaleDateString()}</span>
+                                    <span>Accepted {new Date(swap.created_at).toLocaleDateString('en-GB')}</span>
                                     <Badge variant="outline" className="border-emerald-300 text-emerald-700 bg-emerald-50">
                                       Accepted
                                     </Badge>

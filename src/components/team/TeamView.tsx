@@ -142,7 +142,7 @@ export const TeamView = () => {
 
     // Create team data for each day
     const teamDataArray: DayTeam[] = Object.entries(shiftsByDate).map(([date, dayShifts]) => {
-      const dayName = new Date(date).toLocaleDateString('en-US', { 
+      const dayName = new Date(date).toLocaleDateString('en-GB', { 
         weekday: 'long',
         month: 'short',
         day: 'numeric'
@@ -242,7 +242,7 @@ export const TeamView = () => {
                   const date = new Date()
                   date.setMonth(date.getMonth() + i)
                   const monthValue = date.toISOString().slice(0, 7)
-                  const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                  const monthLabel = date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
                   return (
                     <SelectItem key={monthValue} value={monthValue}>
                       {monthLabel}

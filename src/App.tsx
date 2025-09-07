@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import CookieConsent from "./components/gdpr/CookieConsent";
 import { lazy, Suspense } from "react";
 
 // Force Vercel cache refresh - v2.0.0
@@ -19,6 +20,9 @@ const ManageSwaps = lazy(() => import("./pages/ManageSwaps"));
 const CreateShift = lazy(() => import("./pages/CreateShift"));
 const CreateSwapRequest = lazy(() => import("./pages/CreateSwapRequest"));
 const Profile = lazy(() => import("./pages/Profile"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const DataSubjectRights = lazy(() => import("./pages/DataSubjectRights"));
+const SecurityDashboard = lazy(() => import("./pages/SecurityDashboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading component
@@ -102,6 +106,9 @@ const AppRoutes = () => (
       <Route path="/swaps/create" element={<ProtectedRoute><CreateSwapRequest /></ProtectedRoute>} />
       <Route path="/shifts/create" element={<ProtectedRoute><CreateShift /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/data-rights" element={<ProtectedRoute><DataSubjectRights /></ProtectedRoute>} />
+      <Route path="/security" element={<ProtectedRoute><SecurityDashboard /></ProtectedRoute>} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -118,6 +125,7 @@ const App = () => (
           <AuthProvider>
             <ThemeProvider>
               <AppRoutes />
+              <CookieConsent />
             </ThemeProvider>
           </AuthProvider>
         </BrowserRouter>

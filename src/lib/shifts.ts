@@ -298,7 +298,13 @@ const calculateShiftHours = (timeRange: string): number => {
 // Get shifts within a date range
 const getShiftsInRange = (shifts: Shift[], startDate: string, endDate: string): Shift[] => {
   return shifts.filter(shift => {
-    const shiftDate = new Date(shift.date)
+    // Convert UK format (DD/MM/YYYY) to Date object
+    const parseUKDate = (dateStr: string) => {
+      const [day, month, year] = dateStr.split('/')
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+    }
+    
+    const shiftDate = parseUKDate(shift.date)
     const start = new Date(startDate)
     const end = new Date(endDate)
     return shiftDate >= start && shiftDate <= end
@@ -307,7 +313,13 @@ const getShiftsInRange = (shifts: Shift[], startDate: string, endDate: string): 
 
 // Check 28-day period (256 hours max)
 const check28DayLimit = (shifts: Shift[], targetDate: string): { isValid: boolean; hours: number } => {
-  const target = new Date(targetDate)
+  // Convert UK format (DD/MM/YYYY) to Date object
+  const parseUKDate = (dateStr: string) => {
+    const [day, month, year] = dateStr.split('/')
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+  }
+  
+  const target = parseUKDate(targetDate)
   const startDate = new Date(target)
   startDate.setDate(target.getDate() - 27) // 28-day period
   
@@ -319,7 +331,13 @@ const check28DayLimit = (shifts: Shift[], targetDate: string): { isValid: boolea
 
 // Check 24-hour period (16 hours max)
 const check24HourLimit = (shifts: Shift[], targetDate: string): { isValid: boolean; hours: number } => {
-  const target = new Date(targetDate)
+  // Convert UK format (DD/MM/YYYY) to Date object
+  const parseUKDate = (dateStr: string) => {
+    const [day, month, year] = dateStr.split('/')
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+  }
+  
+  const target = parseUKDate(targetDate)
   const startDate = new Date(target)
   startDate.setDate(target.getDate() - 1) // 24-hour period
   
@@ -331,13 +349,20 @@ const check24HourLimit = (shifts: Shift[], targetDate: string): { isValid: boole
 
 // Check consecutive days (max 9 days)
 const checkConsecutiveDays = (shifts: Shift[], targetDate: string): { isValid: boolean; days: number } => {
-  const target = new Date(targetDate)
+  // Convert UK format (DD/MM/YYYY) to Date object
+  const parseUKDate = (dateStr: string) => {
+    const [day, month, year] = dateStr.split('/')
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+  }
+  
+  const target = parseUKDate(targetDate)
   let consecutiveDays = 0
   const currentDate = new Date(target)
   
   // Count backwards to find consecutive working days
   while (true) {
-    const dateStr = currentDate.toISOString().split('T')[0]
+    // Convert to UK format for comparison
+    const dateStr = `${currentDate.getDate().toString().padStart(2, '0')}/${(currentDate.getMonth() + 1).toString().padStart(2, '0')}/${currentDate.getFullYear()}`
     const hasShift = shifts.some(shift => shift.date === dateStr)
     
     if (hasShift) {
@@ -353,7 +378,13 @@ const checkConsecutiveDays = (shifts: Shift[], targetDate: string): { isValid: b
 
 // Check 14-day period (at least 2 consecutive days off)
 const check14DayBreak = (shifts: Shift[], targetDate: string): { isValid: boolean; hasBreak: boolean } => {
-  const target = new Date(targetDate)
+  // Convert UK format (DD/MM/YYYY) to Date object
+  const parseUKDate = (dateStr: string) => {
+    const [day, month, year] = dateStr.split('/')
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+  }
+  
+  const target = parseUKDate(targetDate)
   const startDate = new Date(target)
   startDate.setDate(target.getDate() - 13) // 14-day period
   
@@ -365,11 +396,13 @@ const check14DayBreak = (shifts: Shift[], targetDate: string): { isValid: boolea
   for (let i = 0; i < 13; i++) {
     const checkDate = new Date(startDate)
     checkDate.setDate(startDate.getDate() + i)
-    const dateStr = checkDate.toISOString().split('T')[0]
+    // Convert to UK format for comparison
+    const dateStr = `${checkDate.getDate().toString().padStart(2, '0')}/${(checkDate.getMonth() + 1).toString().padStart(2, '0')}/${checkDate.getFullYear()}`
     
     const nextDate = new Date(checkDate)
     nextDate.setDate(checkDate.getDate() + 1)
-    const nextDateStr = nextDate.toISOString().split('T')[0]
+    // Convert to UK format for comparison
+    const nextDateStr = `${nextDate.getDate().toString().padStart(2, '0')}/${(nextDate.getMonth() + 1).toString().padStart(2, '0')}/${nextDate.getFullYear()}`
     
     if (!workingDates.has(dateStr) && !workingDates.has(nextDateStr)) {
       hasConsecutiveBreak = true
@@ -382,7 +415,13 @@ const check14DayBreak = (shifts: Shift[], targetDate: string): { isValid: boolea
 
 // Check pay week (Sunday to Saturday, 72 hours max)
 const checkPayWeek = (shifts: Shift[], targetDate: string): { isValid: boolean; hours: number } => {
-  const target = new Date(targetDate)
+  // Convert UK format (DD/MM/YYYY) to Date object
+  const parseUKDate = (dateStr: string) => {
+    const [day, month, year] = dateStr.split('/')
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+  }
+  
+  const target = parseUKDate(targetDate)
   const dayOfWeek = target.getDay() // 0 = Sunday, 6 = Saturday
   
   // Find the start of the pay week (Sunday)
@@ -500,17 +539,17 @@ export const parseShiftsFromText = (text: string): Array<{date: string, time: st
       if (month) {
         const year = parseInt(yearStr.length === 2 ? '20' + yearStr : yearStr)
         const day = parseInt(dayStr)
-        // Create date in local timezone to avoid offset issues
-        const isoDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+        // Create date in UK format (DD/MM/YYYY)
+        const ukDate = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`
         
-        console.log(`Processing: Day=${day}, Month=${month}, Year=${year}, ISO Date=${isoDate}`)
+        console.log(`Processing: Day=${day}, Month=${month}, Year=${year}, UK Date=${ukDate}`)
         
         // Skip 00:00 times and same start/end times
         if (startTime !== '00:00' && endTime !== '00:00' && startTime !== endTime) {
           const timeRange = `${startTime}-${endTime}`
           if (isValidTimeRange(timeRange)) {
-            shifts.push({ date: isoDate, time: timeRange })
-            console.log(`✅ Added shift from Date Summary: ${isoDate} ${timeRange}`)
+            shifts.push({ date: ukDate, time: timeRange })
+            console.log(`✅ Added shift from Date Summary: ${ukDate} ${timeRange}`)
           } else {
             console.log(`❌ Invalid time range: ${timeRange}`)
           }
@@ -540,17 +579,17 @@ export const parseShiftsFromText = (text: string): Array<{date: string, time: st
       if (month) {
         const year = parseInt(yearStr.length === 2 ? '20' + yearStr : yearStr)
         const day = parseInt(dayStr)
-        // Create date in local timezone to avoid offset issues
-        const isoDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+        // Create date in UK format (DD/MM/YYYY)
+        const ukDate = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`
         
-        console.log(`Fallback processing: Day=${day}, Month=${month}, Year=${year}, ISO Date=${isoDate}`)
+        console.log(`Fallback processing: Day=${day}, Month=${month}, Year=${year}, UK Date=${ukDate}`)
         
         // Skip 00:00 times and same start/end times
         if (startTime !== '00:00' && endTime !== '00:00' && startTime !== endTime) {
           const timeRange = `${startTime}-${endTime}`
           if (isValidTimeRange(timeRange)) {
-            shifts.push({ date: isoDate, time: timeRange })
-            console.log(`✅ Added shift from fallback: ${isoDate} ${timeRange}`)
+            shifts.push({ date: ukDate, time: timeRange })
+            console.log(`✅ Added shift from fallback: ${ukDate} ${timeRange}`)
           } else {
             console.log(`❌ Invalid time range: ${timeRange}`)
           }
