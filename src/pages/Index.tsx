@@ -14,7 +14,12 @@ import {
   CheckCircle,
   Star,
   TrendingUp,
-  Globe
+  Globe,
+  Lock,
+  FileText,
+  Award,
+  Eye,
+  AlertTriangle
 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 
@@ -103,14 +108,22 @@ const Index = () => {
             </div>
 
             {/* Trust indicators */}
-            <div className="flex items-center justify-center space-x-8 text-white/60">
+            <div className="flex flex-wrap items-center justify-center gap-6 text-white/60">
               <div className="flex items-center space-x-2">
                 <Star className="h-5 w-5 text-yellow-400 fill-current" />
                 <span>Trusted by 10,000+ crew members</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Shield className="h-5 w-5 text-green-400" />
-                <span>Enterprise Security</span>
+                <span>UK GDPR Compliant</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Plane className="h-5 w-5 text-blue-400" />
+                <span>Aviation Security Standards</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Lock className="h-5 w-5 text-purple-400" />
+                <span>ISO 27001 Ready</span>
               </div>
             </div>
           </div>
@@ -143,6 +156,160 @@ const Index = () => {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Compliance & Security Section */}
+      <section className="py-24 bg-gradient-to-r from-green-600/20 to-blue-600/20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-500 to-blue-600 rounded-2xl shadow-2xl mb-8">
+              <Shield className="h-10 w-10 text-white" />
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Enterprise-Grade Security & Compliance</h2>
+            <p className="text-xl text-white/70 max-w-3xl mx-auto">
+              Built with the highest security standards and regulatory compliance to protect your data and ensure legal compliance.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* UK GDPR Compliance */}
+            <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-2xl hover:shadow-green-500/25 transition-all duration-300 transform hover:scale-105 group">
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <FileText className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-white text-xl">UK GDPR Compliant</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-white/70 leading-relaxed mb-4">
+                  Full compliance with UK GDPR regulations including data subject rights, privacy policies, and audit logging.
+                </p>
+                <div className="flex items-center justify-center space-x-2">
+                  <CheckCircle className="h-5 w-5 text-green-400" />
+                  <span className="text-green-400 font-semibold">Legal compliance with UK GDPR</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Aviation Security Standards */}
+            <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:scale-105 group">
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Plane className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-white text-xl">Aviation Security Standards</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-white/70 leading-relaxed mb-4">
+                  Meets IATA, CAA, and ISO 27001 standards for aviation industry security requirements.
+                </p>
+                <div className="flex items-center justify-center space-x-2">
+                  <CheckCircle className="h-5 w-5 text-blue-400" />
+                  <span className="text-blue-400 font-semibold">Aviation industry standards compliance</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Enhanced Security Monitoring */}
+            <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105 group">
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Eye className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-white text-xl">Enhanced Security Monitoring</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-white/70 leading-relaxed mb-4">
+                  Real-time security monitoring, audit logging, and comprehensive threat detection.
+                </p>
+                <div className="flex items-center justify-center space-x-2">
+                  <CheckCircle className="h-5 w-5 text-purple-400" />
+                  <span className="text-purple-400 font-semibold">Enhanced security monitoring</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Customer Trust */}
+            <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-2xl hover:shadow-yellow-500/25 transition-all duration-300 transform hover:scale-105 group">
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Award className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-white text-xl">Customer Trust & Confidence</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-white/70 leading-relaxed mb-4">
+                  Transparent data handling and privacy controls build trust with your workforce.
+                </p>
+                <div className="flex items-center justify-center space-x-2">
+                  <CheckCircle className="h-5 w-5 text-yellow-400" />
+                  <span className="text-yellow-400 font-semibold">Customer trust and confidence</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Competitive Advantage */}
+            <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-2xl hover:shadow-indigo-500/25 transition-all duration-300 transform hover:scale-105 group">
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <TrendingUp className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-white text-xl">Competitive Advantage</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-white/70 leading-relaxed mb-4">
+                  Stand out in the market with enterprise-grade security and compliance features.
+                </p>
+                <div className="flex items-center justify-center space-x-2">
+                  <CheckCircle className="h-5 w-5 text-indigo-400" />
+                  <span className="text-indigo-400 font-semibold">Competitive advantage in the market</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Reduced Legal Risk */}
+            <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-2xl hover:shadow-red-500/25 transition-all duration-300 transform hover:scale-105 group">
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Lock className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-white text-xl">Reduced Legal Risk</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-white/70 leading-relaxed mb-4">
+                  Comprehensive compliance framework minimizes legal risks and regulatory penalties.
+                </p>
+                <div className="flex items-center justify-center space-x-2">
+                  <CheckCircle className="h-5 w-5 text-red-400" />
+                  <span className="text-red-400 font-semibold">Reduced legal risk</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Compliance Badges */}
+          <div className="mt-16 text-center">
+            <h3 className="text-2xl font-bold text-white mb-8">Certified & Compliant</h3>
+            <div className="flex flex-wrap justify-center gap-6">
+              <Badge variant="outline" className="border-green-500 text-green-400 px-6 py-3 text-lg">
+                <Shield className="h-5 w-5 mr-2" />
+                UK GDPR Compliant
+              </Badge>
+              <Badge variant="outline" className="border-blue-500 text-blue-400 px-6 py-3 text-lg">
+                <Plane className="h-5 w-5 mr-2" />
+                IATA Standards
+              </Badge>
+              <Badge variant="outline" className="border-purple-500 text-purple-400 px-6 py-3 text-lg">
+                <Award className="h-5 w-5 mr-2" />
+                ISO 27001 Ready
+              </Badge>
+              <Badge variant="outline" className="border-yellow-500 text-yellow-400 px-6 py-3 text-lg">
+                <Lock className="h-5 w-5 mr-2" />
+                CAA Compliant
+              </Badge>
+            </div>
           </div>
         </div>
       </section>
@@ -281,6 +448,16 @@ const Index = () => {
                 <li>Pricing</li>
                 <li>Security</li>
                 <li>API</li>
+              </ul>
+            </div>
+            
+            <div className="space-y-4">
+              <h4 className="text-white font-semibold">Compliance</h4>
+              <ul className="space-y-2 text-white/70">
+                <li><a href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a></li>
+                <li><a href="/data-rights" className="hover:text-white transition-colors">Data Rights</a></li>
+                <li><a href="/security" className="hover:text-white transition-colors">Security Dashboard</a></li>
+                <li>GDPR Compliance</li>
               </ul>
             </div>
             
