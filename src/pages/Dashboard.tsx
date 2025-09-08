@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ShiftCalendar } from '@/components/calendar/ShiftCalendar'
+import { SessionStatus } from '@/components/SessionStatus'
 import { getUserShifts, deleteAllShifts, type Shift } from '@/lib/shifts'
 import { getCurrentUser, type Staff, type Company } from '@/lib/auth'
 import { useAuth } from '@/contexts/AuthContext'
@@ -259,6 +260,7 @@ const Dashboard = () => {
             
             {/* Right Side - Actions */}
             <div className="flex items-center space-x-4">
+              <SessionStatus />
               <Badge className="bg-blue-800 text-white border-0 px-3 py-1 rounded-full">
                 {user?.company?.industry || 'Aviation'}
               </Badge>
