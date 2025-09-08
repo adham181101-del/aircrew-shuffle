@@ -189,90 +189,75 @@ const CreateSwapRequest = () => {
       console.log(`Your base location: ${user.base_location}`);
       console.log(`Looking for staff who have ${desiredTime} shift on ${shift.date}`);
 
-      // First, let's check what shifts exist on this date with the desired time
+      // Convert desired time to the format used in database (e.g., "5:30 AM" -> "05:30")
+      const formatTimeForDB = (timeStr: string) => {
+        const [time, period] = timeStr.split(' ');
+        const [hours, minutes] = time.split(':');
+        let hour24 = parseInt(hours);
+        
+        if (period === 'PM' && hour24 !== 12) {
+          hour24 += 12;
+        } else if (period === 'AM' && hour24 === 12) {
+          hour24 = 0;
+        }
+        
+        return `${hour24.toString().padStart(2, '0')}:${minutes}`;
+      };
+
+      const desiredTimeFormatted = formatTimeForDB(desiredTime);
+      console.log(`Desired time formatted for DB: ${desiredTimeFormatted}`);
+
+      // First, let's check what shifts exist on this date
       const { data: allShiftsOnDate, error: allShiftsError } = await supabase
         .from('shifts')
         .select('*')
-        .eq('date', shift.date)
-        .eq('time', desiredTime);
+        .eq('date', shift.date);
 
-      console.log(`All shifts on ${shift.date} with time ${desiredTime}:`, allShiftsOnDate);
+      console.log(`All shifts on ${shift.date}:`, allShiftsOnDate);
       if (allShiftsError) {
         console.error('Error fetching all shifts on date:', allShiftsError);
       }
 
-      // Find all staff members who have the desired time slot on the same date
-      const { data: staffWithDesiredTime, error: staffError } = await supabase
-        .from('shifts')
-        .select(`
-          staff_id,
-          staff:staff_id (
-            id,
-            staff_number,
-            email,
-            base_location,
-            can_work_doubles
-          )
-        `)
-        .eq('date', shift.date)
-        .eq('time', desiredTime)
-        .neq('staff_id', user.id); // Exclude the current user
+      // Filter shifts that start with the desired time
+      const matchingShifts = allShiftsOnDate?.filter(shift => {
+        if (!shift.time) return false;
+        // Extract start time from range (e.g., "04:15-13:15" -> "04:15")
+        const startTime = shift.time.split('-')[0];
+        console.log(`Checking shift ${shift.id}: start time "${startTime}" vs desired "${desiredTimeFormatted}"`);
+        return startTime === desiredTimeFormatted;
+      }) || [];
 
-      console.log(`Raw query result:`, staffWithDesiredTime);
-      console.log(`Query error:`, staffError);
+      console.log(`Matching shifts for ${desiredTimeFormatted}:`, matchingShifts);
 
-      if (staffError) {
-        console.error('Error fetching staff with desired time:', staffError);
-        // Try a fallback approach without the relationship
-        console.log('Trying fallback query without relationship...');
-        
-        const { data: fallbackShifts, error: fallbackError } = await supabase
-          .from('shifts')
-          .select('staff_id')
-          .eq('date', shift.date)
-          .eq('time', desiredTime)
-          .neq('staff_id', user.id);
+      // Get staff IDs from matching shifts (excluding current user)
+      const matchingStaffIds = matchingShifts
+        .filter(shift => shift.staff_id !== user.id)
+        .map(shift => shift.staff_id);
 
-        console.log(`Fallback shifts result:`, fallbackShifts);
-        
-        if (fallbackError) {
-          console.error('Fallback query also failed:', fallbackError);
-          throw staffError; // Throw the original error
-        }
+      console.log(`Matching staff IDs:`, matchingStaffIds);
 
-        if (fallbackShifts && fallbackShifts.length > 0) {
-          // Get staff details for each staff_id
-          const staffIds = fallbackShifts.map(s => s.staff_id);
-          const { data: staffDetails, error: staffDetailsError } = await supabase
-            .from('staff')
-            .select('*')
-            .in('id', staffIds)
-            .eq('base_location', user.base_location);
-
-          console.log(`Staff details from fallback:`, staffDetails);
-          
-          if (staffDetailsError) {
-            console.error('Error fetching staff details:', staffDetailsError);
-            throw staffDetailsError;
-          }
-
-          const eligibleStaff = staffDetails || [];
-          console.log(`Found ${eligibleStaff.length} staff members with ${desiredTime} shift on ${shift.date} (fallback)`);
-          setTimeChangeEligibleStaff(eligibleStaff);
-          return;
-        }
+      if (matchingStaffIds.length === 0) {
+        console.log(`No staff found with ${desiredTime} shifts on ${shift.date}`);
+        setTimeChangeEligibleStaff([]);
+        return;
       }
 
-      // Filter to only staff from the same base location
-      const eligibleStaff = staffWithDesiredTime
-        ?.filter(item => {
-          console.log(`Checking staff item:`, item);
-          console.log(`Staff base location: ${item.staff?.base_location}, User base location: ${user.base_location}`);
-          return item.staff?.base_location === user.base_location;
-        })
-        ?.map(item => item.staff)
-        ?.filter((staff): staff is Staff => staff !== null) || [];
+      // Get staff details for matching staff IDs
+      const { data: staffDetails, error: staffError } = await supabase
+        .from('staff')
+        .select('*')
+        .in('id', matchingStaffIds)
+        .eq('base_location', user.base_location);
 
+      console.log(`Staff details query result:`, staffDetails);
+      console.log(`Staff details query error:`, staffError);
+
+      if (staffError) {
+        console.error('Error fetching staff details:', staffError);
+        throw staffError;
+      }
+
+      const eligibleStaff = staffDetails || [];
       console.log(`Found ${eligibleStaff.length} staff members with ${desiredTime} shift on ${shift.date}`);
       console.log(`Eligible staff:`, eligibleStaff);
       setTimeChangeEligibleStaff(eligibleStaff);
