@@ -244,96 +244,47 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-xl">
-        <div className="container mx-auto px-4 py-6">
+    <div className="min-h-screen bg-gray-50">
+      {/* Professional Header */}
+      <header className="bg-blue-900 shadow-lg">
+        <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
+            {/* Left Side - Logo and Company Name */}
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
-                <Building2 className="h-7 w-7 text-white" />
+              <div className="w-10 h-10 bg-white rounded border-2 border-blue-900 flex items-center justify-center">
+                <span className="text-blue-900 font-bold text-lg">B</span>
               </div>
-              <div className="hidden sm:block">
-                <h1 className="text-2xl font-bold text-white">{user?.company?.name || 'Company'}</h1>
-                <p className="text-white/80 text-base">
-                  Welcome back, <span className="font-semibold">{user?.email?.split('@')[0] || 'User'}</span>
-                </p>
-              </div>
-              <div className="sm:hidden">
-                <h1 className="text-lg font-bold text-white">{user?.company?.name || 'Company'}</h1>
-                <p className="text-white/80 text-xs">
-                  {user?.email?.split('@')[0] || 'User'}
-                </p>
-              </div>
+              <h1 className="text-2xl font-bold text-white">{user?.company?.name || 'British Airways'}</h1>
             </div>
             
-            {/* Desktop Header Actions */}
-            <div className="hidden md:flex items-center space-x-3">
-              <Badge variant="secondary" className="bg-white/20 text-white border-white/30 px-3 py-1">
+            {/* Right Side - Actions */}
+            <div className="flex items-center space-x-4">
+              <Badge className="bg-blue-800 text-white border-0 px-3 py-1 rounded-full">
                 {user?.company?.industry || 'Aviation'}
-              </Badge>
-              <Badge variant="secondary" className="bg-white/20 text-white border-white/30 px-3 py-1">
-                {user?.base_location}
               </Badge>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate('/profile')}
-                className="text-white hover:bg-white/20 px-4 py-2"
+                className="text-white hover:bg-blue-800 p-2"
               >
-                <User className="h-4 w-4 mr-2" />
-                Profile
+                <Bell className="h-5 w-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleSignOut}
-                className="text-white hover:bg-white/20 px-4 py-2"
+                className="text-white hover:bg-blue-800 px-3 py-1"
               >
-                <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
             </div>
-
-            {/* Mobile Header Actions */}
-            <div className="md:hidden flex items-center space-x-2">
-              <Badge variant="secondary" className="bg-white/20 text-white border-white/30 text-xs">
-                {user?.base_location}
-              </Badge>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-white hover:bg-white/20 p-2"
-                  >
-                    <Menu className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    <User className="h-4 w-4 mr-2" />
-                    Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/data-rights')}>
-                    <Shield className="h-4 w-4 mr-2" />
-                    Data Rights
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/security')}>
-                    <Shield className="h-4 w-4 mr-2" />
-                    Security Dashboard
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/privacy-policy')}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Privacy Policy
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+          </div>
+          
+          {/* Welcome Message */}
+          <div className="mt-4 text-center">
+            <p className="text-white text-lg">
+              Welcome back, <span className="font-semibold">{user?.email?.split('@')[0] || 'Adham'}</span>
+            </p>
           </div>
         </div>
       </header>
@@ -342,69 +293,19 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {/* Refresh Button */}
-        <div className="flex justify-end mb-4">
-          <Button
-            onClick={refreshDashboardStats}
-            variant="outline"
-            size="sm"
-            className="border-gray-300 text-gray-700 hover:bg-gray-50"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh Stats
-          </Button>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-semibold text-blue-800">Total Shifts</CardTitle>
-              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-900">{stats.totalShifts}</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-semibold text-purple-800">Incoming Requests</CardTitle>
-              <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                <ArrowRightLeft className="h-5 w-5 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-purple-900">{stats.pendingSwaps}</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-semibold text-green-800">Completed Swaps</CardTitle>
-              <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                <Users className="h-5 w-5 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-900">{stats.acceptedSwaps}</div>
-            </CardContent>
-          </Card>
-        </div>
 
 
-        {/* Navigation Tabs */}
-        <div className="dashboard-nav-tabs flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-8 bg-white p-2 rounded-2xl shadow-lg w-full max-w-lg border border-gray-100">
+
+        {/* Professional Navigation Tabs */}
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-8 bg-white p-1 rounded-lg shadow-sm border border-gray-200 w-full max-w-md">
           <Button
             variant={activeTab === 'calendar' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('calendar')}
-            className={`w-full sm:flex-1 px-4 sm:px-6 py-3 rounded-xl transition-all duration-300 ${
+            className={`flex-1 px-4 py-2 rounded-md transition-all duration-200 ${
               activeTab === 'calendar' 
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
-                : 'hover:bg-gray-100'
+                ? 'bg-blue-600 text-white shadow-sm' 
+                : 'hover:bg-gray-100 text-gray-600'
             }`}
           >
             <Calendar className="h-4 w-4 mr-2" />
@@ -414,10 +315,10 @@ const Dashboard = () => {
             variant={activeTab === 'premiums' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('premiums')}
-            className={`w-full sm:flex-1 px-4 sm:px-6 py-3 rounded-xl transition-all duration-300 ${
+            className={`flex-1 px-4 py-2 rounded-md transition-all duration-200 ${
               activeTab === 'premiums' 
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
-                : 'hover:bg-gray-100'
+                ? 'bg-blue-600 text-white shadow-sm' 
+                : 'hover:bg-gray-100 text-gray-600'
             }`}
           >
             <DollarSign className="h-4 w-4 mr-2" />
@@ -427,10 +328,10 @@ const Dashboard = () => {
             variant={activeTab === 'team' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('team')}
-            className={`w-full sm:flex-1 px-4 sm:px-6 py-3 rounded-xl transition-all duration-300 ${
+            className={`flex-1 px-4 py-2 rounded-md transition-all duration-200 ${
               activeTab === 'team' 
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
-                : 'hover:bg-gray-100'
+                ? 'bg-blue-600 text-white shadow-sm' 
+                : 'hover:bg-gray-100 text-gray-600'
             }`}
           >
             <Users className="h-4 w-4 mr-2" />
@@ -438,51 +339,41 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        {/* Professional Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Button
             onClick={() => navigate('/upload')}
-            className="flex items-center justify-center h-20 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+            className="flex items-center justify-center h-16 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-all duration-200"
           >
-            <Upload className="h-6 w-6 mr-2" />
-            Upload Roster PDF
+            <Upload className="h-5 w-5 mr-2" />
+            Upload Roster
           </Button>
           
           <Button
             onClick={() => navigate('/shifts/create')}
             variant="outline"
-            className="flex items-center justify-center h-20 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105"
+            className="flex items-center justify-center h-16 border border-gray-300 hover:border-blue-500 hover:bg-blue-50 font-medium rounded-lg transition-all duration-200"
           >
-            <Plus className="h-6 w-6 mr-2" />
-            Add Manual Shift
+            <Plus className="h-5 w-5 mr-2" />
+            Add Shift
           </Button>
           
           <Button
             onClick={() => navigate('/swaps/create')}
             variant="outline"
-            className="flex items-center justify-center h-20 border-2 border-gray-200 hover:border-purple-300 hover:bg-purple-50 font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105"
+            className="flex items-center justify-center h-16 border border-gray-300 hover:border-blue-500 hover:bg-blue-50 font-medium rounded-lg transition-all duration-200"
           >
-            <ArrowRightLeft className="h-6 w-6 mr-2" />
+            <ArrowRightLeft className="h-5 w-5 mr-2" />
             Request Swap
           </Button>
           
           <Button
             onClick={() => navigate('/swaps')}
             variant="outline"
-            className="flex items-center justify-center h-20 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105"
+            className="flex items-center justify-center h-16 border border-gray-300 hover:border-blue-500 hover:bg-blue-50 font-medium rounded-lg transition-all duration-200"
           >
-            <ArrowRightLeft className="h-6 w-6 mr-2" />
+            <ArrowRightLeft className="h-5 w-5 mr-2" />
             Manage Swaps
-          </Button>
-
-          <Button
-            onClick={() => setDeleteAllDialogOpen(true)}
-            variant="destructive"
-            className="flex items-center justify-center h-20 border-2 border-red-200 hover:border-red-300 hover:bg-red-600 hover:text-white font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105"
-            disabled={stats.totalShifts === 0}
-          >
-            <Trash2 className="h-6 w-6 mr-2" />
-            Delete All Shifts
           </Button>
         </div>
 

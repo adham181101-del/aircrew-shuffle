@@ -48,6 +48,7 @@ const ManageSwaps = () => {
   const [loading, setLoading] = useState(true);
   const [availableShifts, setAvailableShifts] = useState<any[]>([]);
   const [selectedCounterShift, setSelectedCounterShift] = useState<string>("");
+  const [totalShifts, setTotalShifts] = useState(0);
   const [showCounterOffer, setShowCounterOffer] = useState<string | null>(null);
   const [loadingCounterShifts, setLoadingCounterShifts] = useState(false);
   const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
@@ -67,6 +68,16 @@ const ManageSwaps = () => {
         return;
       }
       setUser(currentUser);
+      
+      // Load total shifts count
+      const { data: shiftsData, error: shiftsError } = await supabase
+        .from('shifts')
+        .select('id')
+        .eq('staff_id', currentUser.id);
+      
+      if (!shiftsError && shiftsData) {
+        setTotalShifts(shiftsData.length);
+      }
       
       await Promise.all([
         loadIncomingRequests(currentUser.id),
@@ -912,6 +923,48 @@ const ManageSwaps = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="bg-white border border-gray-200 shadow-sm rounded-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Total Shifts</CardTitle>
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <Calendar className="h-4 w-4 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">{totalShifts}</div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white border border-gray-200 shadow-sm rounded-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Incoming Requests</CardTitle>
+              <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
+                <ArrowLeftRight className="h-4 w-4 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">{incomingRequests.length}</div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white border border-gray-200 shadow-sm rounded-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Completed Swaps</CardTitle>
+              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                <User className="h-4 w-4 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {myRequests.filter(req => req.status === 'accepted').length + 
+                 incomingRequests.filter(req => req.status === 'accepted').length}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Action Buttons */}
           {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
