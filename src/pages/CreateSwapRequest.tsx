@@ -189,6 +189,18 @@ const CreateSwapRequest = () => {
       console.log(`Your base location: ${user.base_location}`);
       console.log(`Looking for staff who have ${desiredTime} shift on ${shift.date}`);
 
+      // First, let's check what shifts exist on this date with the desired time
+      const { data: allShiftsOnDate, error: allShiftsError } = await supabase
+        .from('shifts')
+        .select('*')
+        .eq('date', shift.date)
+        .eq('time', desiredTime);
+
+      console.log(`All shifts on ${shift.date} with time ${desiredTime}:`, allShiftsOnDate);
+      if (allShiftsError) {
+        console.error('Error fetching all shifts on date:', allShiftsError);
+      }
+
       // Find all staff members who have the desired time slot on the same date
       const { data: staffWithDesiredTime, error: staffError } = await supabase
         .from('shifts')
@@ -206,18 +218,63 @@ const CreateSwapRequest = () => {
         .eq('time', desiredTime)
         .neq('staff_id', user.id); // Exclude the current user
 
+      console.log(`Raw query result:`, staffWithDesiredTime);
+      console.log(`Query error:`, staffError);
+
       if (staffError) {
         console.error('Error fetching staff with desired time:', staffError);
-        throw staffError;
+        // Try a fallback approach without the relationship
+        console.log('Trying fallback query without relationship...');
+        
+        const { data: fallbackShifts, error: fallbackError } = await supabase
+          .from('shifts')
+          .select('staff_id')
+          .eq('date', shift.date)
+          .eq('time', desiredTime)
+          .neq('staff_id', user.id);
+
+        console.log(`Fallback shifts result:`, fallbackShifts);
+        
+        if (fallbackError) {
+          console.error('Fallback query also failed:', fallbackError);
+          throw staffError; // Throw the original error
+        }
+
+        if (fallbackShifts && fallbackShifts.length > 0) {
+          // Get staff details for each staff_id
+          const staffIds = fallbackShifts.map(s => s.staff_id);
+          const { data: staffDetails, error: staffDetailsError } = await supabase
+            .from('staff')
+            .select('*')
+            .in('id', staffIds)
+            .eq('base_location', user.base_location);
+
+          console.log(`Staff details from fallback:`, staffDetails);
+          
+          if (staffDetailsError) {
+            console.error('Error fetching staff details:', staffDetailsError);
+            throw staffDetailsError;
+          }
+
+          const eligibleStaff = staffDetails || [];
+          console.log(`Found ${eligibleStaff.length} staff members with ${desiredTime} shift on ${shift.date} (fallback)`);
+          setTimeChangeEligibleStaff(eligibleStaff);
+          return;
+        }
       }
 
       // Filter to only staff from the same base location
       const eligibleStaff = staffWithDesiredTime
-        ?.filter(item => item.staff?.base_location === user.base_location)
+        ?.filter(item => {
+          console.log(`Checking staff item:`, item);
+          console.log(`Staff base location: ${item.staff?.base_location}, User base location: ${user.base_location}`);
+          return item.staff?.base_location === user.base_location;
+        })
         ?.map(item => item.staff)
         ?.filter((staff): staff is Staff => staff !== null) || [];
 
       console.log(`Found ${eligibleStaff.length} staff members with ${desiredTime} shift on ${shift.date}`);
+      console.log(`Eligible staff:`, eligibleStaff);
       setTimeChangeEligibleStaff(eligibleStaff);
     } catch (error) {
       console.error('Error finding time change eligible staff:', error);
