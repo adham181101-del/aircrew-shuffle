@@ -272,6 +272,14 @@ const Dashboard = () => {
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={() => navigate('/profile')}
+                className="text-white hover:bg-blue-800 px-3 py-1"
+              >
+                Profile
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleSignOut}
                 className="text-white hover:bg-blue-800 px-3 py-1"
               >
@@ -340,22 +348,13 @@ const Dashboard = () => {
         </div>
 
         {/* Professional Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Button
             onClick={() => navigate('/upload')}
             className="flex items-center justify-center h-16 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-all duration-200"
           >
             <Upload className="h-5 w-5 mr-2" />
             Upload Roster
-          </Button>
-          
-          <Button
-            onClick={() => navigate('/shifts/create')}
-            variant="outline"
-            className="flex items-center justify-center h-16 border border-gray-300 hover:border-blue-500 hover:bg-blue-50 font-medium rounded-lg transition-all duration-200"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Add Shift
           </Button>
           
           <Button
