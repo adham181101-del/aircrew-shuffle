@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { signIn } from '@/lib/auth'
-import { Loader2, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { Loader2, Mail, Lock, Eye, EyeOff, ArrowRight, User, Hash } from 'lucide-react'
 
 export const SignInForm = () => {
   const navigate = useNavigate()
@@ -14,8 +14,10 @@ export const SignInForm = () => {
   const { refreshUser } = useAuth()
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [loginType, setLoginType] = useState<'email' | 'staff_number'>('email')
   const [formData, setFormData] = useState({
     email: '',
+    staff_number: '',
     password: ''
   })
 
@@ -24,7 +26,25 @@ export const SignInForm = () => {
     setLoading(true)
 
     try {
-      await signIn(formData.email, formData.password)
+      let email = formData.email
+      
+      // If logging in with staff number, we need to find the email first
+      if (loginType === 'staff_number') {
+        const { supabase } = await import('@/integrations/supabase/client')
+        const { data: staffData, error: staffError } = await supabase
+          .from('staff')
+          .select('email')
+          .eq('staff_number', formData.staff_number)
+          .single()
+
+        if (staffError || !staffData) {
+          throw new Error('Invalid staff number')
+        }
+        
+        email = staffData.email
+      }
+
+      await signIn(email, formData.password)
       
       // Redirect to dashboard on success
       navigate('/dashboard')
@@ -36,9 +56,11 @@ export const SignInForm = () => {
         if (error.message.includes('timeout')) {
           errorMessage = "Connection timeout - please check your internet and try again"
         } else if (error.message.includes('Invalid login credentials')) {
-          errorMessage = "Invalid email or password"
+          errorMessage = loginType === 'email' ? "Invalid email or password" : "Invalid staff number or password"
         } else if (error.message.includes('Email not confirmed')) {
           errorMessage = "Please check your email and confirm your account"
+        } else if (error.message.includes('Invalid staff number')) {
+          errorMessage = "Staff number not found"
         } else {
           errorMessage = error.message
         }
@@ -56,19 +78,54 @@ export const SignInForm = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Email Field */}
+      {/* Login Type Toggle */}
+      <div className="flex space-x-2 bg-white/10 rounded-xl p-1">
+        <button
+          type="button"
+          onClick={() => setLoginType('email')}
+          className={`flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-lg transition-all duration-300 ${
+            loginType === 'email' 
+              ? 'bg-white text-blue-600 shadow-sm' 
+              : 'text-white/70 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <Mail className="h-4 w-4" />
+          <span className="text-sm font-medium">Email</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setLoginType('staff_number')}
+          className={`flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-lg transition-all duration-300 ${
+            loginType === 'staff_number' 
+              ? 'bg-white text-blue-600 shadow-sm' 
+              : 'text-white/70 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <Hash className="h-4 w-4" />
+          <span className="text-sm font-medium">Staff Number</span>
+        </button>
+      </div>
+
+      {/* Email/Staff Number Field */}
       <div className="space-y-3">
-        <Label htmlFor="email" className="text-white font-medium text-sm">
-          Email Address
+        <Label htmlFor={loginType} className="text-white font-medium text-sm">
+          {loginType === 'email' ? 'Email Address' : 'Staff Number'}
         </Label>
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/50" />
+          {loginType === 'email' ? (
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/50" />
+          ) : (
+            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/50" />
+          )}
           <Input
-            id="email"
-            type="email"
-            placeholder="your.email@company.com"
-            value={formData.email}
-            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+            id={loginType}
+            type={loginType === 'email' ? 'email' : 'text'}
+            placeholder={loginType === 'email' ? 'your.email@company.com' : 'Enter your staff number'}
+            value={loginType === 'email' ? formData.email : formData.staff_number}
+            onChange={(e) => setFormData(prev => ({ 
+              ...prev, 
+              [loginType]: e.target.value 
+            }))}
             required
             className="pl-10 pr-4 py-3 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/20 focus:border-white/40 focus:ring-white/20 rounded-xl backdrop-blur-sm transition-all duration-300"
           />
