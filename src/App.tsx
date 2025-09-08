@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { InactivityManager } from "./components/InactivityManager";
 import CookieConsent from "./components/gdpr/CookieConsent";
 import { lazy, Suspense } from "react";
 
@@ -69,10 +70,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   // If still loading after initialization, show content anyway
   if (loading && initialized) {
-    return <>{children}</>;
+    return <InactivityManager>{children}</InactivityManager>;
   }
   
-  return <>{children}</>;
+  return <InactivityManager>{children}</InactivityManager>;
 };
 
 // Public Route Component (redirects to dashboard if already logged in)
