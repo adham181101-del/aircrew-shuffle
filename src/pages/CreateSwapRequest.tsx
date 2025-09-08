@@ -639,20 +639,8 @@ const CreateSwapRequest = () => {
                           <SelectContent>
                             <SelectItem value="4:15 AM">4:15 AM</SelectItem>
                             <SelectItem value="5:30 AM">5:30 AM</SelectItem>
-                            <SelectItem value="6:45 AM">6:45 AM</SelectItem>
-                            <SelectItem value="8:00 AM">8:00 AM</SelectItem>
-                            <SelectItem value="9:15 AM">9:15 AM</SelectItem>
-                            <SelectItem value="10:30 AM">10:30 AM</SelectItem>
-                            <SelectItem value="11:45 AM">11:45 AM</SelectItem>
-                            <SelectItem value="1:00 PM">1:00 PM</SelectItem>
-                            <SelectItem value="2:15 PM">2:15 PM</SelectItem>
-                            <SelectItem value="3:30 PM">3:30 PM</SelectItem>
-                            <SelectItem value="4:45 PM">4:45 PM</SelectItem>
-                            <SelectItem value="6:00 PM">6:00 PM</SelectItem>
-                            <SelectItem value="7:15 PM">7:15 PM</SelectItem>
-                            <SelectItem value="8:30 PM">8:30 PM</SelectItem>
-                            <SelectItem value="9:45 PM">9:45 PM</SelectItem>
-                            <SelectItem value="11:00 PM">11:00 PM</SelectItem>
+                            <SelectItem value="12:30 PM">12:30 PM</SelectItem>
+                            <SelectItem value="1:15 PM">1:15 PM</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
