@@ -248,44 +248,65 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Professional Header */}
       <header className="bg-blue-900 shadow-lg">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-4 md:px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Left Side - Logo and Company Name */}
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-white rounded border-2 border-blue-900 flex items-center justify-center">
-                <span className="text-blue-900 font-bold text-lg">B</span>
+            <div className="flex items-center space-x-2 md:space-x-4">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded border-2 border-blue-900 flex items-center justify-center">
+                <span className="text-blue-900 font-bold text-sm md:text-lg">B</span>
               </div>
-              <h1 className="text-2xl font-bold text-white">{user?.company?.name || 'British Airways'}</h1>
+              <h1 className="text-lg md:text-2xl font-bold text-white truncate">
+                <span className="hidden sm:inline">{user?.company?.name || 'British Airways'}</span>
+                <span className="sm:hidden">BA</span>
+              </h1>
             </div>
             
             {/* Right Side - Actions */}
-            <div className="flex items-center space-x-4">
-              <SessionStatus />
-              <Badge className="bg-blue-800 text-white border-0 px-3 py-1 rounded-full">
-                {user?.company?.industry || 'Aviation'}
-              </Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-blue-800 p-2"
-              >
-                <Bell className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/profile')}
-                className="text-white hover:bg-blue-800 px-3 py-1"
-              >
-                Profile
-              </Button>
+            <div className="flex items-center space-x-2 md:space-x-4">
+              {/* Mobile: Show only essential items */}
+              <div className="hidden md:flex items-center space-x-4">
+                <SessionStatus />
+                <Badge className="bg-blue-800 text-white border-0 px-3 py-1 rounded-full">
+                  {user?.company?.industry || 'Aviation'}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-blue-800 p-2"
+                >
+                  <Bell className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/profile')}
+                  className="text-white hover:bg-blue-800 px-3 py-1"
+                >
+                  Profile
+                </Button>
+              </div>
+              
+              {/* Mobile: Show Profile and Sign Out buttons */}
+              <div className="flex md:hidden items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/profile')}
+                  className="text-white hover:bg-blue-800 px-2 py-1 text-sm"
+                >
+                  Profile
+                </Button>
+              </div>
+              
+              {/* Sign Out Button - Always visible */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleSignOut}
-                className="text-white hover:bg-blue-800 px-3 py-1"
+                className="text-white hover:bg-red-600 hover:text-white px-3 py-1 border border-white/20 md:border-0"
               >
-                Sign Out
+                <LogOut className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Sign Out</span>
               </Button>
             </div>
           </div>
