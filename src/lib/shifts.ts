@@ -243,6 +243,26 @@ export const deleteAllShifts = async (staffId: string): Promise<void> => {
   if (error) throw error
 }
 
+export const clearAllShiftsForUser = async (staffId: string): Promise<{ deletedCount: number }> => {
+  // First get count of shifts to be deleted
+  const { count, error: countError } = await supabase
+    .from('shifts')
+    .select('*', { count: 'exact', head: true })
+    .eq('staff_id', staffId)
+
+  if (countError) throw countError
+
+  // Delete all shifts for the user
+  const { error } = await supabase
+    .from('shifts')
+    .delete()
+    .eq('staff_id', staffId)
+
+  if (error) throw error
+
+  return { deletedCount: count || 0 }
+}
+
 // Function to execute a shift swap when a swap request is accepted
 export const executeShiftSwap = async (swapRequest: any): Promise<void> => {
   console.log('=== EXECUTING SHIFT SWAP ===');
