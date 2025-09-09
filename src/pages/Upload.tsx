@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, FileText, AlertCircle, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { upsertShift, parseShiftsFromText } from "@/lib/shifts";
+import { upsertShift, parseShiftsFromText, clearAllShiftsForUser } from "@/lib/shifts";
 import { getCurrentUser } from "@/lib/auth";
 
 const UploadPage = () => {
@@ -137,42 +137,42 @@ const UploadPage = () => {
         return;
       }
 
-      // Save shifts to database with smart upserting
+      // Clear all existing shifts for this user to prevent duplicates
+      toast({
+        title: "Clearing existing shifts...",
+        description: "Removing old shifts to prevent duplicates",
+      });
+      
+      const { deletedCount } = await clearAllShiftsForUser(user.id);
+      console.log(`Cleared ${deletedCount} existing shifts`);
+
+      // Save shifts to database
       toast({
         title: "Processing...",
         description: `Processing ${shifts.length} shifts from your roster`,
       });
 
       let createdCount = 0;
-      let updatedCount = 0;
-      let skippedCount = 0;
+      let errorCount = 0;
 
       for (const shift of shifts) {
         try {
           const result = await upsertShift(shift.date, shift.time, user.id);
-          switch (result.action) {
-            case 'created':
-              createdCount++;
-              break;
-            case 'updated':
-              updatedCount++;
-              break;
-            case 'skipped':
-              skippedCount++;
-              break;
+          if (result.action === 'created') {
+            createdCount++;
           }
         } catch (error) {
           console.warn('Failed to process shift:', shift, error);
+          errorCount++;
         }
       }
 
       setProcessingStep('complete');
       
-      const totalProcessed = createdCount + updatedCount + skippedCount;
-      let description = `Processed ${totalProcessed} shifts: `;
-      if (createdCount > 0) description += `${createdCount} new, `;
-      if (updatedCount > 0) description += `${updatedCount} updated, `;
-      if (skippedCount > 0) description += `${skippedCount} unchanged`;
+      let description = `Successfully uploaded ${createdCount} shifts`;
+      if (errorCount > 0) {
+        description += ` (${errorCount} failed to process)`;
+      }
       
       toast({
         title: "Success!",

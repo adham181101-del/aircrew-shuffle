@@ -60,10 +60,6 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
       const userShifts = await getUserShifts(currentUser.id)
       setShifts(userShifts)
       
-      console.log('Loaded shifts for user:', currentUser.id, 'Count:', userShifts.length)
-      if (userShifts.length > 0) {
-        console.log('Sample shifts:', userShifts.slice(0, 5).map(s => ({ date: s.date, time: s.time })))
-      }
       
       if (userShifts.length === 0) {
         console.log('No shifts found for user:', currentUser.id)
@@ -112,17 +108,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
     const day = String(date.getDate()).padStart(2, '0')
     const dateStr = `${year}-${month}-${day}`
     
-    const matchingShifts = shifts.filter(shift => shift.date === dateStr)
-    
-    // Debug logging for first few dates
-    if (matchingShifts.length > 0 || shifts.length > 0) {
-      console.log(`Date: ${dateStr}, Found shifts: ${matchingShifts.length}, Total shifts: ${shifts.length}`)
-      if (shifts.length > 0) {
-        console.log('Sample shift dates:', shifts.slice(0, 5).map(s => s.date))
-      }
-    }
-    
-    return matchingShifts
+    return shifts.filter(shift => shift.date === dateStr)
   }
 
   const getShiftBadgeVariant = (timeOfDay: string, isSwapped: boolean) => {
