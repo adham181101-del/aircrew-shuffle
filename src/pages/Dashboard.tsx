@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { ShiftCalendar } from '@/components/calendar/ShiftCalendar'
 import { SessionStatus } from '@/components/SessionStatus'
+import NotificationDropdown from '@/components/NotificationDropdown'
 import { getUserShifts, deleteAllShifts, type Shift } from '@/lib/shifts'
 import { getCurrentUser, type Staff, type Company } from '@/lib/auth'
 import { useAuth } from '@/contexts/AuthContext'
@@ -269,13 +270,7 @@ const Dashboard = () => {
                 <Badge className="bg-blue-800 text-white border-0 px-3 py-1 rounded-full">
                   {user?.company?.industry || 'Aviation'}
                 </Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-blue-800 p-2"
-                >
-                  <Bell className="h-5 w-5" />
-                </Button>
+                <NotificationDropdown />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -288,6 +283,7 @@ const Dashboard = () => {
               
               {/* Mobile: Show Profile and Sign Out buttons */}
               <div className="flex md:hidden items-center space-x-2">
+                <NotificationDropdown />
                 <Button
                   variant="ghost"
                   size="sm"
