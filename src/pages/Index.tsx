@@ -444,10 +444,10 @@ const Index = () => {
             <div className="space-y-4">
               <h4 className="text-white font-semibold">Product</h4>
               <ul className="space-y-2 text-white/70">
-                <li>Features</li>
-                <li>Pricing</li>
-                <li>Security</li>
-                <li>API</li>
+                <li><a href="/features" className="hover:text-white transition-colors">Features</a></li>
+                <li><a href="/pricing" className="hover:text-white transition-colors">Pricing</a></li>
+                <li><a href="/security" className="hover:text-white transition-colors">Security</a></li>
+                <li><a href="/api" className="hover:text-white transition-colors">API</a></li>
               </ul>
             </div>
             
@@ -457,27 +457,27 @@ const Index = () => {
                 <li><a href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a></li>
                 <li><a href="/data-rights" className="hover:text-white transition-colors">Data Rights</a></li>
                 <li><a href="/security" className="hover:text-white transition-colors">Security Dashboard</a></li>
-                <li>GDPR Compliance</li>
+                <li><a href="/gdpr" className="hover:text-white transition-colors">GDPR Compliance</a></li>
               </ul>
             </div>
             
             <div className="space-y-4">
               <h4 className="text-white font-semibold">Company</h4>
               <ul className="space-y-2 text-white/70">
-                <li>About</li>
-                <li>Blog</li>
-                <li>Careers</li>
-                <li>Contact</li>
+                <li><a href="/about" className="hover:text-white transition-colors">About</a></li>
+                <li><a href="/blog" className="hover:text-white transition-colors">Blog</a></li>
+                <li><a href="/careers" className="hover:text-white transition-colors">Careers</a></li>
+                <li><a href="/contact" className="hover:text-white transition-colors">Contact</a></li>
               </ul>
             </div>
             
             <div className="space-y-4">
               <h4 className="text-white font-semibold">Support</h4>
               <ul className="space-y-2 text-white/70">
-                <li>Help Center</li>
-                <li>Documentation</li>
-                <li>Status</li>
-                <li>Community</li>
+                <li><a href="/help" className="hover:text-white transition-colors">Help Center</a></li>
+                <li><a href="/docs" className="hover:text-white transition-colors">Documentation</a></li>
+                <li><a href="/status" className="hover:text-white transition-colors">Status</a></li>
+                <li><a href="/community" className="hover:text-white transition-colors">Community</a></li>
               </ul>
             </div>
           </div>

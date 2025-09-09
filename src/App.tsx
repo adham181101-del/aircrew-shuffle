@@ -25,6 +25,12 @@ const Profile = lazy(() => import("./pages/Profile"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const DataSubjectRights = lazy(() => import("./pages/DataSubjectRights"));
 const SecurityDashboard = lazy(() => import("./pages/SecurityDashboard"));
+const Features = lazy(() => import("./pages/Features"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Api = lazy(() => import("./pages/Api"));
+const Placeholder = lazy(() => import("./pages/Placeholder"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading component
@@ -111,6 +117,18 @@ const AppRoutes = () => (
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/data-rights" element={<ProtectedRoute><DataSubjectRights /></ProtectedRoute>} />
       <Route path="/security" element={<ProtectedRoute><SecurityDashboard /></ProtectedRoute>} />
+      <Route path="/features" element={<Features />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/api" element={<Api />} />
+      <Route path="/blog" element={<Placeholder title="Blog" description="Stay updated with the latest news, tips, and insights about shift management and workforce optimization." />} />
+      <Route path="/careers" element={<Placeholder title="Careers" description="Join our team and help us revolutionize shift management for businesses worldwide." />} />
+      <Route path="/help" element={<Placeholder title="Help Center" description="Find answers to common questions and learn how to get the most out of ShiftFlex." />} />
+      <Route path="/docs" element={<Placeholder title="Documentation" description="Comprehensive guides and tutorials to help you integrate and use ShiftFlex effectively." />} />
+      <Route path="/status" element={<Placeholder title="System Status" description="Check the current status of ShiftFlex services and get real-time updates on any issues." />} />
+      <Route path="/community" element={<Placeholder title="Community" description="Connect with other ShiftFlex users, share tips, and get support from the community." />} />
+      <Route path="/gdpr" element={<Placeholder title="GDPR Compliance" description="Learn about our commitment to data protection and privacy in compliance with UK GDPR regulations." />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
