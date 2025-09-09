@@ -539,17 +539,17 @@ export const parseShiftsFromText = (text: string): Array<{date: string, time: st
       if (month) {
         const year = parseInt(yearStr.length === 2 ? '20' + yearStr : yearStr)
         const day = parseInt(dayStr)
-        // Create date in UK format (DD/MM/YYYY)
-        const ukDate = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`
+        // Create date in database format (YYYY-MM-DD)
+        const dbDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
         
-        console.log(`Processing: Day=${day}, Month=${month}, Year=${year}, UK Date=${ukDate}`)
+        console.log(`Processing: Day=${day}, Month=${month}, Year=${year}, DB Date=${dbDate}`)
         
         // Skip 00:00 times and same start/end times
         if (startTime !== '00:00' && endTime !== '00:00' && startTime !== endTime) {
           const timeRange = `${startTime}-${endTime}`
           if (isValidTimeRange(timeRange)) {
-            shifts.push({ date: ukDate, time: timeRange })
-            console.log(`✅ Added shift from Date Summary: ${ukDate} ${timeRange}`)
+            shifts.push({ date: dbDate, time: timeRange })
+            console.log(`✅ Added shift from Date Summary: ${dbDate} ${timeRange}`)
           } else {
             console.log(`❌ Invalid time range: ${timeRange}`)
           }
@@ -579,17 +579,17 @@ export const parseShiftsFromText = (text: string): Array<{date: string, time: st
       if (month) {
         const year = parseInt(yearStr.length === 2 ? '20' + yearStr : yearStr)
         const day = parseInt(dayStr)
-        // Create date in UK format (DD/MM/YYYY)
-        const ukDate = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`
+        // Create date in database format (YYYY-MM-DD)
+        const dbDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
         
-        console.log(`Fallback processing: Day=${day}, Month=${month}, Year=${year}, UK Date=${ukDate}`)
+        console.log(`Fallback processing: Day=${day}, Month=${month}, Year=${year}, DB Date=${dbDate}`)
         
         // Skip 00:00 times and same start/end times
         if (startTime !== '00:00' && endTime !== '00:00' && startTime !== endTime) {
           const timeRange = `${startTime}-${endTime}`
           if (isValidTimeRange(timeRange)) {
-            shifts.push({ date: ukDate, time: timeRange })
-            console.log(`✅ Added shift from fallback: ${ukDate} ${timeRange}`)
+            shifts.push({ date: dbDate, time: timeRange })
+            console.log(`✅ Added shift from fallback: ${dbDate} ${timeRange}`)
           } else {
             console.log(`❌ Invalid time range: ${timeRange}`)
           }
