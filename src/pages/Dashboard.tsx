@@ -310,7 +310,7 @@ const Dashboard = () => {
           {/* Welcome Message */}
           <div className="mt-4 text-center">
             <p className="text-white text-lg">
-              Welcome back, <span className="font-semibold">{user?.email?.split('@')[0] || 'Adham'}</span>
+              Welcome back, <span className="font-semibold">{user?.email?.split('@')[0]?.split('.')[0]?.charAt(0).toUpperCase() + user?.email?.split('@')[0]?.split('.')[0]?.slice(1) || 'Adham'}</span>
             </p>
           </div>
         </div>
