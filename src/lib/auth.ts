@@ -268,7 +268,7 @@ export const getCurrentUser = async (): Promise<(Staff & { company: Company }) |
         industry: 'Aviation',
         email_domain: 'ba.com',
         config: {
-          bases: ['Iberia CER', 'Heathrow', 'Gatwick'],
+          bases: ['Iberia CER', 'British Airways CER', 'Iberia IOL', 'British Airways CEL', 'Baggage Handlers', 'Drivers', 'Crew', 'Allocation', 'Resourcing'],
           features: {
             premium_calculator: true,
             shift_swapping: true
