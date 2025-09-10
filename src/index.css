@@ -121,8 +121,77 @@
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground;
+  html, body {
+    @apply bg-white text-foreground;
+    background-color: white !important;
+  }
+  
+  /* Ensure overscroll areas are white */
+  html {
+    background-color: white !important;
+  }
+  
+  /* Remove this overly broad rule that was affecting all elements */
+  
+  /* Ensure the root element and any potential overscroll areas are white */
+  #root, #__next, body, html {
+    background-color: white !important;
+    background: white !important;
+  }
+  
+  /* macOS Safari/WebKit overscroll fix */
+  @supports (-webkit-overflow-scrolling: touch) {
+    html, body {
+      background-color: white !important;
+      background: white !important;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Prevent macOS overscroll bounce background */
+    body {
+      overscroll-behavior: none;
+      -webkit-overscroll-behavior: none;
+    }
+  }
+  
+  /* Additional macOS WebKit fixes */
+  html {
+    -webkit-background-size: cover;
+    background-attachment: fixed;
+    background-color: white !important;
+  }
+  
+  /* White background only for root elements, not all divs */
+  html, body, #root, #__next {
+    background-color: white !important;
+    background: white !important;
+  }
+  
+  /* Target specific overscroll areas */
+  html::before, html::after, body::before, body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: white !important;
+    background: white !important;
+    z-index: -9999;
+    pointer-events: none;
+  }
+  
+  /* Force white only on root-level pseudo-elements for overscroll */
+  html::before, html::after, body::before, body::after {
+    background-color: white !important;
+    background: white !important;
+  }
+  
+  /* Prevent any gradient or color inheritance */
+  html, body {
+    background-image: none !important;
+    background: white !important;
+    background-color: white !important;
   }
 }
 
@@ -498,7 +567,7 @@
   
   /* Ensure consistent background colors throughout the app */
   body, html {
-    @apply bg-gradient-to-br from-slate-50 to-blue-50;
+    @apply bg-white;
   }
   
   /* Remove any default backgrounds that might interfere */
@@ -512,7 +581,7 @@
   
   /* Ensure the entire app has consistent background */
   #root, #__next {
-    @apply bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen;
+    @apply bg-white min-h-screen;
   }
   
   /* Remove any default margins or padding that might show background */

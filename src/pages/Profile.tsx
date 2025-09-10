@@ -261,11 +261,14 @@ const Profile = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Iberia CER">Iberia CER</SelectItem>
-                        <SelectItem value="British Airways">British Airways</SelectItem>
-                        <SelectItem value="Heathrow">Heathrow</SelectItem>
-                        <SelectItem value="Gatwick">Gatwick</SelectItem>
-                        <SelectItem value="Manchester">Manchester</SelectItem>
-                        <SelectItem value="Birmingham">Birmingham</SelectItem>
+                        <SelectItem value="British Airways CER">British Airways CER</SelectItem>
+                        <SelectItem value="Iberia IOL">Iberia IOL</SelectItem>
+                        <SelectItem value="British Airways CEL">British Airways CEL</SelectItem>
+                        <SelectItem value="Baggage Handlers">Baggage Handlers</SelectItem>
+                        <SelectItem value="Drivers">Drivers</SelectItem>
+                        <SelectItem value="Crew">Crew</SelectItem>
+                        <SelectItem value="Allocation">Allocation</SelectItem>
+                        <SelectItem value="Resourcing">Resourcing</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
