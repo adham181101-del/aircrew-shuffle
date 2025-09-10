@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,58 +28,89 @@ const Index = () => {
   const navigate = useNavigate()
   const { theme } = useTheme()
 
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    let ticking = false
+    const update = () => {
+      const y = window.scrollY
+      setScrolled((s) => (y > 12 ? true : y < 4 ? false : s))
+      ticking = false
+    }
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(update)
+        ticking = true
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    update()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
       {/* Navigation */}
-      <nav className="absolute top-0 left-0 right-0 z-50 p-6">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
-              {theme.logo}
+      <nav className={`fixed top-0 inset-x-0 z-50 border-b transition-colors duration-300 ${scrolled ? 'bg-slate-900/80 backdrop-blur-md border-white/10 shadow-lg' : 'bg-transparent border-transparent shadow-none'}`}>
+        <div className="container mx-auto px-4">
+          <div className="flex h-16 items-center">
+            {/* Left: Logo + Name */}
+            <div className="flex h-10 items-center gap-3">
+              <div className="w-8 h-8 bg-white/10 backdrop-blur-sm rounded-sm flex items-center justify-center mt-0.5 border border-white/10">
+                <img src="/favicon.png" alt={theme.displayName} className="w-6 h-6 object-contain" />
+              </div>
+              <span className="text-xl font-bold text-white leading-none">
+                {theme.displayName}
+              </span>
             </div>
-            <span className="text-xl font-bold text-white">{theme.displayName}</span>
-          </div>
-          <div className="hidden md:flex items-center space-x-6">
-            <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10">
-              Features
-            </Button>
-            <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10">
-              Industries
-            </Button>
-            <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10">
-              About
-            </Button>
-          </div>
-          <div className="flex items-center space-x-3">
-            <Button 
-              onClick={() => navigate('/login')}
-              variant="ghost" 
-              className="text-white/80 hover:text-white hover:bg-white/10"
-            >
-              Sign In
-            </Button>
-            <Button 
-              onClick={() => navigate('/register')}
-              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm"
-            >
-              Get Started
-            </Button>
+
+            {/* Right: Menu + Auth */}
+            <div className="ml-auto flex items-center gap-6">
+              <div className="hidden md:flex items-center gap-6">
+                <Button variant="ghost" className="h-10 text-white/80 hover:text-white hover:bg-white/10">
+                  Features
+                </Button>
+                <Button variant="ghost" className="h-10 text-white/80 hover:text-white hover:bg-white/10">
+                  Industries
+                </Button>
+                <Button variant="ghost" className="h-10 text-white/80 hover:text-white hover:bg-white/10">
+                  About
+                </Button>
+              </div>
+
+              {/* Divider */}
+              <div className="hidden md:block h-6 w-px bg-white/20 mx-2" aria-hidden="true" />
+
+              <div className="flex items-center gap-3">
+                <Button 
+                  onClick={() => navigate('/login')}
+                  variant="ghost" 
+                  className="h-10 text-white/80 hover:text-white hover:bg-white/10"
+                >
+                  Sign In
+                </Button>
+                <Button 
+                  onClick={() => navigate('/register')}
+                  className="h-10 bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm"
+                >
+                  Get Started
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </nav>
-
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-32 pb-20">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center max-w-5xl mx-auto">
             <div className="inline-flex items-center justify-center w-24 h-24 bg-white/10 backdrop-blur-sm rounded-2xl shadow-2xl mb-8 border border-white/20">
-              {theme.logo}
+              <img src="/favicon.png" alt={theme.displayName} className="w-20 h-20 object-contain" />
             </div>
-            
-            <h1 className="text-6xl md:text-7xl font-bold text-white mb-6 leading-tight">
+            <h1 className="text-6xl md:text-7xl font-bold text-white leading-tight">
               {theme.heroTitle}
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mt-2">
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mt-2 pb-10">
                 {theme.heroSubtitle}
               </span>
             </h1>
@@ -99,8 +131,7 @@ const Index = () => {
               <Button 
                 onClick={() => navigate('/login')}
                 size="lg"
-                variant="outline"
-                className="border-white/30 text-white hover:bg-white/10 hover:border-white/50 px-10 py-4 text-lg rounded-xl backdrop-blur-sm transition-all duration-300"
+                className="bg-white/10 hover:bg-white/20 text-white border border-white/30 px-10 py-4 text-lg rounded-xl backdrop-blur-sm transition-all duration-300 transform hover:scale-105"
               >
                 <CheckCircle className="mr-2 h-5 w-5" />
                 Sign In
@@ -407,7 +438,7 @@ const Index = () => {
             <Button 
               onClick={() => navigate('/register')}
               size="lg"
-              className="bg-white text-blue-600 hover:bg-gray-100 font-semibold px-10 py-4 text-lg rounded-xl shadow-2xl transition-all duration-300 transform hover:scale-105"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-10 py-4 text-lg rounded-xl shadow-2xl hover:shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:scale-105"
             >
               <TrendingUp className="mr-2 h-5 w-5" />
               Start Free Trial
@@ -415,8 +446,7 @@ const Index = () => {
             <Button 
               onClick={() => navigate('/login')}
               size="lg"
-              variant="outline"
-              className="border-white/30 text-white hover:bg-white/20 px-10 py-4 text-lg rounded-xl transition-all duration-300"
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/30 px-10 py-4 text-lg rounded-xl backdrop-blur-sm transition-all duration-300 transform hover:scale-105"
             >
               <Globe className="mr-2 h-5 w-5" />
               View Demo
