@@ -344,20 +344,7 @@ export const PremiumCalculator = () => {
 
       {/* Summary Stats */}
       {selectedPeriod && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-semibold text-blue-800">Total Shifts</CardTitle>
-              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-900">{totals.totalShifts}</div>
-              <p className="text-xs text-blue-600 mt-1">This period</p>
-            </CardContent>
-          </Card>
-
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-semibold text-purple-800">Premium Shifts</CardTitle>
