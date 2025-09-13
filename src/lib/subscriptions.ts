@@ -35,7 +35,7 @@ export interface SubscriptionPlan {
  */
 export const createStripeCustomer = async (email: string, name: string) => {
   try {
-    const response = await fetch('/api/stripe/create-customer', {
+    const response = await fetch('/api/create-customer', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ export const createSubscription = async (planId: string) => {
     }
 
     // Create checkout session with trial
-    const response = await fetch('/api/stripe/create-checkout-session', {
+    const response = await fetch('/api/create-checkout-session', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -173,7 +173,7 @@ export const cancelSubscription = async () => {
       throw new Error('No active subscription found')
     }
 
-    const response = await fetch('/api/stripe/cancel-subscription', {
+    const response = await fetch('/api/cancel-subscription', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -204,7 +204,7 @@ export const reactivateSubscription = async () => {
       throw new Error('No subscription found')
     }
 
-    const response = await fetch('/api/stripe/reactivate-subscription', {
+    const response = await fetch('/api/reactivate-subscription', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
