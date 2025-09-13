@@ -129,7 +129,10 @@ export const getCurrentSubscription = async (): Promise<Subscription | null> => 
       .maybeSingle() // Use maybeSingle() instead of single() to handle 0 rows gracefully
 
     if (error) {
-      console.error('Error fetching subscription:', error)
+      // Don't log PGRST116 errors (no rows found) as they're expected for new users
+      if (error.code !== 'PGRST116') {
+        console.error('Error fetching subscription:', error)
+      }
       return null
     }
 
