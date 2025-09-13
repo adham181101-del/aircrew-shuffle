@@ -126,9 +126,9 @@ export const getCurrentSubscription = async (): Promise<Subscription | null> => 
       .eq('user_id', user.id)
       .eq('status', 'active')
       .or('status.eq.trialing')
-      .single()
+      .maybeSingle() // Use maybeSingle() instead of single() to handle 0 rows gracefully
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+    if (error) {
       console.error('Error fetching subscription:', error)
       return null
     }
