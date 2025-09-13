@@ -11,7 +11,15 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    console.log('Creating checkout session...')
+    console.log('Environment check:', {
+      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
+      hasAppUrl: !!process.env.NEXT_PUBLIC_APP_URL,
+      hasPriceId: !!process.env.STRIPE_PRO_PRICE_ID
+    })
+
     const { planId, userId, userEmail, trialPeriodDays } = req.body
+    console.log('Request body:', { planId, userId, userEmail, trialPeriodDays })
 
     if (!planId || !userId || !userEmail) {
       return res.status(400).json({ error: 'Missing required fields' })
@@ -82,6 +90,14 @@ module.exports = async function handler(req, res) {
     res.status(200).json({ sessionId: session.id })
   } catch (error) {
     console.error('Error creating checkout session:', error)
-    res.status(500).json({ error: 'Failed to create checkout session' })
+    console.error('Error details:', {
+      message: error.message,
+      type: error.type,
+      code: error.code
+    })
+    res.status(500).json({ 
+      error: 'Failed to create checkout session',
+      details: error.message 
+    })
   }
 }
