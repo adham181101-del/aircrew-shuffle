@@ -214,7 +214,7 @@ async function handleTrialWillEnd(subscription) {
 
 function getPlanName(planId) {
   const planNames = {
-    'price_1S6z12GdegbWxtcAQ7q4cnXK': 'Pro Plan'
+    'price_1S6zBqGtIHdiBNCgtN03Fp7c': 'Pro Plan'
   }
   return planNames[planId] || 'Unknown Plan'
 }

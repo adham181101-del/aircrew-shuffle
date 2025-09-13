@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
     // Define your price IDs (replace with your actual Stripe price IDs)
     const priceIds = {
-      'price_1S6z12GdegbWxtcAQ7q4cnXK': process.env.STRIPE_PRO_PRICE_ID || 'price_1S6z12GdegbWxtcAQ7q4cnXK',
+      'price_1S6zBqGtIHdiBNCgtN03Fp7c': process.env.STRIPE_PRO_PRICE_ID || 'price_1S6zBqGtIHdiBNCgtN03Fp7c',
     }
 
     const stripePriceId = priceIds[planId]
