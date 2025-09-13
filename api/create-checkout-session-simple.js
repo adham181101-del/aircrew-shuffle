@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     }
 
     // Use the hardcoded price ID for now
-    const stripePriceId = 'price_1S6z12GdegbWxtcAQ7q4cnXK'
+    const stripePriceId = 'price_1S6zBqGtIHdiBNCgtN03Fp7c'
     console.log('Using price ID:', stripePriceId)
 
     // Create or retrieve customer

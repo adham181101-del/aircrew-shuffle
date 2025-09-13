@@ -12,7 +12,7 @@ export const STRIPE_CONFIG = {
   // Subscription plans
   PLANS: {
     PRO: {
-      id: 'price_1S6z12GdegbWxtcAQ7q4cnXK',
+      id: 'price_1S6zBqGtIHdiBNCgtN03Fp7c',
       name: 'Pro Plan',
       description: 'Full access to all features including shift swapping',
       price: 2.99,
