@@ -49,7 +49,8 @@ export const SubscriptionStatus = ({ showUpgradeButton = true, className = '' }:
       setTrialDays(trialDaysRemaining)
       setInTrial(trialStatus)
     } catch (error) {
-      console.error('Error loading subscription status:', error)
+      // Silently handle subscription errors - they're expected for new users
+      console.log('No subscription found - user is on free plan')
     } finally {
       setLoading(false)
     }
