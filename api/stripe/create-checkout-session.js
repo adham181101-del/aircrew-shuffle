@@ -19,9 +19,7 @@ export default async function handler(req, res) {
 
     // Define your price IDs (replace with your actual Stripe price IDs)
     const priceIds = {
-      'price_basic_monthly': process.env.STRIPE_BASIC_PRICE_ID,
-      'price_premium_monthly': process.env.STRIPE_PREMIUM_PRICE_ID,
-      'price_enterprise_monthly': process.env.STRIPE_ENTERPRISE_PRICE_ID,
+      'price_pro_monthly': process.env.STRIPE_PRO_PRICE_ID,
     }
 
     const stripePriceId = priceIds[planId]

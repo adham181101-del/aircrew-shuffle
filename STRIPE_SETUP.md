@@ -18,33 +18,19 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_51S6XooGdegbWxtcAt5kFY07UUByduEDWr0qRIKd2klr
 STRIPE_SECRET_KEY=sk_test_51S6XooGdegbWxtcAI6ttxzIvc706pkTjTljdR3lEjQyTF49kgr00CuJk8XyPdXfK4YegqbmLQ3UZHzAzQM2AIylC00vCD8rVBf
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 
-# Stripe Price IDs (replace with your actual price IDs from Stripe Dashboard)
-STRIPE_BASIC_PRICE_ID=price_basic_monthly_id_here
-STRIPE_PREMIUM_PRICE_ID=price_premium_monthly_id_here
-STRIPE_ENTERPRISE_PRICE_ID=price_enterprise_monthly_id_here
+# Stripe Price ID (replace with your actual price ID from Stripe Dashboard)
+STRIPE_PRO_PRICE_ID=price_pro_monthly_id_here
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=https://aircrew-shuffle-ge7jtgpxl-adhams-projects-f02cd21b.vercel.app
 ```
 
-## 3. Create Products and Prices in Stripe
+## 3. Create Product and Price in Stripe
 
-### Basic Plan
-- Product Name: "Basic Plan"
-- Description: "Essential shift management features"
-- Price: £9.99/month
-- Billing: Recurring monthly
-
-### Premium Plan
-- Product Name: "Premium Plan" 
-- Description: "Advanced features for larger teams"
-- Price: £19.99/month
-- Billing: Recurring monthly
-
-### Enterprise Plan
-- Product Name: "Enterprise Plan"
-- Description: "Full-featured solution for large organizations"
-- Price: £49.99/month
+### Pro Plan
+- Product Name: "Pro Plan"
+- Description: "Full access to all features including shift swapping"
+- Price: £2.99/month per person
 - Billing: Recurring monthly
 
 ## 4. Webhook Setup
