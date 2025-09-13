@@ -15,7 +15,9 @@ module.exports = async function handler(req, res) {
     console.log('Environment check:', {
       hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
       hasAppUrl: !!process.env.NEXT_PUBLIC_APP_URL,
-      hasPriceId: !!process.env.STRIPE_PRO_PRICE_ID
+      hasPriceId: !!process.env.STRIPE_PRO_PRICE_ID,
+      stripeKeyPrefix: process.env.STRIPE_SECRET_KEY ? process.env.STRIPE_SECRET_KEY.substring(0, 10) : 'NOT_SET',
+      appUrl: process.env.NEXT_PUBLIC_APP_URL || 'NOT_SET'
     })
 
     const { planId, userId, userEmail, trialPeriodDays } = req.body
