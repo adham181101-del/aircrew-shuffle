@@ -22,6 +22,7 @@ const ManageSwaps = lazy(() => import("./pages/ManageSwaps"));
 const CreateShift = lazy(() => import("./pages/CreateShift"));
 const CreateSwapRequest = lazy(() => import("./pages/CreateSwapRequest"));
 const Profile = lazy(() => import("./pages/Profile"));
+const Subscription = lazy(() => import("./pages/Subscription"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const DataSubjectRights = lazy(() => import("./pages/DataSubjectRights"));
 const SecurityDashboard = lazy(() => import("./pages/SecurityDashboard"));
@@ -114,6 +115,7 @@ const AppRoutes = () => (
       <Route path="/swaps/create" element={<ProtectedRoute><CreateSwapRequest /></ProtectedRoute>} />
       <Route path="/shifts/create" element={<ProtectedRoute><CreateShift /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/data-rights" element={<ProtectedRoute><DataSubjectRights /></ProtectedRoute>} />
       <Route path="/security" element={<ProtectedRoute><SecurityDashboard /></ProtectedRoute>} />
