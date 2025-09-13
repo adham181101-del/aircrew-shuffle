@@ -1,6 +1,6 @@
 // Stripe webhook handler for subscription events
-const Stripe = require('stripe')
-const { createClient } = require('@supabase/supabase-js')
+import Stripe from 'stripe'
+import { createClient } from '@supabase/supabase-js'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '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', {
   apiVersion: '2023-10-16',
@@ -11,7 +11,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }

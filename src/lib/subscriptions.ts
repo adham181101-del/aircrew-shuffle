@@ -77,7 +77,7 @@ export const createSubscription = async (planId: string) => {
     }
 
     // Create checkout session with trial
-    const response = await fetch('/api/create-checkout-session-simple', {
+    const response = await fetch('/api/create-checkout-session', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

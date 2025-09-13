@@ -1,5 +1,5 @@
 // Simple test function to verify basic functionality
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   try {
     res.status(200).json({
       message: 'Simple test function working',
