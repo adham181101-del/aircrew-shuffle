@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         }
       },
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?subscription=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscription?subscription=cancelled`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
       metadata: {
         user_id: userId,
         plan_id: planId

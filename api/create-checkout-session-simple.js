@@ -92,7 +92,7 @@ export default async function handler(req, res) {
         }
       },
       success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://aircrew-shuffle-qkqv9e5oe-adhams-projects-f02cd21b.vercel.app'}/dashboard?subscription=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://aircrew-shuffle-qkqv9e5oe-adhams-projects-f02cd21b.vercel.app'}/subscription?subscription=cancelled`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://aircrew-shuffle-qkqv9e5oe-adhams-projects-f02cd21b.vercel.app'}/dashboard`,
       metadata: {
         user_id: userId,
         plan_id: planId
