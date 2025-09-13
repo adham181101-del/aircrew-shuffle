@@ -14,8 +14,8 @@ Add these environment variables to your `.env` file:
 
 ```env
 # Stripe Configuration
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here
-STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key_here
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_51S6XooGdegbWxtcAt5kFY07UUByduEDWr0qRIKd2klrO4kyrlI8neVS595nJzvaFy661QQZzE1O84BSjXu460IcF00TfTspX5G
+STRIPE_SECRET_KEY=sk_test_51S6XooGdegbWxtcAI6ttxzIvc706pkTjTljdR3lEjQyTF49kgr00CuJk8XyPdXfK4YegqbmLQ3UZHzAzQM2AIylC00vCD8rVBf
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 
 # Stripe Price IDs (replace with your actual price IDs from Stripe Dashboard)
@@ -24,7 +24,7 @@ STRIPE_PREMIUM_PRICE_ID=price_premium_monthly_id_here
 STRIPE_ENTERPRISE_PRICE_ID=price_enterprise_monthly_id_here
 
 # App Configuration
-NEXT_PUBLIC_APP_URL=http://localhost:5173
+NEXT_PUBLIC_APP_URL=https://aircrew-shuffle-ge7jtgpxl-adhams-projects-f02cd21b.vercel.app
 ```
 
 ## 3. Create Products and Prices in Stripe
