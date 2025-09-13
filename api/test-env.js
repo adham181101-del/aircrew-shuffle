@@ -1,5 +1,5 @@
 // Test endpoint to check environment variables
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   try {
     const envCheck = {
       hasStripeKey: !!process.env.STRIPE_SECRET_KEY,

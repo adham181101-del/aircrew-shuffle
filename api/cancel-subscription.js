@@ -1,11 +1,11 @@
 // API route to cancel a Stripe subscription
-const Stripe = require('stripe')
+import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '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', {
   apiVersion: '2023-10-16',
 })
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
