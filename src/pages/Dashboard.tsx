@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { PremiumCalculator } from '@/components/premium/PremiumCalculator'
 import { TeamView } from '@/components/team/TeamView'
+import { SubscriptionStatus } from '@/components/SubscriptionStatus'
 import { supabase } from '@/integrations/supabase/client'
 import {
   AlertDialog,
@@ -270,7 +271,17 @@ const Dashboard = () => {
                 <Badge className="bg-blue-800 text-white border-0 px-3 py-1 rounded-full">
                   {user?.company?.industry || 'Aviation'}
                 </Badge>
+                <SubscriptionStatus showUpgradeButton={false} />
                 <NotificationDropdown />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/subscription')}
+                  className="text-white hover:bg-blue-800 px-3 py-1"
+                >
+                  <DollarSign className="h-4 w-4 mr-1" />
+                  Subscription
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -284,6 +295,14 @@ const Dashboard = () => {
               {/* Mobile: Show Profile and Sign Out buttons */}
               <div className="flex md:hidden items-center space-x-2">
                 <NotificationDropdown />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/subscription')}
+                  className="text-white hover:bg-blue-800 px-2 py-1 text-sm"
+                >
+                  <DollarSign className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
