@@ -32,6 +32,7 @@ import {
 import { PremiumCalculator } from '@/components/premium/PremiumCalculator'
 import { TeamView } from '@/components/team/TeamView'
 import { SubscriptionStatus } from '@/components/SubscriptionStatus'
+import { AccessControl } from '@/components/AccessControl'
 import { supabase } from '@/integrations/supabase/client'
 import {
   AlertDialog,
@@ -395,23 +396,27 @@ const Dashboard = () => {
             Upload Roster
           </Button>
           
-          <Button
-            onClick={() => navigate('/swaps/create')}
-            variant="outline"
-            className="flex items-center justify-center h-16 border border-gray-300 hover:border-blue-500 hover:bg-blue-50 font-medium rounded-lg transition-all duration-200"
-          >
-            <ArrowRightLeft className="h-5 w-5 mr-2" />
-            Request Swap
-          </Button>
+          <AccessControl feature="swap">
+            <Button
+              onClick={() => navigate('/swaps/create')}
+              variant="outline"
+              className="flex items-center justify-center h-16 border border-gray-300 hover:border-blue-500 hover:bg-blue-50 font-medium rounded-lg transition-all duration-200"
+            >
+              <ArrowRightLeft className="h-5 w-5 mr-2" />
+              Request Swap
+            </Button>
+          </AccessControl>
           
-          <Button
-            onClick={() => navigate('/swaps')}
-            variant="outline"
-            className="flex items-center justify-center h-16 border border-gray-300 hover:border-blue-500 hover:bg-blue-50 font-medium rounded-lg transition-all duration-200"
-          >
-            <ArrowRightLeft className="h-5 w-5 mr-2" />
-            Manage Swaps
-          </Button>
+          <AccessControl feature="swap">
+            <Button
+              onClick={() => navigate('/swaps')}
+              variant="outline"
+              className="flex items-center justify-center h-16 border border-gray-300 hover:border-blue-500 hover:bg-blue-50 font-medium rounded-lg transition-all duration-200"
+            >
+              <ArrowRightLeft className="h-5 w-5 mr-2" />
+              Manage Swaps
+            </Button>
+          </AccessControl>
         </div>
 
         {/* Mobile Sign Out Button */}

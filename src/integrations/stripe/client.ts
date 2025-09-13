@@ -11,51 +11,21 @@ export const getStripe = () => stripePromise
 export const STRIPE_CONFIG = {
   // Subscription plans
   PLANS: {
-    BASIC: {
-      id: 'price_basic_monthly',
-      name: 'Basic Plan',
-      description: 'Essential shift management features',
-      price: 9.99,
+    PRO: {
+      id: 'price_pro_monthly',
+      name: 'Pro Plan',
+      description: 'Full access to all features including shift swapping',
+      price: 2.99,
       currency: 'gbp',
       interval: 'month',
+      per_person: true,
       features: [
-        'Unlimited shift scheduling',
-        'Basic shift swapping',
-        'Team management',
+        'Full shift calendar access',
+        'Shift swapping functionality',
         'Premium calculator',
-        'Email support'
-      ]
-    },
-    PREMIUM: {
-      id: 'price_premium_monthly',
-      name: 'Premium Plan',
-      description: 'Advanced features for larger teams',
-      price: 19.99,
-      currency: 'gbp',
-      interval: 'month',
-      features: [
-        'Everything in Basic',
-        'Advanced analytics',
-        'Custom reporting',
-        'API access',
-        'Priority support',
-        'Multi-location support'
-      ]
-    },
-    ENTERPRISE: {
-      id: 'price_enterprise_monthly',
-      name: 'Enterprise Plan',
-      description: 'Full-featured solution for large organizations',
-      price: 49.99,
-      currency: 'gbp',
-      interval: 'month',
-      features: [
-        'Everything in Premium',
-        'Custom integrations',
-        'Dedicated account manager',
-        'SLA guarantee',
-        'Advanced security features',
-        'White-label options'
+        'Team view and management',
+        'All current features',
+        'Priority support'
       ]
     }
   },

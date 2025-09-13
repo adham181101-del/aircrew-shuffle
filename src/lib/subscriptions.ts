@@ -242,6 +242,39 @@ export const getSubscriptionPlans = (): SubscriptionPlan[] => {
 }
 
 /**
+ * Check if user has access to shift swapping
+ */
+export const hasSwapAccess = async (): Promise<boolean> => {
+  const hasActive = await hasActiveSubscription()
+  return hasActive
+}
+
+/**
+ * Check if user has access to premium features
+ */
+export const hasPremiumAccess = async (): Promise<boolean> => {
+  const hasActive = await hasActiveSubscription()
+  return hasActive
+}
+
+/**
+ * Get user's access level
+ */
+export const getUserAccessLevel = async (): Promise<'free' | 'trial' | 'paid'> => {
+  const subscription = await getCurrentSubscription()
+  const inTrial = await isInTrial()
+  const hasActive = await hasActiveSubscription()
+  
+  if (hasActive && subscription?.status === 'active') {
+    return 'paid'
+  } else if (inTrial) {
+    return 'trial'
+  } else {
+    return 'free'
+  }
+}
+
+/**
  * Get days remaining in trial
  */
 export const getTrialDaysRemaining = async (): Promise<number | null> => {

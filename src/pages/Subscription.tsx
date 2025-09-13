@@ -265,33 +265,30 @@ const Subscription = () => {
 
         {/* Available Plans */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Choose Your Plan</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Upgrade to Pro</h2>
+          <div className="max-w-md mx-auto">
             {plans.map((plan) => (
-              <Card key={plan.id} className={`relative ${plan.name === 'Premium Plan' ? 'ring-2 ring-blue-500 shadow-lg' : ''}`}>
-                {plan.name === 'Premium Plan' && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-blue-500 text-white px-3 py-1">
-                      <Star className="h-3 w-3 mr-1" />
-                      Most Popular
-                    </Badge>
-                  </div>
-                )}
+              <Card key={plan.id} className="relative ring-2 ring-blue-500 shadow-lg">
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <Badge className="bg-blue-500 text-white px-3 py-1">
+                    <Star className="h-3 w-3 mr-1" />
+                    Pro Plan
+                  </Badge>
+                </div>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {plan.name === 'Basic Plan' && <Zap className="h-5 w-5 text-green-500" />}
-                    {plan.name === 'Premium Plan' && <Crown className="h-5 w-5 text-blue-500" />}
-                    {plan.name === 'Enterprise Plan' && <Shield className="h-5 w-5 text-purple-500" />}
+                  <CardTitle className="flex items-center gap-2 justify-center">
+                    <Crown className="h-5 w-5 text-blue-500" />
                     {plan.name}
                   </CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
-                  <div className="mt-4">
-                    <span className="text-3xl font-bold">£{plan.price}</span>
+                  <CardDescription className="text-center">{plan.description}</CardDescription>
+                  <div className="mt-4 text-center">
+                    <span className="text-4xl font-bold">£{plan.price}</span>
                     <span className="text-gray-500">/{plan.interval}</span>
+                    <p className="text-sm text-gray-600 mt-1">per person</p>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-2 mb-6">
+                  <ul className="space-y-3 mb-6">
                     {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-center gap-2">
                         <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
@@ -301,6 +298,7 @@ const Subscription = () => {
                   </ul>
                   <Button
                     className="w-full"
+                    size="lg"
                     onClick={() => handleSubscribe(plan.id)}
                     disabled={actionLoading === plan.id || (subscription && subscription.plan_id === plan.id)}
                   >
@@ -318,6 +316,82 @@ const Subscription = () => {
           </div>
         </div>
 
+        {/* Free vs Pro Comparison */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* Free Plan */}
+          <Card className="border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-gray-700">Free Plan</CardTitle>
+              <CardDescription>Limited access to core features</CardDescription>
+              <div className="mt-4">
+                <span className="text-3xl font-bold text-gray-600">£0</span>
+                <span className="text-gray-500">/month</span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Shift calendar view</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Premium calculator</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Team view</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <X className="h-4 w-4 text-red-500" />
+                  <span className="text-sm text-gray-500">Shift swapping</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <X className="h-4 w-4 text-red-500" />
+                  <span className="text-sm text-gray-500">Advanced features</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Pro Plan */}
+          <Card className="border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="text-blue-900">Pro Plan</CardTitle>
+              <CardDescription>Full access to all features</CardDescription>
+              <div className="mt-4">
+                <span className="text-3xl font-bold text-blue-900">£2.99</span>
+                <span className="text-blue-700">/month</span>
+                <p className="text-sm text-blue-600">per person</p>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Everything in Free</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Shift swapping</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Advanced features</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Priority support</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">30-day free trial</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Free Trial Information */}
         <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
           <CardHeader>
@@ -333,7 +407,7 @@ const Subscription = () => {
                 <ul className="space-y-1 text-blue-800">
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-green-500" />
-                    Full access to all features
+                    Full access to all Pro features
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-green-500" />
@@ -354,11 +428,11 @@ const Subscription = () => {
                 <ul className="space-y-1 text-blue-800">
                   <li className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-orange-500" />
-                    Add payment method to continue
+                    Upgrade to Pro for £2.99/month
                   </li>
                   <li className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-orange-500" />
-                    Service will be suspended if no payment
+                    Or continue with Free plan (limited features)
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-green-500" />
