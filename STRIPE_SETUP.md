@@ -19,7 +19,7 @@ STRIPE_SECRET_KEY=sk_test_51S6XooGdegbWxtcAI6ttxzIvc706pkTjTljdR3lEjQyTF49kgr00C
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 
 # Stripe Price ID (replace with your actual price ID from Stripe Dashboard)
-STRIPE_PRO_PRICE_ID=price_pro_monthly_id_here
+STRIPE_PRO_PRICE_ID=price_1S6z12GdegbWxtcAQ7q4cnXK
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=https://aircrew-shuffle-ge7jtgpxl-adhams-projects-f02cd21b.vercel.app
