@@ -83,7 +83,7 @@ export const createSubscription = async (planId: string) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        planId,
+        planKey: 'pro',
         userId: user.id,
         userEmail: user.email,
         trialPeriodDays: STRIPE_CONFIG.TRIAL.duration,
@@ -94,16 +94,14 @@ export const createSubscription = async (planId: string) => {
       throw new Error('Failed to create checkout session')
     }
 
-    const { sessionId } = await response.json()
-
-    // Redirect to Stripe Checkout
-    const { error } = await stripe.redirectToCheckout({
-      sessionId,
-    })
-
+    const { url, error } = await response.json()
+    
     if (error) {
-      throw new Error(error.message)
+      throw new Error(error)
     }
+
+    // Redirect to Stripe Checkout URL
+    window.location.href = url
   } catch (error) {
     console.error('Error creating subscription:', error)
     throw error

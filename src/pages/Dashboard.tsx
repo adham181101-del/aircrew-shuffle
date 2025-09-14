@@ -73,6 +73,27 @@ const Dashboard = () => {
     }
   }, [user])
 
+  // Handle subscription success redirect
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('subscription') === 'success') {
+      console.log('Subscription success detected - refreshing subscription status')
+      toast({
+        title: "Payment Successful! 🎉",
+        description: "Your subscription is being activated. Please wait a moment...",
+        duration: 5000,
+      })
+      
+      // Remove the URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname)
+      
+      // Refresh the page after a short delay to ensure webhook has processed
+      setTimeout(() => {
+        window.location.reload()
+      }, 3000)
+    }
+  }, [])
+
   const loadDashboardData = async () => {
     if (!user) return
     
