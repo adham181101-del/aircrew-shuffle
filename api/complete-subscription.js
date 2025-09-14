@@ -6,23 +6,34 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
 export default async function handler(req, res) {
+  console.log('Complete subscription endpoint called:', req.method, req.body)
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
   try {
     const { sessionId } = req.body
+    console.log('Session ID:', sessionId)
 
     if (!sessionId) {
       return res.status(400).json({ error: 'Missing sessionId' })
     }
 
     // Get session from Stripe
+    console.log('Retrieving session from Stripe...')
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ['subscription', 'customer']
     })
+    console.log('Session retrieved:', {
+      id: session.id,
+      payment_status: session.payment_status,
+      has_subscription: !!session.subscription,
+      has_customer: !!session.customer
+    })
 
     if (session.payment_status !== 'paid') {
+      console.log('Payment not completed, status:', session.payment_status)
       return res.status(400).json({ error: 'Payment not completed' })
     }
 
@@ -30,6 +41,7 @@ export default async function handler(req, res) {
     const customer = session.customer
 
     if (!subscription || !customer) {
+      console.log('Missing subscription or customer:', { subscription: !!subscription, customer: !!customer })
       return res.status(400).json({ error: 'No subscription found' })
     }
 
