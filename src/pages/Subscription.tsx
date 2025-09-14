@@ -43,6 +43,59 @@ const Subscription = () => {
 
   useEffect(() => {
     loadSubscriptionData()
+    
+    // Handle success/cancel parameters from Stripe redirect
+    const urlParams = new URLSearchParams(window.location.search)
+    const success = urlParams.get('success')
+    const cancelled = urlParams.get('cancelled')
+    const sessionId = urlParams.get('session_id')
+    
+    if (success === 'true' && sessionId) {
+      // Verify the session with Stripe
+      try {
+        const verifyResponse = await fetch(`/api/checkout-verify?session_id=${sessionId}`)
+        const verifyData = await verifyResponse.json()
+        
+        if (verifyData.payment_status === 'paid') {
+          toast({
+            title: "Payment Successful! 🎉",
+            description: "Your subscription is being activated. Please wait a moment...",
+            duration: 5000,
+          })
+        } else {
+          toast({
+            title: "Payment Processing",
+            description: "Your payment is being processed. Please wait...",
+            duration: 5000,
+          })
+        }
+      } catch (error) {
+        console.error('Error verifying session:', error)
+        toast({
+          title: "Payment Successful! 🎉",
+          description: "Your subscription is being activated. Please wait a moment...",
+          duration: 5000,
+        })
+      }
+      
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+      
+      // Refresh subscription data after a delay to allow webhook processing
+      setTimeout(() => {
+        loadSubscriptionData()
+      }, 3000)
+    } else if (cancelled === 'true') {
+      toast({
+        title: "Payment Cancelled",
+        description: "Your payment was cancelled. You can try again anytime.",
+        variant: "destructive",
+        duration: 5000,
+      })
+      
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
   }, [])
 
   const loadSubscriptionData = async () => {
