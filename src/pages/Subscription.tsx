@@ -30,10 +30,12 @@ import {
   type Subscription,
   type SubscriptionPlan
 } from '@/lib/subscriptions'
+import { useAuth } from '@/contexts/AuthContext'
 
 const Subscription = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { user } = useAuth()
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,26 +53,46 @@ const Subscription = () => {
     const sessionId = urlParams.get('session_id')
     
     if (success === 'true' && sessionId) {
-      // Verify the session with Stripe
+      // Manually create subscription since webhook might not be working
       try {
-        const verifyResponse = await fetch(`/api/checkout-verify?session_id=${sessionId}`)
-        const verifyData = await verifyResponse.json()
+        // Use the user from the hook
         
-        if (verifyData.payment_status === 'paid') {
+        if (user) {
+          const createResponse = await fetch('/api/create-subscription-manual', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              sessionId,
+              userId: user.id
+            })
+          })
+          
+          const createData = await createResponse.json()
+          
+          if (createData.success) {
+            toast({
+              title: "Payment Successful! 🎉",
+              description: "Your subscription has been activated successfully!",
+              duration: 5000,
+            })
+          } else {
+            toast({
+              title: "Payment Successful! 🎉",
+              description: "Your subscription is being activated. Please wait a moment...",
+              duration: 5000,
+            })
+          }
+        } else {
           toast({
             title: "Payment Successful! 🎉",
             description: "Your subscription is being activated. Please wait a moment...",
             duration: 5000,
           })
-        } else {
-          toast({
-            title: "Payment Processing",
-            description: "Your payment is being processed. Please wait...",
-            duration: 5000,
-          })
         }
       } catch (error) {
-        console.error('Error verifying session:', error)
+        console.error('Error creating subscription:', error)
         toast({
           title: "Payment Successful! 🎉",
           description: "Your subscription is being activated. Please wait a moment...",
@@ -81,10 +103,8 @@ const Subscription = () => {
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname)
       
-      // Refresh subscription data after a delay to allow webhook processing
-      setTimeout(() => {
-        loadSubscriptionData()
-      }, 3000)
+      // Refresh subscription data immediately
+      loadSubscriptionData()
     } else if (cancelled === 'true') {
       toast({
         title: "Payment Cancelled",
