@@ -1,7 +1,7 @@
 // API route to cancel a Stripe subscription
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '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', {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 })
 

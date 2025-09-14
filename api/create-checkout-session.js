@@ -1,105 +1,69 @@
-// API route to create a Stripe checkout session with trial
+// api/create-checkout-session.js
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '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', {
-  apiVersion: '2023-10-16',
-})
+const { STRIPE_SECRET_KEY, STRIPE_PRO_PRICE_ID, NEXT_PUBLIC_APP_URL, APP_URL } = process.env
+if (!STRIPE_SECRET_KEY) throw new Error('Missing STRIPE_SECRET_KEY')
+if (!STRIPE_PRO_PRICE_ID) throw new Error('Missing STRIPE_PRO_PRICE_ID')
+
+const BASE_URL = NEXT_PUBLIC_APP_URL || APP_URL
+if (!BASE_URL) throw new Error('Missing APP_URL/NEXT_PUBLIC_APP_URL')
+
+const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' })
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
-    console.log('Creating checkout session...')
-    console.log('Environment check:', {
-      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
-      hasAppUrl: !!process.env.NEXT_PUBLIC_APP_URL,
-      hasPriceId: !!process.env.STRIPE_PRO_PRICE_ID,
-      stripeKeyPrefix: process.env.STRIPE_SECRET_KEY ? process.env.STRIPE_SECRET_KEY.substring(0, 10) : 'NOT_SET',
-      appUrl: process.env.NEXT_PUBLIC_APP_URL || 'NOT_SET'
-    })
+    // TODO: replace with your real server auth. Do not trust body for identity in prod.
+    const { planKey = 'pro', userId, userEmail, trialPeriodDays = 30 } = req.body || {}
+    if (!userId || !userEmail) return res.status(400).json({ error: 'Missing user' })
+    if (planKey !== 'pro') return res.status(400).json({ error: 'Invalid plan' })
 
-    const { planId, userId, userEmail, trialPeriodDays } = req.body
-    console.log('Request body:', { planId, userId, userEmail, trialPeriodDays })
+    const priceId = STRIPE_PRO_PRICE_ID
 
-    if (!planId || !userId || !userEmail) {
-      return res.status(400).json({ error: 'Missing required fields' })
-    }
-
-    // Define your price IDs (replace with your actual Stripe price IDs)
-    const priceIds = {
-      'price_1S6zBqGtIHdiBNCgtN03Fp7c': process.env.STRIPE_PRO_PRICE_ID || 'price_1S6zBqGtIHdiBNCgtN03Fp7c',
-    }
-
-    const stripePriceId = priceIds[planId]
-    if (!stripePriceId) {
-      return res.status(400).json({ error: 'Invalid plan selected' })
-    }
-
-    // Create or retrieve customer
-    let customer
-    try {
-      // Try to find existing customer
-      const customers = await stripe.customers.list({
-        email: userEmail,
-        limit: 1
+    // Find or create customer (ideally reuse a stored customerId from your DB)
+    let customerId
+    const existing = await stripe.customers.list({ email: userEmail, limit: 1 })
+    if (existing.data[0]) {
+      customerId = existing.data[0].id
+      await stripe.customers.update(customerId, {
+        metadata: { user_id: userId, source: 'aircrew-shuffle' },
       })
-      
-      if (customers.data.length > 0) {
-        customer = customers.data[0]
-      } else {
-        // Create new customer
-        customer = await stripe.customers.create({
-          email: userEmail,
-          metadata: {
-            user_id: userId,
-            source: 'aircrew-shuffle'
-          }
-        })
-      }
-    } catch (error) {
-      console.error('Error with customer:', error)
-      return res.status(500).json({ error: 'Failed to create customer' })
+    } else {
+      const c = await stripe.customers.create({
+        email: userEmail,
+        metadata: { user_id: userId, source: 'aircrew-shuffle' },
+      })
+      customerId = c.id
     }
 
-    // Create checkout session with trial
-    const session = await stripe.checkout.sessions.create({
-      customer: customer.id,
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: stripePriceId,
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription',
-      subscription_data: {
-        trial_period_days: trialPeriodDays || 30,
-        metadata: {
-          user_id: userId,
-          plan_id: planId
-        }
-      },
-      success_url: `https://aircrew-shuffle.vercel.app/dashboard?subscription=success`,
-      cancel_url: `https://aircrew-shuffle.vercel.app/dashboard`,
-      metadata: {
-        user_id: userId,
-        plan_id: planId
-      }
-    })
+    // Prevent duplicate sessions
+    const idemKey = `chk_${userId}_${planKey}_${trialPeriodDays}`
 
-    res.status(200).json({ sessionId: session.id })
-  } catch (error) {
-    console.error('Error creating checkout session:', error)
-    console.error('Error details:', {
-      message: error.message,
-      type: error.type,
-      code: error.code
-    })
-    res.status(500).json({ 
-      error: 'Failed to create checkout session',
-      details: error.message 
-    })
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: 'subscription',
+        customer: customerId,
+        line_items: [{ price: priceId, quantity: 1 }],
+        automatic_payment_methods: { enabled: true },
+        payment_method_collection: 'always', // collect PM even with trial
+        subscription_data: {
+          trial_period_days: Math.min(Math.max(parseInt(trialPeriodDays, 10) || 0, 0), 30),
+          metadata: { user_id: userId, plan_key: planKey },
+        },
+        client_reference_id: userId,
+        success_url: `${BASE_URL}/dashboard?subscription=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${BASE_URL}/dashboard`,
+        metadata: { user_id: userId, plan_key: planKey },
+        locale: 'auto',
+        allow_promotion_codes: true,
+      },
+      { idempotencyKey: idemKey }
+    )
+
+    return res.status(200).json({ url: session.url }) // client should redirect to this URL
+  } catch (err) {
+    console.error('create-checkout-session error', { message: err?.message, code: err?.code, type: err?.type })
+    return res.status(500).json({ error: 'Failed to create checkout session' })
   }
 }
