@@ -95,15 +95,20 @@ const Dashboard = () => {
 
       if (data.success) {
         toast({
-          title: "Subscription Activated! 🎉",
-          description: "Your Pro subscription is now active!",
-          duration: 5000,
+          title: "Welcome to Pro! 🎉",
+          description: "Your subscription has been activated successfully! You now have access to all Pro features.",
+          duration: 8000,
         })
         localStorage.removeItem('pending_subscription_session')
         // Refresh subscription data
         window.location.reload()
       } else {
         console.warn('Failed to complete subscription:', data.error)
+        toast({
+          title: "Payment Successful! 🎉",
+          description: "Your payment was processed successfully. Your subscription will be activated shortly.",
+          duration: 5000,
+        })
       }
     } catch (error) {
       console.error('Error completing pending subscription:', error)
