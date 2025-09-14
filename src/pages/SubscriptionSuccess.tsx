@@ -28,8 +28,9 @@ const SubscriptionSuccess = () => {
     setLoading(false)
   }, [])
 
-  const goToDashboard = () => {
-    navigate('/dashboard')
+  const goToLogin = () => {
+    // Redirect to login page instead of dashboard to avoid auth issues
+    window.location.href = '/login'
   }
 
   if (loading) {
@@ -58,8 +59,8 @@ const SubscriptionSuccess = () => {
           </CardHeader>
           <CardContent>
             <p className="text-center text-gray-600 mb-4">{error}</p>
-            <Button onClick={goToDashboard} className="w-full">
-              Go to Dashboard
+            <Button onClick={goToLogin} className="w-full">
+              Go to Login
             </Button>
           </CardContent>
         </Card>
@@ -78,10 +79,10 @@ const SubscriptionSuccess = () => {
         </CardHeader>
         <CardContent>
           <p className="text-center text-gray-600 mb-4">
-            Your subscription has been activated successfully! You now have access to all Pro features.
+            Your payment was successful! Please log in to activate your Pro subscription and access all features.
           </p>
-          <Button onClick={goToDashboard} className="w-full">
-            Go to Dashboard
+          <Button onClick={goToLogin} className="w-full">
+            Go to Login
           </Button>
         </CardContent>
       </Card>
