@@ -23,10 +23,7 @@ const CreateShift = lazy(() => import("./pages/CreateShift"));
 const CreateSwapRequest = lazy(() => import("./pages/CreateSwapRequest"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Subscription = lazy(() => import("./pages/Subscription"));
-const TestSubscription = lazy(() => import("./pages/TestSubscription"));
-const TestAuth = lazy(() => import("./pages/TestAuth"));
-const TestRedirect = lazy(() => import("./pages/TestRedirect"));
-const TestSimple = lazy(() => import("./pages/TestSimple"));
+const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const DataSubjectRights = lazy(() => import("./pages/DataSubjectRights"));
 const SecurityDashboard = lazy(() => import("./pages/SecurityDashboard"));
@@ -120,10 +117,7 @@ const AppRoutes = () => (
       <Route path="/shifts/create" element={<ProtectedRoute><CreateShift /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
-      <Route path="/test-subscription" element={<ProtectedRoute><TestSubscription /></ProtectedRoute>} />
-      <Route path="/test-auth" element={<ProtectedRoute><TestAuth /></ProtectedRoute>} />
-      <Route path="/test-redirect" element={<ProtectedRoute><TestRedirect /></ProtectedRoute>} />
-      <Route path="/test-simple" element={<TestSimple />} />
+      <Route path="/subscription-success" element={<SubscriptionSuccess />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/data-rights" element={<ProtectedRoute><DataSubjectRights /></ProtectedRoute>} />
       <Route path="/security" element={<ProtectedRoute><SecurityDashboard /></ProtectedRoute>} />

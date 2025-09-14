@@ -45,77 +45,6 @@ const Subscription = () => {
 
   useEffect(() => {
     loadSubscriptionData()
-    
-    // Handle success/cancel parameters from Stripe redirect
-    const urlParams = new URLSearchParams(window.location.search)
-    const success = urlParams.get('success')
-    const cancelled = urlParams.get('cancelled')
-    const sessionId = urlParams.get('session_id')
-    
-    if (success === 'true' && sessionId) {
-      // Manually create subscription since webhook might not be working
-      try {
-        // Use the user from the hook
-        
-        if (user) {
-          const createResponse = await fetch('/api/create-subscription-manual', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              sessionId,
-              userId: user.id
-            })
-          })
-          
-          const createData = await createResponse.json()
-          
-          if (createData.success) {
-            toast({
-              title: "Payment Successful! 🎉",
-              description: "Your subscription has been activated successfully!",
-              duration: 5000,
-            })
-          } else {
-            toast({
-              title: "Payment Successful! 🎉",
-              description: "Your subscription is being activated. Please wait a moment...",
-              duration: 5000,
-            })
-          }
-        } else {
-          toast({
-            title: "Payment Successful! 🎉",
-            description: "Your subscription is being activated. Please wait a moment...",
-            duration: 5000,
-          })
-        }
-      } catch (error) {
-        console.error('Error creating subscription:', error)
-        toast({
-          title: "Payment Successful! 🎉",
-          description: "Your subscription is being activated. Please wait a moment...",
-          duration: 5000,
-        })
-      }
-      
-      // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname)
-      
-      // Refresh subscription data immediately
-      loadSubscriptionData()
-    } else if (cancelled === 'true') {
-      toast({
-        title: "Payment Cancelled",
-        description: "Your payment was cancelled. You can try again anytime.",
-        variant: "destructive",
-        duration: 5000,
-      })
-      
-      // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname)
-    }
   }, [])
 
   const loadSubscriptionData = async () => {
@@ -148,7 +77,29 @@ const Subscription = () => {
   const handleSubscribe = async (planId: string) => {
     try {
       setActionLoading(planId)
-      await createSubscription(planId)
+      
+      if (!user) {
+        throw new Error('User not authenticated')
+      }
+
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          userEmail: user.email
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error(data.error || 'Failed to create subscription')
+      }
     } catch (error) {
       console.error('Error creating subscription:', error)
       toast({
