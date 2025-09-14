@@ -70,8 +70,45 @@ const Dashboard = () => {
   useEffect(() => {
     if (user) {
       loadDashboardData()
+      
+      // Check for pending subscription
+      const pendingSession = localStorage.getItem('pending_subscription_session')
+      if (pendingSession) {
+        console.log('Found pending subscription session:', pendingSession)
+        // Try to complete the subscription
+        completePendingSubscription(pendingSession)
+      }
     }
   }, [user])
+
+  const completePendingSubscription = async (sessionId: string) => {
+    try {
+      const response = await fetch('/api/complete-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast({
+          title: "Subscription Activated! 🎉",
+          description: "Your Pro subscription is now active!",
+          duration: 5000,
+        })
+        localStorage.removeItem('pending_subscription_session')
+        // Refresh subscription data
+        window.location.reload()
+      } else {
+        console.warn('Failed to complete subscription:', data.error)
+      }
+    } catch (error) {
+      console.error('Error completing pending subscription:', error)
+    }
+  }
 
   // Handle subscription success redirect
   useEffect(() => {

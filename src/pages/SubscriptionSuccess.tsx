@@ -20,41 +20,12 @@ const SubscriptionSuccess = () => {
       return
     }
 
-    // Complete the subscription
-    const completeSubscription = async () => {
-      try {
-        console.log('Completing subscription for session:', sessionId)
-        
-        const response = await fetch('/api/complete-subscription', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ sessionId })
-        })
-
-        console.log('Response status:', response.status)
-        const data = await response.json()
-        console.log('Response data:', data)
-
-        if (data.success) {
-          setSuccess(true)
-        } else {
-          // Even if API fails, payment was successful, so show success
-          console.warn('API failed but payment was successful:', data.error)
-          setSuccess(true)
-        }
-      } catch (err) {
-        console.error('Error completing subscription:', err)
-        // Even if API fails, payment was successful, so show success
-        console.warn('API call failed but payment was successful')
-        setSuccess(true)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    completeSubscription()
+    // Since payment was successful, just show success immediately
+    // Store session ID for later processing when user logs back in
+    console.log('Payment successful for session:', sessionId)
+    localStorage.setItem('pending_subscription_session', sessionId)
+    setSuccess(true)
+    setLoading(false)
   }, [])
 
   const goToDashboard = () => {
