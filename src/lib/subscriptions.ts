@@ -122,9 +122,10 @@ export const getCurrentSubscription = async (): Promise<Subscription | null> => 
       .from('subscriptions')
       .select('*')
       .eq('user_id', user.id)
-      .eq('status', 'active')
-      .or('status.eq.trialing')
-      .maybeSingle() // Use maybeSingle() instead of single() to handle 0 rows gracefully
+      .in('status', ['active', 'trialing'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle() // Get the most recent active/trialing subscription
 
     if (error) {
       // Don't log PGRST116 errors (no rows found) as they're expected for new users
