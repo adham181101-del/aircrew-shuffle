@@ -27,12 +27,13 @@ import {
   Menu,
   RefreshCw,
   Shield,
-  FileText
+  FileText,
+  Lock
 } from 'lucide-react'
 import { PremiumCalculator } from '@/components/premium/PremiumCalculator'
 import { TeamView } from '@/components/team/TeamView'
 import { SubscriptionStatus } from '@/components/SubscriptionStatus'
-import { AccessControl } from '@/components/AccessControl'
+import { hasActiveSubscription } from '@/lib/subscriptions'
 import { supabase } from '@/integrations/supabase/client'
 import {
   AlertDialog,
@@ -66,6 +67,7 @@ const Dashboard = () => {
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false)
   const [deletingAll, setDeletingAll] = useState(false)
   const [incomingRequests, setIncomingRequests] = useState<any[]>([])
+  const [hasProAccess, setHasProAccess] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -177,6 +179,10 @@ const Dashboard = () => {
       };
       
       setStats(newStats);
+      
+      // Check if user has Pro access
+      const proAccess = await hasActiveSubscription()
+      setHasProAccess(proAccess)
 
     } catch (error) {
       toast({
@@ -459,27 +465,37 @@ const Dashboard = () => {
             Upload Roster
           </Button>
           
-          <AccessControl feature="swap">
-            <Button
-              onClick={() => navigate('/swaps/create')}
-              variant="outline"
-              className="flex items-center justify-center h-16 border border-gray-300 hover:border-blue-500 hover:bg-blue-50 font-medium rounded-lg transition-all duration-200"
-            >
-              <ArrowRightLeft className="h-5 w-5 mr-2" />
-              Request Swap
-            </Button>
-          </AccessControl>
+          <Button
+            onClick={() => hasProAccess ? navigate('/swaps/create') : navigate('/subscription')}
+            variant="outline"
+            className={`flex items-center justify-center h-16 border border-gray-300 font-medium rounded-lg transition-all duration-200 relative ${
+              hasProAccess 
+                ? 'hover:border-blue-500 hover:bg-blue-50' 
+                : 'opacity-60 cursor-pointer hover:opacity-80'
+            }`}
+          >
+            <ArrowRightLeft className="h-5 w-5 mr-2" />
+            Request Swap
+            {!hasProAccess && (
+              <Lock className="h-4 w-4 ml-2 text-gray-500" />
+            )}
+          </Button>
           
-          <AccessControl feature="swap">
-            <Button
-              onClick={() => navigate('/swaps')}
-              variant="outline"
-              className="flex items-center justify-center h-16 border border-gray-300 hover:border-blue-500 hover:bg-blue-50 font-medium rounded-lg transition-all duration-200"
-            >
-              <ArrowRightLeft className="h-5 w-5 mr-2" />
-              Manage Swaps
-            </Button>
-          </AccessControl>
+          <Button
+            onClick={() => hasProAccess ? navigate('/swaps') : navigate('/subscription')}
+            variant="outline"
+            className={`flex items-center justify-center h-16 border border-gray-300 font-medium rounded-lg transition-all duration-200 relative ${
+              hasProAccess 
+                ? 'hover:border-blue-500 hover:bg-blue-50' 
+                : 'opacity-60 cursor-pointer hover:opacity-80'
+            }`}
+          >
+            <ArrowRightLeft className="h-5 w-5 mr-2" />
+            Manage Swaps
+            {!hasProAccess && (
+              <Lock className="h-4 w-4 ml-2 text-gray-500" />
+            )}
+          </Button>
         </div>
 
         {/* Mobile Sign Out Button */}
