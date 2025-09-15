@@ -41,8 +41,8 @@ export default async function handler(req, res) {
         trial_period_days: 30,
         metadata: { user_id: userId }
       },
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://aircrew-shuffle.vercel.app'}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://aircrew-shuffle.vercel.app'}/subscription`,
+      success_url: `https://aircrew-shuffle.vercel.app/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://aircrew-shuffle.vercel.app/subscription`,
       metadata: { user_id: userId }
     })
 
