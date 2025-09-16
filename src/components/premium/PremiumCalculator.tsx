@@ -58,7 +58,6 @@ export const PremiumCalculator = () => {
   const [loading, setLoading] = useState(true)
   const [totals, setTotals] = useState({
     totalShifts: 0,
-    totalPremiumShifts: 0,
     totalPremiumAmount: 0,
     totalHours: 0
   })
@@ -246,6 +245,7 @@ export const PremiumCalculator = () => {
     let totalPremiumAmount = 0
     let totalHours = 0
 
+    // For British Airways, ALL shifts are premium shifts
     periodShifts.forEach(shift => {
       const baseHours = calculateShiftHours(shift.time)
       totalHours += baseHours
@@ -258,22 +258,20 @@ export const PremiumCalculator = () => {
       const allowances = determineShiftAllowances(shift, { applyTimePremiums: true })
       const premiumAmount = allowances.amount
       
-      if (premiumAmount > 0) {
-        premiumShiftsData.push({
-          shift,
-          premiumLabels: allowances.labels,
-          baseHours,
-          premiumAmount,
-          lineItems: allowances.items
-        })
-        totalPremiumAmount += premiumAmount
-      }
+      // All shifts are premium shifts for British Airways
+      premiumShiftsData.push({
+        shift,
+        premiumLabels: allowances.labels,
+        baseHours,
+        premiumAmount,
+        lineItems: allowances.items
+      })
+      totalPremiumAmount += premiumAmount
     })
 
     setPremiumShifts(premiumShiftsData)
     setTotals({
       totalShifts: periodShifts.length,
-      totalPremiumShifts: premiumShiftsData.length,
       totalPremiumAmount,
       totalHours
     })
@@ -317,7 +315,7 @@ export const PremiumCalculator = () => {
             </div>
             <div>
               <CardTitle className="text-2xl text-gray-900">Premium Pay Calculator</CardTitle>
-              <p className="text-gray-600">Calculate your shift premiums and allowances</p>
+              <p className="text-gray-600">Calculate your shift premiums and allowances - All British Airways shifts are premium shifts</p>
             </div>
           </div>
         </CardHeader>
@@ -344,20 +342,7 @@ export const PremiumCalculator = () => {
 
       {/* Summary Stats */}
       {selectedPeriod && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-semibold text-purple-800">Premium Shifts</CardTitle>
-              <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-purple-900">{totals.totalPremiumShifts}</div>
-              <p className="text-xs text-purple-600 mt-1">With premiums</p>
-            </CardContent>
-          </Card>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-semibold text-orange-800">Total Hours</CardTitle>
@@ -386,7 +371,7 @@ export const PremiumCalculator = () => {
         </div>
       )}
 
-      {/* Premium Shifts Breakdown */}
+      {/* All Shifts Breakdown */}
       {premiumShifts.length > 0 && (
         <Card className="bg-white shadow-xl border border-gray-100">
           <CardHeader className="bg-gradient-to-r from-gray-50 to-green-50 border-b border-gray-100 rounded-t-2xl">
@@ -394,7 +379,7 @@ export const PremiumCalculator = () => {
               <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
                 <TrendingUp className="h-5 w-5 text-white" />
               </div>
-              <CardTitle className="text-xl text-gray-900">Premium Shifts Breakdown</CardTitle>
+              <CardTitle className="text-xl text-gray-900">All Shifts Breakdown</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-6">
