@@ -32,37 +32,37 @@ CREATE POLICY "Service can delete subscriptions"
   USING (true);
 
 -- (Optional) basic user-scoped policies if user_id column exists
-DO $$
+DO $block$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='subscriptions' AND column_name='user_id'
   ) THEN
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions' AND policyname='Users can view own subscription') THEN
-      EXECUTE $$CREATE POLICY "Users can view own subscription"
+      EXECUTE 'CREATE POLICY "Users can view own subscription"
         ON public.subscriptions FOR SELECT TO authenticated
-        USING (auth.uid() = user_id)$$;
+        USING (auth.uid() = user_id)';
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions' AND policyname='Users can update own subscription') THEN
-      EXECUTE $$CREATE POLICY "Users can update own subscription"
+      EXECUTE 'CREATE POLICY "Users can update own subscription"
         ON public.subscriptions FOR UPDATE TO authenticated
         USING (auth.uid() = user_id)
-        WITH CHECK (auth.uid() = user_id)$$;
+        WITH CHECK (auth.uid() = user_id)';
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions' AND policyname='Service can insert subscriptions') THEN
-      EXECUTE $$CREATE POLICY "Service can insert subscriptions"
+      EXECUTE 'CREATE POLICY "Service can insert subscriptions"
         ON public.subscriptions FOR INSERT TO service_role
-        WITH CHECK (true)$$;
+        WITH CHECK (true)';
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='subscriptions' AND policyname='Service can update subscriptions') THEN
-      EXECUTE $$CREATE POLICY "Service can update subscriptions"
+      EXECUTE 'CREATE POLICY "Service can update subscriptions"
         ON public.subscriptions FOR UPDATE TO service_role
-        USING (true) WITH CHECK (true)$$;
+        USING (true) WITH CHECK (true)';
     END IF;
   END IF;
-END $$;
+END $block$;
 
 COMMIT;
