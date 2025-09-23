@@ -1,7 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 
 // Your Supabase configuration
-const supabaseUrl = 'https://htlwfdoxsfjehiblsjed.supabase.co';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://htlwfdoxsfjehiblsjed.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // You'll need to set this
 
 if (!supabaseKey) {

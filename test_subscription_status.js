@@ -1,8 +1,8 @@
 // Test script to check subscription status
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = 'https://htlwfdoxsfjehiblsjed.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0bHdmZG94c2ZqZWhpYmxzamVkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTYxMTMzMSwiZXhwIjoyMDcxMTg3MzMxfQ.g0PdBhI-A3WvxVUvt57KmGHp2wDPgX0awKsbNPVcJtI'
+const supabaseUrl = process.env.SUPABASE_URL || 'https://htlwfdoxsfjehiblsjed.supabase.co'
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0bHdmZG94c2ZqZWhpYmxzamVkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTYxMTMzMSwiZXhwIjoyMDcxMTg3MzMxfQ.g0PdBhI-A3WvxVUvt57KmGHp2wDPgX0awKsbNPVcJtI'
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
