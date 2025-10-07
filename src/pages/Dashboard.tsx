@@ -180,11 +180,13 @@ const Dashboard = () => {
       }
       
       const userShifts = await getUserShifts(currentUser.id)
+      console.log('Dashboard: Loaded shifts from database:', userShifts.length, 'shifts')
+      console.log('Dashboard: Shift data:', userShifts)
       setShifts(userShifts)
       
       // Also refresh calendar shifts if calendar is available
       if (typeof window !== 'undefined' && (window as any).refreshCalendarShifts) {
-        console.log('Refreshing calendar shifts from loadDashboardData...')
+        console.log('Dashboard: Refreshing calendar shifts from loadDashboardData...')
         setTimeout(() => {
           (window as any).refreshCalendarShifts()
         }, 500)

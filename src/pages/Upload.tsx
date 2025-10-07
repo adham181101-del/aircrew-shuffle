@@ -173,6 +173,7 @@ const UploadPage = () => {
       }
 
       console.log('Upload summary - Created:', createdCount, 'Errors:', errorCount);
+      console.log('All processed shifts:', shifts);
 
       setProcessingStep('complete');
       
@@ -185,12 +186,24 @@ const UploadPage = () => {
         title: "Success!",
         description: description,
       });
+
+      // Test: Try to fetch shifts immediately after upload to verify they're saved
+      setTimeout(async () => {
+        try {
+          console.log('Testing: Fetching shifts immediately after upload...');
+          const testShifts = await getUserShifts(user.id);
+          console.log('Immediate fetch result:', testShifts.length, 'shifts found');
+          console.log('Immediate fetch data:', testShifts);
+        } catch (error) {
+          console.error('Error fetching shifts immediately:', error);
+        }
+      }, 1000);
       
       // Force a complete page reload to ensure calendar refreshes
       setTimeout(() => {
         console.log('Redirecting to dashboard with full reload...');
         window.location.href = '/dashboard';
-      }, 2000);
+      }, 3000);
       
     } catch (error) {
       toast({
