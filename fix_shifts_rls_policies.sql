@@ -6,7 +6,7 @@ SELECT
     schemaname,
     tablename,
     rowsecurity as rls_enabled,
-    hasrls
+    hasrules
 FROM pg_tables 
 WHERE tablename = 'shifts';
 
