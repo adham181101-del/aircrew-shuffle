@@ -78,16 +78,21 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
 
   // Function to refresh shifts (can be called from parent component)
   const refreshShifts = async () => {
+    console.log('ShiftCalendar: refreshShifts called, user:', user?.id)
     if (user) {
       setLoading(true)
       try {
+        console.log('ShiftCalendar: Fetching shifts for user:', user.id)
         const userShifts = await getUserShifts(user.id)
+        console.log('ShiftCalendar: Fetched shifts:', userShifts.length)
         setShifts(userShifts)
       } catch (error) {
         console.error('Error refreshing shifts:', error)
       } finally {
         setLoading(false)
       }
+    } else {
+      console.log('ShiftCalendar: No user found for refresh')
     }
   }
 

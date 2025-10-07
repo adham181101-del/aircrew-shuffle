@@ -625,5 +625,6 @@ export const parseShiftsFromText = (text: string): Array<{date: string, time: st
 
 
   console.log('Total valid shifts found:', shifts.length)
+  console.log('Final shifts array:', shifts)
   return shifts
 }
