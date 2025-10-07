@@ -83,6 +83,34 @@ const Dashboard = () => {
     }
   }, [user])
 
+  // Handle refresh parameter from PDF upload
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    console.log('Dashboard URL params:', window.location.search)
+    if (urlParams.get('refresh') === 'true') {
+      console.log('Refresh parameter detected - triggering calendar refresh')
+      // Clear the URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname)
+      
+      // Refresh calendar shifts if available
+      if (typeof window !== 'undefined' && (window as any).refreshCalendarShifts) {
+        console.log('Calling refreshCalendarShifts function...')
+        setTimeout(() => {
+          (window as any).refreshCalendarShifts()
+          console.log('refreshCalendarShifts called')
+        }, 1000) // Small delay to ensure calendar is mounted
+      } else {
+        console.log('refreshCalendarShifts function not available')
+      }
+      
+      // Also refresh dashboard stats
+      setTimeout(() => {
+        console.log('Refreshing dashboard stats...')
+        refreshDashboardStats()
+      }, 1500)
+    }
+  }, [])
+
   const completePendingSubscription = async (sessionId: string) => {
     try {
       const response = await fetch('/api/complete-subscription', {
@@ -153,6 +181,14 @@ const Dashboard = () => {
       
       const userShifts = await getUserShifts(currentUser.id)
       setShifts(userShifts)
+      
+      // Also refresh calendar shifts if calendar is available
+      if (typeof window !== 'undefined' && (window as any).refreshCalendarShifts) {
+        console.log('Refreshing calendar shifts from loadDashboardData...')
+        setTimeout(() => {
+          (window as any).refreshCalendarShifts()
+        }, 500)
+      }
       
       // Fetch incoming requests using getCurrentUser ID (EXACT SAME AS MANAGESWAPS)
       const incomingRequestsData = await loadIncomingRequests(currentUser.id)

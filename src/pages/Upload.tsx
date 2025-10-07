@@ -155,17 +155,24 @@ const UploadPage = () => {
       let createdCount = 0;
       let errorCount = 0;
 
+      console.log('Processing shifts:', shifts.length, 'total shifts');
+      console.log('User ID:', user.id);
+
       for (const shift of shifts) {
         try {
+          console.log('Processing shift:', shift);
           const result = await upsertShift(shift.date, shift.time, user.id);
+          console.log('Upsert result:', result);
           if (result.action === 'created') {
             createdCount++;
           }
         } catch (error) {
-          console.warn('Failed to process shift:', shift, error);
+          console.error('Failed to process shift:', shift, error);
           errorCount++;
         }
       }
+
+      console.log('Upload summary - Created:', createdCount, 'Errors:', errorCount);
 
       setProcessingStep('complete');
       
@@ -179,9 +186,10 @@ const UploadPage = () => {
         description: description,
       });
       
-      // Redirect to dashboard after 2 seconds
+      // Force a complete page reload to ensure calendar refreshes
       setTimeout(() => {
-        navigate('/dashboard');
+        console.log('Redirecting to dashboard with full reload...');
+        window.location.href = '/dashboard';
       }, 2000);
       
     } catch (error) {
