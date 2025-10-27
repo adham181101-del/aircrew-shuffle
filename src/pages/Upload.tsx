@@ -16,6 +16,8 @@ const UploadPage = () => {
   const [extractedShifts, setExtractedShifts] = useState<Array<{date: string, time: string}>>([]);
   const [processingStep, setProcessingStep] = useState<'upload' | 'extract' | 'save' | 'complete'>('upload');
 
+  console.log('🚀 UPLOAD PAGE LOADED - CONSOLE IS WORKING!');
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);

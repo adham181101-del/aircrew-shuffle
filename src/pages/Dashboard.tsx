@@ -69,6 +69,8 @@ const Dashboard = () => {
   const [incomingRequests, setIncomingRequests] = useState<any[]>([])
   const [hasProAccess, setHasProAccess] = useState(false)
 
+  console.log('🏠 DASHBOARD PAGE LOADED - CONSOLE IS WORKING!');
+
   useEffect(() => {
     if (user) {
       loadDashboardData()
