@@ -24,6 +24,17 @@ export const AccessControl = ({ children, feature, fallback }: AccessControlProp
 
   const checkAccess = async () => {
     try {
+      // TEMPORARY: Grant access to all users during development/testing
+      const TEMPORARY_PRO_ACCESS = true
+      
+      if (TEMPORARY_PRO_ACCESS) {
+        console.log('🚀 TEMPORARY PRO ACCESS - Granting access to', feature)
+        setHasAccess(true)
+        setAccessLevel('paid') // Show as paid user
+        setLoading(false)
+        return
+      }
+
       const [swapAccess, userAccessLevel] = await Promise.all([
         hasSwapAccess(),
         getUserAccessLevel()

@@ -37,6 +37,32 @@ export const SubscriptionStatus = ({ showUpgradeButton = true, className = '' }:
 
   const loadSubscriptionStatus = async () => {
     try {
+      // TEMPORARY: Show Pro access for all users during development/testing
+      const TEMPORARY_PRO_ACCESS = true
+      
+      if (TEMPORARY_PRO_ACCESS) {
+        console.log('🚀 TEMPORARY PRO ACCESS - Showing Pro status')
+        setHasActive(true)
+        setInTrial(false)
+        setTrialDays(null)
+        // Create a mock subscription to show Pro status
+        setSubscription({
+          id: 'temp-pro',
+          user_id: 'temp',
+          stripe_subscription_id: 'temp',
+          status: 'active',
+          plan_id: 'pro',
+          plan_name: 'Pro Plan (Temporary)',
+          current_period_start: new Date().toISOString(),
+          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+          trial_end: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        setLoading(false)
+        return
+      }
+
       const [currentSubscription, hasActiveSub, trialDaysRemaining, trialStatus] = await Promise.all([
         getCurrentSubscription(),
         hasActiveSubscription(),

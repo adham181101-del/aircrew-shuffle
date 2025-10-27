@@ -282,6 +282,14 @@ export const hasPremiumAccess = async (): Promise<boolean> => {
  * Get user's access level
  */
 export const getUserAccessLevel = async (): Promise<'free' | 'trial' | 'paid'> => {
+  // TEMPORARY: Grant paid access to all users during development/testing
+  const TEMPORARY_PRO_ACCESS = true
+  
+  if (TEMPORARY_PRO_ACCESS) {
+    console.log('🚀 TEMPORARY PRO ACCESS - Returning paid access level')
+    return 'paid'
+  }
+
   const subscription = await getCurrentSubscription()
   const inTrial = await isInTrial()
   const hasActive = await hasActiveSubscription()
