@@ -174,6 +174,13 @@ const Dashboard = () => {
     try {
       setLoading(true)
       
+      // TEMPORARY: Always grant Pro access during development/testing
+      const TEMPORARY_PRO_ACCESS = true
+      setHasProAccess(TEMPORARY_PRO_ACCESS)
+      if (TEMPORARY_PRO_ACCESS) {
+        console.log('🚀 DASHBOARD: TEMPORARY PRO ACCESS ENABLED (OFFLINE MODE)')
+      }
+      
       // Use getCurrentUser() to match ManageSwaps approach
       const currentUser = await getCurrentUser();
       if (!currentUser) {
@@ -220,9 +227,16 @@ const Dashboard = () => {
       
       setStats(newStats);
       
-      // Check if user has Pro access
-      const proAccess = await hasActiveSubscription()
-      setHasProAccess(proAccess)
+      // Only check Pro access if not using temporary mode
+      if (!TEMPORARY_PRO_ACCESS) {
+        try {
+          const proAccess = await hasActiveSubscription()
+          setHasProAccess(proAccess)
+        } catch (error) {
+          console.log('Supabase connection failed in Dashboard, using temporary Pro access:', error)
+          setHasProAccess(true)
+        }
+      }
 
     } catch (error) {
       toast({
