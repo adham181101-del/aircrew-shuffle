@@ -151,27 +151,32 @@ export const hasActiveSubscription = async (): Promise<boolean> => {
   const TEMPORARY_PRO_ACCESS = true
   
   if (TEMPORARY_PRO_ACCESS) {
-    console.log('🚀 TEMPORARY PRO ACCESS ENABLED - All users have Pro features')
+    console.log('🚀 TEMPORARY PRO ACCESS ENABLED - All users have Pro features (OFFLINE MODE)')
     return true
   }
 
-  const subscription = await getCurrentSubscription()
-  if (!subscription) return false
+  try {
+    const subscription = await getCurrentSubscription()
+    if (!subscription) return false
 
-  const now = new Date()
-  const trialEnd = subscription.trial_end ? new Date(subscription.trial_end) : null
-  const periodEnd = new Date(subscription.current_period_end)
+    const now = new Date()
+    const trialEnd = subscription.trial_end ? new Date(subscription.trial_end) : null
+    const periodEnd = new Date(subscription.current_period_end)
 
-  // Check if subscription is active or in trial
-  if (subscription.status === 'active') {
-    return periodEnd > now
+    // Check if subscription is active or in trial
+    if (subscription.status === 'active') {
+      return periodEnd > now
+    }
+
+    if (subscription.status === 'trialing' && trialEnd) {
+      return trialEnd > now
+    }
+
+    return false
+  } catch (error) {
+    console.log('Supabase connection failed, using temporary Pro access:', error)
+    return true // Fallback to Pro access if Supabase is down
   }
-
-  if (subscription.status === 'trialing' && trialEnd) {
-    return trialEnd > now
-  }
-
-  return false
 }
 
 /**
@@ -259,10 +264,17 @@ export const hasSwapAccess = async (): Promise<boolean> => {
   // TEMPORARY: Grant swap access to all users during development/testing
   const TEMPORARY_PRO_ACCESS = true
   if (TEMPORARY_PRO_ACCESS) {
+    console.log('🚀 TEMPORARY PRO ACCESS - Swap access granted (OFFLINE MODE)')
     return true
   }
-  const hasActive = await hasActiveSubscription()
-  return hasActive
+  
+  try {
+    const hasActive = await hasActiveSubscription()
+    return hasActive
+  } catch (error) {
+    console.log('Supabase connection failed, using temporary swap access:', error)
+    return true // Fallback to Pro access if Supabase is down
+  }
 }
 
 /**
@@ -272,10 +284,17 @@ export const hasPremiumAccess = async (): Promise<boolean> => {
   // TEMPORARY: Grant premium access to all users during development/testing
   const TEMPORARY_PRO_ACCESS = true
   if (TEMPORARY_PRO_ACCESS) {
+    console.log('🚀 TEMPORARY PRO ACCESS - Premium access granted (OFFLINE MODE)')
     return true
   }
-  const hasActive = await hasActiveSubscription()
-  return hasActive
+  
+  try {
+    const hasActive = await hasActiveSubscription()
+    return hasActive
+  } catch (error) {
+    console.log('Supabase connection failed, using temporary premium access:', error)
+    return true // Fallback to Pro access if Supabase is down
+  }
 }
 
 /**
@@ -286,20 +305,25 @@ export const getUserAccessLevel = async (): Promise<'free' | 'trial' | 'paid'> =
   const TEMPORARY_PRO_ACCESS = true
   
   if (TEMPORARY_PRO_ACCESS) {
-    console.log('🚀 TEMPORARY PRO ACCESS - Returning paid access level')
+    console.log('🚀 TEMPORARY PRO ACCESS - Returning paid access level (OFFLINE MODE)')
     return 'paid'
   }
 
-  const subscription = await getCurrentSubscription()
-  const inTrial = await isInTrial()
-  const hasActive = await hasActiveSubscription()
-  
-  if (hasActive && subscription?.status === 'active') {
-    return 'paid'
-  } else if (inTrial) {
-    return 'trial'
-  } else {
-    return 'free'
+  try {
+    const subscription = await getCurrentSubscription()
+    const inTrial = await isInTrial()
+    const hasActive = await hasActiveSubscription()
+    
+    if (hasActive && subscription?.status === 'active') {
+      return 'paid'
+    } else if (inTrial) {
+      return 'trial'
+    } else {
+      return 'free'
+    }
+  } catch (error) {
+    console.log('Supabase connection failed, using temporary paid access level:', error)
+    return 'paid' // Fallback to paid access if Supabase is down
   }
 }
 

@@ -28,7 +28,7 @@ export const AccessControl = ({ children, feature, fallback }: AccessControlProp
       const TEMPORARY_PRO_ACCESS = true
       
       if (TEMPORARY_PRO_ACCESS) {
-        console.log('🚀 TEMPORARY PRO ACCESS - Granting access to', feature)
+        console.log('🚀 TEMPORARY PRO ACCESS - Granting access to', feature, '(OFFLINE MODE)')
         setHasAccess(true)
         setAccessLevel('paid') // Show as paid user
         setLoading(false)
@@ -48,8 +48,10 @@ export const AccessControl = ({ children, feature, fallback }: AccessControlProp
         setHasAccess(swapAccess) // Same access level for now
       }
     } catch (error) {
-      console.error('Error checking access:', error)
-      setHasAccess(false)
+      console.error('Error checking access, using temporary Pro access:', error)
+      // Fallback to Pro access if Supabase is down
+      setHasAccess(true)
+      setAccessLevel('paid')
     } finally {
       setLoading(false)
     }

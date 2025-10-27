@@ -41,7 +41,7 @@ export const SubscriptionStatus = ({ showUpgradeButton = true, className = '' }:
       const TEMPORARY_PRO_ACCESS = true
       
       if (TEMPORARY_PRO_ACCESS) {
-        console.log('🚀 TEMPORARY PRO ACCESS - Showing Pro status')
+        console.log('🚀 TEMPORARY PRO ACCESS - Showing Pro status (OFFLINE MODE)')
         setHasActive(true)
         setInTrial(false)
         setTrialDays(null)
@@ -75,8 +75,24 @@ export const SubscriptionStatus = ({ showUpgradeButton = true, className = '' }:
       setTrialDays(trialDaysRemaining)
       setInTrial(trialStatus)
     } catch (error) {
-      // Silently handle subscription errors - they're expected for new users
-      console.log('No subscription found - user is on free plan')
+      // Fallback to temporary Pro access if Supabase is down
+      console.log('Supabase connection failed, using temporary Pro access:', error)
+      setHasActive(true)
+      setInTrial(false)
+      setTrialDays(null)
+      setSubscription({
+        id: 'temp-pro-offline',
+        user_id: 'temp',
+        stripe_subscription_id: 'temp',
+        status: 'active',
+        plan_id: 'pro',
+        plan_name: 'Pro Plan (Offline Mode)',
+        current_period_start: new Date().toISOString(),
+        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        trial_end: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
     } finally {
       setLoading(false)
     }
