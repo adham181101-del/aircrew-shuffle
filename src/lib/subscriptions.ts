@@ -146,6 +146,15 @@ export const getCurrentSubscription = async (): Promise<Subscription | null> => 
  * Check if user has active subscription or is in trial
  */
 export const hasActiveSubscription = async (): Promise<boolean> => {
+  // TEMPORARY: Grant Pro access to all users during development/testing
+  // TODO: Remove this before production
+  const TEMPORARY_PRO_ACCESS = true
+  
+  if (TEMPORARY_PRO_ACCESS) {
+    console.log('🚀 TEMPORARY PRO ACCESS ENABLED - All users have Pro features')
+    return true
+  }
+
   const subscription = await getCurrentSubscription()
   if (!subscription) return false
 
@@ -247,6 +256,11 @@ export const getSubscriptionPlans = (): SubscriptionPlan[] => {
  * Check if user has access to shift swapping
  */
 export const hasSwapAccess = async (): Promise<boolean> => {
+  // TEMPORARY: Grant swap access to all users during development/testing
+  const TEMPORARY_PRO_ACCESS = true
+  if (TEMPORARY_PRO_ACCESS) {
+    return true
+  }
   const hasActive = await hasActiveSubscription()
   return hasActive
 }
@@ -255,6 +269,11 @@ export const hasSwapAccess = async (): Promise<boolean> => {
  * Check if user has access to premium features
  */
 export const hasPremiumAccess = async (): Promise<boolean> => {
+  // TEMPORARY: Grant premium access to all users during development/testing
+  const TEMPORARY_PRO_ACCESS = true
+  if (TEMPORARY_PRO_ACCESS) {
+    return true
+  }
   const hasActive = await hasActiveSubscription()
   return hasActive
 }
