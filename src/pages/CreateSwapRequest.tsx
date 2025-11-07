@@ -560,16 +560,19 @@ const CreateSwapRequest = () => {
                                       <Badge 
                                         key={staff.id} 
                                         variant="secondary"
-                                        className="bg-white text-blue-800 border-blue-200 px-4 py-2 text-sm font-medium hover:bg-blue-50 transition-colors"
+                                        className="bg-white text-blue-800 border-blue-200 px-3 py-2 text-sm font-medium hover:bg-blue-50 transition-colors"
                                       >
                                         <div className="flex items-center space-x-2">
                                           <span className="font-semibold">{staff.staff_number}</span>
-                                          <span>•</span>
-                                          <span>{staff.email.split('@')[0]}</span>
+                                          {/* Desktop: Show email and doubles info */}
+                                          <span className="hidden md:inline">•</span>
+                                          <span className="hidden md:inline">{staff.email.split('@')[0]}</span>
                                           {staff.can_work_doubles && (
                                             <>
-                                              <span>•</span>
-                                              <span className="text-green-600">Can do doubles</span>
+                                              <span className="hidden md:inline">•</span>
+                                              <span className="hidden md:inline text-green-600">Can do doubles</span>
+                                              {/* Mobile: Show doubles indicator only */}
+                                              <span className="md:hidden text-green-600 text-xs">2x</span>
                                             </>
                                           )}
                                         </div>
@@ -756,16 +759,19 @@ const CreateSwapRequest = () => {
                                       <Badge 
                                         key={staff.id} 
                                         variant="secondary"
-                                        className="bg-white text-purple-800 border-purple-200 px-4 py-2 text-sm font-medium hover:bg-purple-50 transition-colors"
+                                        className="bg-white text-purple-800 border-purple-200 px-3 py-2 text-sm font-medium hover:bg-purple-50 transition-colors"
                                       >
                                         <div className="flex items-center space-x-2">
                                           <span className="font-semibold">{staff.staff_number}</span>
-                                          <span>•</span>
-                                          <span>{staff.email.split('@')[0]}</span>
+                                          {/* Desktop: Show email and doubles info */}
+                                          <span className="hidden md:inline">•</span>
+                                          <span className="hidden md:inline">{staff.email.split('@')[0]}</span>
                                           {staff.can_work_doubles && (
                                             <>
-                                              <span>•</span>
-                                              <span className="text-green-600">Can do doubles</span>
+                                              <span className="hidden md:inline">•</span>
+                                              <span className="hidden md:inline text-green-600">Can do doubles</span>
+                                              {/* Mobile: Show doubles indicator only */}
+                                              <span className="md:hidden text-green-600 text-xs">2x</span>
                                             </>
                                           )}
                                         </div>
