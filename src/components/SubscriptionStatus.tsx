@@ -152,7 +152,13 @@ export const SubscriptionStatus = ({ showUpgradeButton = true, className = '' }:
   }
 
   const getStatusText = () => {
-    if (inTrial && trialDays !== null) {
+    // TEMPORARY: Always show Active during TEMPORARY_PRO_ACCESS
+    const TEMPORARY_PRO_ACCESS = true
+    if (TEMPORARY_PRO_ACCESS && subscription?.status === 'active') {
+      return 'Active'
+    }
+    
+    if (inTrial && trialDays !== null && trialDays > 0) {
       return `Trial: ${trialDays} days left`
     }
     
@@ -160,6 +166,10 @@ export const SubscriptionStatus = ({ showUpgradeButton = true, className = '' }:
       case 'active':
         return 'Active'
       case 'trialing':
+        // Check if trial has expired
+        if (subscription.trial_end && new Date(subscription.trial_end) <= new Date()) {
+          return 'Trial Expired'
+        }
         return 'Trial Active'
       case 'past_due':
         return 'Payment Due'
