@@ -22,7 +22,7 @@ interface PayPeriod {
   payDate: string
 }
 
-// BA Pay Calendar 2025 data from your image
+// BA Pay Calendar 2025 - Official British Airways Pay Calendar
 const PAY_CALENDAR_2025: PayPeriod[] = [
   { month: 'Jan-25', cutoffDate: '2025-01-15', payDate: '2025-01-30' },
   { month: 'Feb-25', cutoffDate: '2025-02-12', payDate: '2025-02-27' },
@@ -33,7 +33,7 @@ const PAY_CALENDAR_2025: PayPeriod[] = [
   { month: 'Jul-25', cutoffDate: '2025-07-14', payDate: '2025-07-30' },
   { month: 'Aug-25', cutoffDate: '2025-08-11', payDate: '2025-08-28' },
   { month: 'Sep-25', cutoffDate: '2025-09-12', payDate: '2025-09-29' },
-  { month: 'Oct-25', cutoffDate: '2025-10-31', payDate: '2025-11-15' }, // Updated: Cutoff is end of month based on payslip
+  { month: 'Oct-25', cutoffDate: '2025-10-15', payDate: '2025-10-30' },
   { month: 'Nov-25', cutoffDate: '2025-11-12', payDate: '2025-11-27' },
   { month: 'Dec-25', cutoffDate: '2025-12-08', payDate: '2025-12-24' }
 ]
@@ -78,6 +78,7 @@ export const PremiumCalculator = () => {
   const [premiumTally, setPremiumTally] = useState<PremiumTally[]>([])
   const [selectedPremium, setSelectedPremium] = useState<PremiumTally | null>(null)
   const [loading, setLoading] = useState(true)
+  const [periodDateRange, setPeriodDateRange] = useState<{ start: Date; end: Date } | null>(null)
   const [totals, setTotals] = useState({
     totalShifts: 0,
     totalPremiumAmount: 0,
@@ -243,12 +244,28 @@ export const PremiumCalculator = () => {
     if (!period) return
 
     const cutoffDate = new Date(period.cutoffDate)
+    cutoffDate.setHours(23, 59, 59, 999) // Include the entire cutoff date
+    
+    // Calculate start date: day after previous cutoff (or start of period if first period)
     const previousPeriod = PAY_CALENDAR_2025[PAY_CALENDAR_2025.indexOf(period) - 1]
-    const startDate = previousPeriod ? new Date(previousPeriod.cutoffDate) : new Date(cutoffDate.getFullYear(), cutoffDate.getMonth() - 1, cutoffDate.getDate())
+    let startDate: Date
+    if (previousPeriod) {
+      startDate = new Date(previousPeriod.cutoffDate)
+      startDate.setDate(startDate.getDate() + 1) // Start from day after previous cutoff
+      startDate.setHours(0, 0, 0, 0) // Start of day
+    } else {
+      // For first period, use cutoff date minus one month
+      startDate = new Date(cutoffDate.getFullYear(), cutoffDate.getMonth() - 1, cutoffDate.getDate())
+      startDate.setHours(0, 0, 0, 0)
+    }
 
+    // Store period date range for display
+    setPeriodDateRange({ start: startDate, end: cutoffDate })
+
+    // Filter shifts: from startDate (inclusive) to cutoffDate (inclusive)
     const periodShifts = shifts.filter(shift => {
       const shiftDate = new Date(`${shift.date}T00:00:00`)
-      return shiftDate > startDate && shiftDate <= cutoffDate
+      return shiftDate >= startDate && shiftDate <= cutoffDate
     })
 
     // Determine which dates are double-shift days (2+ shifts on the same date)
@@ -404,6 +421,23 @@ export const PremiumCalculator = () => {
               </Select>
             </div>
           </div>
+          {periodDateRange && selectedPeriod && (() => {
+            const currentPeriod = PAY_CALENDAR_2025.find(p => p.month === selectedPeriod)
+            return currentPeriod ? (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-blue-900">
+                  <Calendar className="h-4 w-4" />
+                  <span className="font-semibold">Pay Period Range:</span>
+                  <span>
+                    {format(periodDateRange.start, 'd MMM yyyy')} - {format(periodDateRange.end, 'd MMM yyyy')}
+                  </span>
+                  <span className="text-blue-600">
+                    (Cutoff: {format(new Date(currentPeriod.cutoffDate), 'd MMM yyyy')})
+                  </span>
+                </div>
+              </div>
+            ) : null
+          })()}
         </CardContent>
       </Card>
 
