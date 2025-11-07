@@ -6,7 +6,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getUserShifts, type Shift, getShiftTimeOfDay } from '@/lib/shifts'
 import { getCurrentUser } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
-import { Calendar, DollarSign, TrendingUp, Clock } from 'lucide-react'
+import { Calendar, DollarSign, TrendingUp, Clock, X, ChevronRight } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { format } from 'date-fns'
 
 interface PayPeriod {
   month: string
@@ -50,11 +58,25 @@ interface PremiumShift {
   lineItems: Array<{ label: string; amount: number }>
 }
 
+interface PremiumTally {
+  premiumType: string
+  count: number
+  totalAmount: number
+  occurrences: Array<{
+    date: string
+    time: string
+    amount: number
+    shiftId: string
+  }>
+}
+
 export const PremiumCalculator = () => {
   const { toast } = useToast()
   const [shifts, setShifts] = useState<Shift[]>([])
   const [selectedPeriod, setSelectedPeriod] = useState<string>('')
   const [premiumShifts, setPremiumShifts] = useState<PremiumShift[]>([])
+  const [premiumTally, setPremiumTally] = useState<PremiumTally[]>([])
+  const [selectedPremium, setSelectedPremium] = useState<PremiumTally | null>(null)
   const [loading, setLoading] = useState(true)
   const [totals, setTotals] = useState({
     totalShifts: 0,
@@ -270,6 +292,51 @@ export const PremiumCalculator = () => {
     })
 
     setPremiumShifts(premiumShiftsData)
+
+    // Calculate premium tally
+    const tallyMap: Record<string, PremiumTally> = {}
+    
+    // Helper to normalize premium type names for consistent matching
+    const normalizePremiumType = (label: string): string => {
+      // Map line item labels to display names
+      const labelMap: Record<string, string> = {
+        'Shift premium 1': 'Shift Premium 1',
+        'Shift premium 2': 'Shift Premium 2',
+        'Shift premium 3': 'Shift Premium 3',
+        'Saturday Premium': 'Saturday',
+        'Sunday Premium': 'Sunday',
+        'Night Shift': 'Night Shift',
+        'Day Shift': 'Day Shift'
+      }
+      return labelMap[label] || label
+    }
+    
+    premiumShiftsData.forEach(premiumShift => {
+      premiumShift.lineItems.forEach(item => {
+        const premiumType = normalizePremiumType(item.label)
+        if (!tallyMap[premiumType]) {
+          tallyMap[premiumType] = {
+            premiumType,
+            count: 0,
+            totalAmount: 0,
+            occurrences: []
+          }
+        }
+        tallyMap[premiumType].count++
+        tallyMap[premiumType].totalAmount += item.amount
+        tallyMap[premiumType].occurrences.push({
+          date: premiumShift.shift.date,
+          time: premiumShift.shift.time,
+          amount: item.amount,
+          shiftId: premiumShift.shift.id
+        })
+      })
+    })
+
+    // Sort by total amount (descending)
+    const sortedTally = Object.values(tallyMap).sort((a, b) => b.totalAmount - a.totalAmount)
+    setPremiumTally(sortedTally)
+
     setTotals({
       totalShifts: periodShifts.length,
       totalPremiumAmount,
@@ -342,7 +409,7 @@ export const PremiumCalculator = () => {
 
       {/* Summary Stats */}
       {selectedPeriod && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-semibold text-orange-800">Total Hours</CardTitle>
@@ -368,7 +435,68 @@ export const PremiumCalculator = () => {
               <p className="text-xs text-green-600 mt-1">Total premiums</p>
             </CardContent>
           </Card>
+
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-blue-800">Premium Types</CardTitle>
+              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-blue-900">{premiumTally.length}</div>
+              <p className="text-xs text-blue-600 mt-1">Different premiums</p>
+            </CardContent>
+          </Card>
         </div>
+      )}
+
+      {/* Premium Tally */}
+      {selectedPeriod && premiumTally.length > 0 && (
+        <Card className="bg-white shadow-xl border border-gray-100">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-100 rounded-t-2xl">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+              <CardTitle className="text-xl text-gray-900">Premium Tally</CardTitle>
+              <p className="text-sm text-gray-600">Click on any premium to see detailed breakdown</p>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {premiumTally.map((tally, index) => (
+                <Card
+                  key={index}
+                  className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-blue-300"
+                  onClick={() => setSelectedPremium(tally)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 mb-1">{tally.premiumType}</h3>
+                        <Badge className={getPremiumLabelColor(tally.premiumType)}>
+                          {tally.count} {tally.count === 1 ? 'time' : 'times'}
+                        </Badge>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Total Amount</span>
+                        <span className="text-lg font-bold text-green-600">£{tally.totalAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-sm text-gray-600">Avg per occurrence</span>
+                        <span className="text-sm text-gray-700">£{(tally.totalAmount / tally.count).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* All Shifts Breakdown */}
@@ -445,6 +573,88 @@ export const PremiumCalculator = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Premium Detail Dialog */}
+      <Dialog open={!!selectedPremium} onOpenChange={() => setSelectedPremium(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center justify-between">
+              <span>{selectedPremium?.premiumType} - Detailed Breakdown</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedPremium(null)}
+                className="h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+            <DialogDescription>
+              Showing all {selectedPremium?.count} occurrences of {selectedPremium?.premiumType}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedPremium && (
+            <div className="space-y-4 mt-4">
+              {/* Summary */}
+              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Count</p>
+                      <p className="text-2xl font-bold text-gray-900">{selectedPremium.count}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Total Amount</p>
+                      <p className="text-2xl font-bold text-green-600">£{selectedPremium.totalAmount.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Average per Shift</p>
+                      <p className="text-2xl font-bold text-blue-600">£{(selectedPremium.totalAmount / selectedPremium.count).toFixed(2)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Detailed List */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg mb-3">Dates & Shifts</h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {selectedPremium.occurrences
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                    .map((occurrence, index) => (
+                      <Card key={index} className="border border-gray-200 hover:border-blue-300 transition-colors">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <Calendar className="h-6 w-6 text-blue-600" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-900">
+                                  {format(new Date(occurrence.date), 'EEEE, d MMMM yyyy')}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Shift Time: {occurrence.time}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-green-600">£{occurrence.amount.toFixed(2)}</p>
+                              <Badge className={getPremiumLabelColor(selectedPremium.premiumType)}>
+                                {selectedPremium.premiumType}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
