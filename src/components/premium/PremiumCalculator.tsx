@@ -499,64 +499,6 @@ export const PremiumCalculator = () => {
         </Card>
       )}
 
-      {/* All Shifts Breakdown */}
-      {premiumShifts.length > 0 && (
-        <Card className="bg-white shadow-xl border border-gray-100">
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-green-50 border-b border-gray-100 rounded-t-2xl">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-white" />
-              </div>
-              <CardTitle className="text-xl text-gray-900">All Shifts Breakdown</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {premiumShifts.map((premiumShift, index) => (
-                <div key={index} className="p-4 border-2 border-gray-100 rounded-xl hover:border-green-200 transition-all duration-200 hover:shadow-md">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <p className="font-medium">
-                          {new Date(premiumShift.shift.date).toLocaleDateString('en-GB')}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {premiumShift.shift.time}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {premiumShift.premiumLabels.map((label, i) => (
-                          <Badge key={i} className={getPremiumLabelColor(label)}>
-                            {label}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">£{premiumShift.premiumAmount.toFixed(2)}</p>
-                      <p className="text-sm text-muted-foreground">One-time premium</p>
-                    </div>
-                  </div>
-                  {premiumShift.lineItems.length > 0 && (
-                    <div className="mt-2 pl-3">
-                      <div className="text-xs text-muted-foreground mb-1">Payments</div>
-                      <div className="space-y-1">
-                        {premiumShift.lineItems.map((it, ii) => (
-                          <div key={ii} className="flex items-center justify-between text-sm">
-                            <span>{it.label}</span>
-                            <span>Units 1.00 × Rate £{it.amount.toFixed(2)} = £{it.amount.toFixed(2)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Premium Rates Reference */}
       <Card>
         <CardHeader>
