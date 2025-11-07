@@ -156,21 +156,22 @@ const Subscription = () => {
   }
 
   const handleCancel = async () => {
+    // TEMPORARY: During TEMPORARY_PRO_ACCESS, cancellation is handled differently
+    const TEMPORARY_PRO_ACCESS = true
+    if (TEMPORARY_PRO_ACCESS) {
+      setActionLoading('cancel')
+      console.log('🚀 TEMPORARY PRO ACCESS - Cancellation successful (OFFLINE MODE)')
+      toast({
+        title: "Cancellation Successful",
+        description: "Since you're on temporary Pro access, no action was needed. Pro features remain active.",
+      })
+      await loadSubscriptionData()
+      setActionLoading(null)
+      return
+    }
+
     try {
       setActionLoading('cancel')
-      
-      // TEMPORARY: During TEMPORARY_PRO_ACCESS, cancellation is handled differently
-      const TEMPORARY_PRO_ACCESS = true
-      if (TEMPORARY_PRO_ACCESS) {
-        console.log('🚀 TEMPORARY PRO ACCESS - Cancellation successful (OFFLINE MODE)')
-        toast({
-          title: "Cancellation Successful",
-          description: "Since you're on temporary Pro access, no action was needed. Pro features remain active.",
-        })
-        await loadSubscriptionData()
-        return
-      }
-      
       await cancelSubscription()
       toast({
         title: "Subscription Canceled",
@@ -179,18 +180,6 @@ const Subscription = () => {
       await loadSubscriptionData()
     } catch (error) {
       console.error('Error canceling subscription:', error)
-      
-      // TEMPORARY: During TEMPORARY_PRO_ACCESS, show success even if there's an error
-      const TEMPORARY_PRO_ACCESS = true
-      if (TEMPORARY_PRO_ACCESS) {
-        toast({
-          title: "Cancellation Successful",
-          description: "Since you're on temporary Pro access, no action was needed.",
-        })
-        await loadSubscriptionData()
-        return
-      }
-      
       toast({
         title: "Error",
         description: "Failed to cancel subscription. Please try again.",
@@ -272,12 +261,32 @@ const Subscription = () => {
         </div>
 
         {/* Trial Status Alert */}
-        {inTrial && trialDaysRemaining !== null && (
+        {inTrial && trialDaysRemaining !== null && trialDaysRemaining > 0 && (
           <Alert className="mb-8 border-blue-200 bg-blue-50">
             <Calendar className="h-4 w-4 text-blue-600" />
             <AlertDescription className="text-blue-800">
               <strong>Free Trial Active:</strong> You have {trialDaysRemaining} days remaining in your free trial. 
               {trialDaysRemaining <= 7 && " Don't forget to add a payment method to continue using the service."}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Expired Trial Alert */}
+        {subscription && subscription.status === 'trialing' && trialDaysRemaining !== null && trialDaysRemaining === 0 && (
+          <Alert className="mb-8 border-orange-200 bg-orange-50">
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="text-orange-800">
+              <strong>Trial Ended:</strong> Your free trial has expired. Subscribe to Pro Plan to continue enjoying all premium features.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* No Subscription Alert */}
+        {!subscription && !loading && (
+          <Alert className="mb-8 border-blue-200 bg-blue-50">
+            <Star className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              <strong>No Active Subscription:</strong> Start your 30-day free trial today! No credit card required to begin.
             </AlertDescription>
           </Alert>
         )}
@@ -322,32 +331,53 @@ const Subscription = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-500">Actions</p>
                   <div className="flex gap-2">
-                    {subscription.cancel_at_period_end ? (
+                    {/* Show Re-subscribe button if trial expired */}
+                    {subscription.status === 'trialing' && trialDaysRemaining !== null && trialDaysRemaining === 0 && (
                       <Button
                         size="sm"
-                        onClick={handleReactivate}
-                        disabled={actionLoading === 'reactivate'}
+                        onClick={() => handleSubscribe('pro')}
+                        disabled={actionLoading === 'pro'}
+                        className="bg-blue-600 hover:bg-blue-700"
                       >
-                        {actionLoading === 'reactivate' ? (
+                        {actionLoading === 'pro' ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          'Reactivate'
-                        )}
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleCancel}
-                        disabled={actionLoading === 'cancel'}
-                      >
-                        {actionLoading === 'cancel' ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          'Cancel'
+                          <>
+                            <Crown className="h-4 w-4 mr-1" />
+                            Re-subscribe to Pro
+                          </>
                         )}
                       </Button>
                     )}
+                    {/* Show Cancel/Reactivate for active subscriptions */}
+                    {subscription.status !== 'trialing' || (trialDaysRemaining !== null && trialDaysRemaining > 0) ? (
+                      subscription.cancel_at_period_end ? (
+                        <Button
+                          size="sm"
+                          onClick={handleReactivate}
+                          disabled={actionLoading === 'reactivate'}
+                        >
+                          {actionLoading === 'reactivate' ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Reactivate'
+                          )}
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCancel}
+                          disabled={actionLoading === 'cancel'}
+                        >
+                          {actionLoading === 'cancel' ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Cancel'
+                          )}
+                        </Button>
+                      )
+                    ) : null}
                   </div>
                 </div>
               </div>

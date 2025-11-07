@@ -342,25 +342,57 @@ export const getUserAccessLevel = async (): Promise<'free' | 'trial' | 'paid'> =
  * Get days remaining in trial
  */
 export const getTrialDaysRemaining = async (): Promise<number | null> => {
-  const subscription = await getCurrentSubscription()
-  if (!subscription || !subscription.trial_end) {
+  // TEMPORARY: During TEMPORARY_PRO_ACCESS, no trial
+  const TEMPORARY_PRO_ACCESS = true
+  if (TEMPORARY_PRO_ACCESS) {
     return null
   }
 
-  const now = new Date()
-  const trialEnd = new Date(subscription.trial_end)
-  const diffTime = trialEnd.getTime() - now.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  try {
+    const subscription = await getCurrentSubscription()
+    if (!subscription || !subscription.trial_end) {
+      return null
+    }
 
-  return Math.max(0, diffDays)
+    const now = new Date()
+    const trialEnd = new Date(subscription.trial_end)
+    const diffTime = trialEnd.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    // Return 0 if trial has expired (negative days)
+    return Math.max(0, diffDays)
+  } catch (error) {
+    console.log('Supabase connection failed in getTrialDaysRemaining:', error)
+    return null
+  }
 }
 
 /**
  * Check if user is in trial period
  */
 export const isInTrial = async (): Promise<boolean> => {
-  const subscription = await getCurrentSubscription()
-  if (!subscription) return false
+  // TEMPORARY: During TEMPORARY_PRO_ACCESS, never show as in trial
+  const TEMPORARY_PRO_ACCESS = true
+  if (TEMPORARY_PRO_ACCESS) {
+    return false
+  }
 
-  return subscription.status === 'trialing' && subscription.trial_end && new Date(subscription.trial_end) > new Date()
+  try {
+    const subscription = await getCurrentSubscription()
+    if (!subscription) return false
+
+    // Check if trial has expired
+    const now = new Date()
+    const trialEnd = subscription.trial_end ? new Date(subscription.trial_end) : null
+    
+    // Trial is only active if status is trialing AND trial hasn't ended
+    if (subscription.status === 'trialing' && trialEnd) {
+      return trialEnd > now
+    }
+    
+    return false
+  } catch (error) {
+    console.log('Supabase connection failed in isInTrial:', error)
+    return false
+  }
 }

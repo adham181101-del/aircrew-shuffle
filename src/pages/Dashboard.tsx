@@ -67,7 +67,9 @@ const Dashboard = () => {
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false)
   const [deletingAll, setDeletingAll] = useState(false)
   const [incomingRequests, setIncomingRequests] = useState<any[]>([])
-  const [hasProAccess, setHasProAccess] = useState(false)
+  // TEMPORARY: Always grant Pro access during development/testing
+  const TEMPORARY_PRO_ACCESS = true
+  const [hasProAccess, setHasProAccess] = useState(TEMPORARY_PRO_ACCESS)
 
   console.log('🏠 DASHBOARD PAGE LOADED - CONSOLE IS WORKING!');
 
