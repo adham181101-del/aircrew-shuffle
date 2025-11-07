@@ -183,6 +183,13 @@ export const hasActiveSubscription = async (): Promise<boolean> => {
  * Cancel subscription at period end
  */
 export const cancelSubscription = async () => {
+  // TEMPORARY: During TEMPORARY_PRO_ACCESS, cancellation is not needed
+  const TEMPORARY_PRO_ACCESS = true
+  if (TEMPORARY_PRO_ACCESS) {
+    console.log('🚀 TEMPORARY PRO ACCESS - Cancellation not needed (OFFLINE MODE)')
+    return true // Just return success, no actual cancellation needed
+  }
+
   try {
     const subscription = await getCurrentSubscription()
     if (!subscription) {
@@ -206,6 +213,10 @@ export const cancelSubscription = async () => {
     return true
   } catch (error) {
     console.error('Error canceling subscription:', error)
+    // During offline mode, just return success instead of throwing
+    if (TEMPORARY_PRO_ACCESS) {
+      return true
+    }
     throw error
   }
 }

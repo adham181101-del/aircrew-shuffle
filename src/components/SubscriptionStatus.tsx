@@ -49,13 +49,16 @@ export const SubscriptionStatus = ({ showUpgradeButton = true, className = '' }:
         setSubscription({
           id: 'temp-pro',
           user_id: 'temp',
+          stripe_customer_id: 'temp',
           stripe_subscription_id: 'temp',
           status: 'active',
           plan_id: 'pro',
           plan_name: 'Pro Plan (Temporary)',
           current_period_start: new Date().toISOString(),
           current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+          trial_start: null,
           trial_end: null,
+          cancel_at_period_end: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -83,13 +86,16 @@ export const SubscriptionStatus = ({ showUpgradeButton = true, className = '' }:
       setSubscription({
         id: 'temp-pro-offline',
         user_id: 'temp',
+        stripe_customer_id: 'temp',
         stripe_subscription_id: 'temp',
         status: 'active',
         plan_id: 'pro',
         plan_name: 'Pro Plan (Offline Mode)',
         current_period_start: new Date().toISOString(),
         current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        trial_start: null,
         trial_end: null,
+        cancel_at_period_end: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })

@@ -520,35 +520,21 @@ const Dashboard = () => {
           </Button>
           
           <Button
-            onClick={() => hasProAccess ? navigate('/swaps/create') : navigate('/subscription')}
+            onClick={() => navigate('/swaps/create')}
             variant="outline"
-            className={`flex items-center justify-center h-16 border border-gray-300 font-medium rounded-lg transition-all duration-200 relative ${
-              hasProAccess 
-                ? 'hover:border-blue-500 hover:bg-blue-50' 
-                : 'opacity-60 cursor-pointer hover:opacity-80'
-            }`}
+            className="flex items-center justify-center h-16 border border-gray-300 font-medium rounded-lg transition-all duration-200 hover:border-blue-500 hover:bg-blue-50"
           >
             <ArrowRightLeft className="h-5 w-5 mr-2" />
             Request Swap
-            {!hasProAccess && (
-              <Lock className="h-4 w-4 ml-2 text-gray-500" />
-            )}
           </Button>
           
           <Button
-            onClick={() => hasProAccess ? navigate('/swaps') : navigate('/subscription')}
+            onClick={() => navigate('/swaps')}
             variant="outline"
-            className={`flex items-center justify-center h-16 border border-gray-300 font-medium rounded-lg transition-all duration-200 relative ${
-              hasProAccess 
-                ? 'hover:border-blue-500 hover:bg-blue-50' 
-                : 'opacity-60 cursor-pointer hover:opacity-80'
-            }`}
+            className="flex items-center justify-center h-16 border border-gray-300 font-medium rounded-lg transition-all duration-200 hover:border-blue-500 hover:bg-blue-50"
           >
             <ArrowRightLeft className="h-5 w-5 mr-2" />
             Manage Swaps
-            {!hasProAccess && (
-              <Lock className="h-4 w-4 ml-2 text-gray-500" />
-            )}
           </Button>
         </div>
 
