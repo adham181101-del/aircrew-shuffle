@@ -33,7 +33,7 @@ const PAY_CALENDAR_2025: PayPeriod[] = [
   { month: 'Jul-25', cutoffDate: '2025-07-14', payDate: '2025-07-30' },
   { month: 'Aug-25', cutoffDate: '2025-08-11', payDate: '2025-08-28' },
   { month: 'Sep-25', cutoffDate: '2025-09-12', payDate: '2025-09-29' },
-  { month: 'Oct-25', cutoffDate: '2025-10-15', payDate: '2025-10-30' },
+  { month: 'Oct-25', cutoffDate: '2025-10-31', payDate: '2025-11-15' }, // Updated: Cutoff is end of month based on payslip
   { month: 'Nov-25', cutoffDate: '2025-11-12', payDate: '2025-11-27' },
   { month: 'Dec-25', cutoffDate: '2025-12-08', payDate: '2025-12-24' }
 ]
