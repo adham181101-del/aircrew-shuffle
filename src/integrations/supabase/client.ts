@@ -18,7 +18,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
   global: {
     headers: {
-      'X-Client-Info': 'aircrew-shuffle-web'
+      'X-Client-Info': 'sswap-web'
     }
   }
 });

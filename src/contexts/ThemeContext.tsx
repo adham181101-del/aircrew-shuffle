@@ -75,9 +75,9 @@ import {
 const themes: Record<string, ThemeConfig> = {
   aviation: {
     name: 'aviation',
-    displayName: 'AirCrew Shuffle',
+    displayName: 'SSwap',
     logo: <Plane className="h-6 w-6 text-white" />,
-    heroTitle: 'AirCrew Shuffle',
+    heroTitle: 'SSwap',
     heroSubtitle: 'Aviation Shift Management',
     heroDescription: 'Revolutionize your shift management with AI-powered scheduling, seamless swaps, and real-time team coordination across the aviation industry.',
     primaryColor: 'from-blue-600 to-purple-600',
@@ -119,7 +119,7 @@ const themes: Record<string, ThemeConfig> = {
     ],
     cta: {
       title: 'Ready to Transform Your Shift Management?',
-      description: 'Join thousands of aviation professionals who trust AirCrew Shuffle for their daily operations.'
+      description: 'Join thousands of aviation professionals who trust SSwap for their daily operations.'
     },
     footer: {
       description: 'Revolutionizing shift management for aviation professionals worldwide.'
@@ -127,9 +127,9 @@ const themes: Record<string, ThemeConfig> = {
   },
   generic: {
     name: 'generic',
-    displayName: 'ShiftFlex',
+    displayName: 'SSwap',
     logo: <Clock className="h-6 w-6 text-white" />,
-    heroTitle: 'ShiftFlex',
+    heroTitle: 'SSwap',
     heroSubtitle: 'Smart Shift Management',
     heroDescription: 'Streamline your workforce scheduling with AI-powered shift management, seamless swaps, and real-time team coordination for any industry.',
     primaryColor: 'from-emerald-600 to-teal-600',
@@ -175,7 +175,7 @@ const themes: Record<string, ThemeConfig> = {
     ],
     cta: {
       title: 'Ready to Transform Your Workforce Scheduling?',
-      description: 'Join thousands of companies who trust ShiftFlex for their shift management needs.'
+      description: 'Join thousands of companies who trust SSwap for their shift management needs.'
     },
     footer: {
       description: 'Revolutionizing shift management for businesses worldwide.'

@@ -144,7 +144,7 @@ const Pricing = () => {
                         navigate('/register');
                       } else {
                         // For Enterprise, could open contact form or email
-                        window.location.href = 'mailto:sales@shiftflex.com?subject=Enterprise Plan Inquiry';
+                        window.location.href = 'mailto:sales@sswap.com?subject=Enterprise Plan Inquiry';
                       }
                     }}
                   >

@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "AirCrew Shuffle",
-  "short_name": "AirCrew",
-  "description": "Aviation shift management and swap system",
+  "name": "SSwap",
+  "short_name": "SSwap",
+  "description": "Shift management and swap system",
   "lang": "en",
   "start_url": "/",
   "scope": "/",

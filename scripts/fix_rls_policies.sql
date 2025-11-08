@@ -1,4 +1,4 @@
--- Fix RLS Policies for AirCrew Shuffle
+-- Fix RLS Policies for SSwap
 -- This script will enable proper access to all tables after RLS is enabled
 
 -- 1. Enable RLS on all tables (if not already enabled)

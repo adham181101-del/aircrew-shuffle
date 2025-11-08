@@ -200,7 +200,7 @@ const Api = () => {
                 <div className="bg-slate-800/50 rounded-lg p-6">
                   <h4 className="text-white font-semibold mb-3">Example Request</h4>
                   <pre className="text-green-400 text-sm overflow-x-auto">
-{`curl -X GET "https://api.shiftflex.com/v1/shifts" \\
+{`curl -X GET "https://api.sswap.com/v1/shifts" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json"`}
                   </pre>
@@ -230,7 +230,7 @@ const Api = () => {
                   Get API Access
                 </Button>
                 <Button 
-                  onClick={() => window.open('https://docs.shiftflex.com', '_blank')}
+                  onClick={() => window.open('https://docs.sswap.com', '_blank')}
                   variant="outline"
                   className="border-white/20 text-white hover:bg-white/10 px-8 py-3 text-lg"
                 >
