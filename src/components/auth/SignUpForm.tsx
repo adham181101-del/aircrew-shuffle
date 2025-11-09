@@ -14,6 +14,7 @@ export const SignUpForm = () => {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [companies, setCompanies] = useState<Company[]>([])
+  const [loadingCompanies, setLoadingCompanies] = useState(true)
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
   const [formData, setFormData] = useState({
     email: '',
@@ -29,14 +30,25 @@ export const SignUpForm = () => {
   useEffect(() => {
     const loadCompanies = async () => {
       try {
+        setLoadingCompanies(true)
         const companiesList = await getCompanies()
         setCompanies(companiesList)
+        if (companiesList.length === 0) {
+          toast({
+            title: "No companies available",
+            description: "Please contact support if this issue persists",
+            variant: "destructive"
+          })
+        }
       } catch (error) {
+        console.error('Error loading companies:', error)
         toast({
           title: "Failed to load companies",
-          description: "Please refresh the page and try again",
+          description: error instanceof Error ? error.message : "Please refresh the page and try again",
           variant: "destructive"
         })
+      } finally {
+        setLoadingCompanies(false)
       }
     }
     loadCompanies()
@@ -95,28 +107,39 @@ export const SignUpForm = () => {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="company">Company</Label>
-        <Select
-          value={formData.companyId}
-          onValueChange={handleCompanyChange}
-          required
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select your company" />
-          </SelectTrigger>
-          <SelectContent>
-            {companies.map((company) => (
-              <SelectItem key={company.id} value={company.id}>
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  <div>
-                    <div className="font-medium">{company.name}</div>
-                    <div className="text-sm text-muted-foreground">{company.industry}</div>
+        {loadingCompanies ? (
+          <div className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <span className="text-muted-foreground">Loading companies...</span>
+            <Loader2 className="h-4 w-4 animate-spin opacity-50" />
+          </div>
+        ) : companies.length === 0 ? (
+          <div className="rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
+            No companies available. Please contact support.
+          </div>
+        ) : (
+          <Select
+            value={formData.companyId}
+            onValueChange={handleCompanyChange}
+            required
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select your company" />
+            </SelectTrigger>
+            <SelectContent>
+              {companies.map((company) => (
+                <SelectItem key={company.id} value={company.id}>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    <div>
+                      <div className="font-medium">{company.name}</div>
+                      <div className="text-sm text-muted-foreground">{company.industry}</div>
+                    </div>
                   </div>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       <div className="space-y-2">
