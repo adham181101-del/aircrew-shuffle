@@ -106,7 +106,7 @@ export const SignUpForm = () => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="company">Company</Label>
+        <Label htmlFor="company" className="text-white">Company</Label>
         {loadingCompanies ? (
           <div className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm">
             <span className="text-muted-foreground">Loading companies...</span>
@@ -143,7 +143,7 @@ export const SignUpForm = () => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email">
+        <Label htmlFor="email" className="text-white">
           Email Address (Any domain allowed for testing)
         </Label>
         <Input
@@ -160,7 +160,7 @@ export const SignUpForm = () => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password" className="text-white">Password</Label>
         <div className="relative">
           <Input
             id="password"
@@ -194,7 +194,7 @@ export const SignUpForm = () => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="staffNumber">Staff Number</Label>
+        <Label htmlFor="staffNumber" className="text-white">Staff Number</Label>
         <Input
           id="staffNumber"
           placeholder="4-10 digits"
@@ -206,7 +206,7 @@ export const SignUpForm = () => {
 
       {selectedCompany && (
         <div className="space-y-2">
-          <Label htmlFor="baseLocation">Base Location</Label>
+          <Label htmlFor="baseLocation" className="text-white">Base Location</Label>
           <Select
             value={formData.baseLocation}
             onValueChange={(value) => setFormData(prev => ({ ...prev, baseLocation: value }))}
@@ -234,7 +234,7 @@ export const SignUpForm = () => {
             setFormData(prev => ({ ...prev, canWorkDoubles: checked as boolean }))
           }
         />
-        <Label htmlFor="canWorkDoubles" className="text-sm">
+        <Label htmlFor="canWorkDoubles" className="text-sm text-white">
           I can work double shifts (complementary times)
         </Label>
       </div>
