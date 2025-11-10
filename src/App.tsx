@@ -33,6 +33,7 @@ const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Api = lazy(() => import("./pages/Api"));
 const Placeholder = lazy(() => import("./pages/Placeholder"));
+const Leave = lazy(() => import("./pages/Leave"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading component
@@ -118,6 +119,7 @@ const AppRoutes = () => (
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
+      <Route path="/leave" element={<ProtectedRoute><Leave /></ProtectedRoute>} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/data-rights" element={<ProtectedRoute><DataSubjectRights /></ProtectedRoute>} />
       <Route path="/security" element={<ProtectedRoute><SecurityDashboard /></ProtectedRoute>} />
