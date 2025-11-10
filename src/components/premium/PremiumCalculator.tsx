@@ -84,6 +84,9 @@ export const PremiumCalculator = () => {
     totalPremiumAmount: 0,
     totalHours: 0
   })
+  // New: base salary and leave days inputs
+  const [baseSalary, setBaseSalary] = useState<number>(0)
+  const [leaveDays, setLeaveDays] = useState<number>(0)
 
   useEffect(() => {
     loadShifts()
@@ -404,7 +407,7 @@ export const PremiumCalculator = () => {
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="flex items-center gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex-1">
               <label className="text-sm font-semibold text-gray-700 mb-2 block">Pay Period</label>
               <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
@@ -419,6 +422,31 @@ export const PremiumCalculator = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">Base Salary (Monthly)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={baseSalary}
+                onChange={(e) => setBaseSalary(parseFloat(e.target.value || '0'))}
+                className="h-12 w-full rounded-xl border-2 border-gray-200 px-4 text-base hover:border-green-300 focus:border-green-500 focus:outline-none transition-all duration-300"
+                placeholder="£ e.g. 2200.00"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">Leave Days in Period</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={leaveDays}
+                onChange={(e) => setLeaveDays(parseInt(e.target.value || '0', 10))}
+                className="h-12 w-full rounded-xl border-2 border-gray-200 px-4 text-base hover:border-green-300 focus:border-green-500 focus:outline-none transition-all duration-300"
+                placeholder="e.g. 2"
+              />
+              <p className="text-xs text-gray-500 mt-1">Adds £17.24 per leave day</p>
             </div>
           </div>
           {periodDateRange && selectedPeriod && (() => {
@@ -443,7 +471,7 @@ export const PremiumCalculator = () => {
 
       {/* Summary Stats */}
       {selectedPeriod && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-semibold text-orange-800">Total Hours</CardTitle>
@@ -480,6 +508,29 @@ export const PremiumCalculator = () => {
             <CardContent>
               <div className="text-3xl font-bold text-blue-900">{premiumTally.length}</div>
               <p className="text-xs text-blue-600 mt-1">Different premiums</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-emerald-800">Expected Salary</CardTitle>
+              <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const leavePremium = leaveDays * 17.24;
+                const expected = Math.max(0, baseSalary) + totals.totalPremiumAmount + leavePremium;
+                return (
+                  <>
+                    <div className="text-3xl font-bold text-emerald-900">£{expected.toFixed(2)}</div>
+                    <p className="text-xs text-emerald-700 mt-1">
+                      Base £{Math.max(0, baseSalary).toFixed(2)} + Premiums £{totals.totalPremiumAmount.toFixed(2)} + Leave £{leavePremium.toFixed(2)}
+                    </p>
+                  </>
+                )
+              })()}
             </CardContent>
           </Card>
         </div>

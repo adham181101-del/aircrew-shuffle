@@ -54,6 +54,17 @@ const ManageSwaps = () => {
   const [requestToRevoke, setRequestToRevoke] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [currentSwapId, setCurrentSwapId] = useState<string | null>(null);
+  // Deep-link: open a specific swap request from notifications
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get('open');
+    if (openId) {
+      setShowCounterOffer(openId);
+      setCurrentSwapId(openId);
+      // Ensure month is reset to current when opening from link
+      setCurrentMonth(new Date());
+    }
+  }, []);
 
   useEffect(() => {
     loadUserAndRequests();
@@ -228,9 +239,20 @@ const ManageSwaps = () => {
       console.log('Checking for requester date:', requesterShiftDate);
       console.log('User shift dates:', (userShifts || []).map(s => s.date));
 
+      // Helper: parse a UK date string (DD/MM/YYYY) into a Date at midnight local time
+      const parseUkDate = (dateStr: string) => {
+        const [dayStr, monthStr, yearStr] = dateStr.split('/');
+        const day = Number(dayStr);
+        const monthIndex = Number(monthStr) - 1; // zero-based
+        const year = Number(yearStr);
+        return new Date(year, monthIndex, day);
+      };
+
       // Get all future dates where the user is OFF (no shifts)
       const futureDates = [];
       const today = new Date();
+      // Normalize to midnight to avoid time drift in comparisons
+      today.setHours(0, 0, 0, 0);
       
       // Use target month if provided, otherwise use current month
       let startDate, endDate;
@@ -272,40 +294,40 @@ const ManageSwaps = () => {
       }
 
       // Find dates where user is OFF and can work the requester's shift
-      const availableDates = nextDays.filter(date => {
+      const availableDates = nextDays.filter(dateStr => {
         // Skip past dates
-        if (new Date(date) < today) {
+        const dateObj = parseUkDate(dateStr);
+        if (dateObj < today) {
           console.log(`❌ ${date} - Past date, skipping`);
           return false;
         }
         
         // If we have a target month, ensure the date is from that month
         if (targetMonth) {
-          const dateObj = new Date(date);
           const isFromTargetMonth = dateObj.getMonth() === targetMonth.getMonth() && 
-                                  dateObj.getFullYear() === targetMonth.getFullYear();
+                                    dateObj.getFullYear() === targetMonth.getFullYear();
           if (!isFromTargetMonth) {
-            console.log(`❌ ${date} - Not from target month ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}, skipping`);
+            console.log(`❌ ${dateStr} - Not from target month ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}, skipping`);
             return false;
           }
-          console.log(`✅ ${date} - From target month ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}`);
+          console.log(`✅ ${dateStr} - From target month ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}`);
         }
         
         // Check if user has any shifts on this date
-        const userShiftsOnThisDate = (userShifts || []).filter(shift => shift.date === date);
+        const userShiftsOnThisDate = (userShifts || []).filter(shift => shift.date === dateStr);
         const userIsOffOnThisDate = userShiftsOnThisDate.length === 0;
         
         // Check if requester has any shifts on this date
-        const requesterShiftsOnThisDate = (requesterShifts || []).filter(shift => shift.date === date);
+        const requesterShiftsOnThisDate = (requesterShifts || []).filter(shift => shift.date === dateStr);
         const requesterIsWorkingOnThisDate = requesterShiftsOnThisDate.length > 0;
         
-        console.log(`Date ${date}: User ${userIsOffOnThisDate ? 'OFF' : 'WORKING'} (${userShiftsOnThisDate.length} shifts), Requester ${requesterIsWorkingOnThisDate ? 'WORKING' : 'OFF'} (${requesterShiftsOnThisDate.length} shifts)`);
-        console.log(`User shifts on ${date}:`, userShiftsOnThisDate);
-        console.log(`Requester shifts on ${date}:`, requesterShiftsOnThisDate);
+        console.log(`Date ${dateStr}: User ${userIsOffOnThisDate ? 'OFF' : 'WORKING'} (${userShiftsOnThisDate.length} shifts), Requester ${requesterIsWorkingOnThisDate ? 'WORKING' : 'OFF'} (${requesterShiftsOnThisDate.length} shifts)`);
+        console.log(`User shifts on ${dateStr}:`, userShiftsOnThisDate);
+        console.log(`Requester shifts on ${dateStr}:`, requesterShiftsOnThisDate);
         
         // CASE 1: Standard swap - User is OFF and requester is working
         if (userIsOffOnThisDate && requesterIsWorkingOnThisDate) {
-          console.log(`✅ ${date} - Standard swap: User is OFF and requester is working`);
+          console.log(`✅ ${dateStr} - Standard swap: User is OFF and requester is working`);
           return true;
         }
         
@@ -323,22 +345,22 @@ const ManageSwaps = () => {
           );
           
           if (isTimeSwap) {
-            console.log(`✅ ${date} - Time swap: ${userShiftTime} ↔ ${requesterShiftTime}`);
+            console.log(`✅ ${dateStr} - Time swap: ${userShiftTime} ↔ ${requesterShiftTime}`);
             return true;
           } else {
-            console.log(`❌ ${date} - Both working but not compatible times: ${userShiftTime} vs ${requesterShiftTime}`);
+            console.log(`❌ ${dateStr} - Both working but not compatible times: ${userShiftTime} vs ${requesterShiftTime}`);
             return false;
           }
         }
         
         // CASE 3: Double shift - User is working but can work doubles for requester
         if (!userIsOffOnThisDate && userWorkingOnRequesterDate && canWorkDoubles) {
-          console.log(`✅ ${date} - Double shift: User is working but can work doubles for requester`);
+          console.log(`✅ ${dateStr} - Double shift: User is working but can work doubles for requester`);
           return true;
         }
         
         // CASE 4: No swap opportunity
-        console.log(`❌ ${date} - No swap opportunity`);
+        console.log(`❌ ${dateStr} - No swap opportunity`);
         return false;
       });
 
@@ -352,7 +374,7 @@ const ManageSwaps = () => {
         console.log('Target month for filtering:', targetMonth);
         
         finalAvailableDates = availableDates.filter(date => {
-          const dateObj = new Date(date);
+          const dateObj = parseUkDate(date);
           const dateMonth = dateObj.getMonth();
           const dateYear = dateObj.getFullYear();
           const targetMonthNum = targetMonth.getMonth();

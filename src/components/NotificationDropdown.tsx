@@ -59,10 +59,10 @@ const NotificationDropdown = () => {
     switch (notification.type) {
       case 'incoming_request':
       case 'counter_offer':
-        navigate('/swaps/manage');
+        navigate(`/swaps/manage?open=${notification.swapRequestId}&type=${notification.type}`);
         break;
       case 'accepted_swap':
-        navigate('/swaps/manage');
+        navigate(`/swaps/manage?open=${notification.swapRequestId}&type=${notification.type}`);
         break;
     }
     
