@@ -17,26 +17,59 @@ import {
 import { format } from 'date-fns'
 
 interface PayPeriod {
-  month: string
-  cutoffDate: string
-  payDate: string
+  id: string
+  label: string
+  start: Date // Second Saturday of the month
+  end: Date   // Second last Sunday of the following month
 }
 
-// BA Pay Calendar 2025 - Official British Airways Pay Calendar
-const PAY_CALENDAR_2025: PayPeriod[] = [
-  { month: 'Jan-25', cutoffDate: '2025-01-15', payDate: '2025-01-30' },
-  { month: 'Feb-25', cutoffDate: '2025-02-12', payDate: '2025-02-27' },
-  { month: 'Mar-25', cutoffDate: '2025-03-13', payDate: '2025-03-28' },
-  { month: 'Apr-25', cutoffDate: '2025-04-10', payDate: '2025-04-29' },
-  { month: 'May-25', cutoffDate: '2025-05-12', payDate: '2025-05-29' },
-  { month: 'Jun-25', cutoffDate: '2025-06-12', payDate: '2025-06-27' },
-  { month: 'Jul-25', cutoffDate: '2025-07-14', payDate: '2025-07-30' },
-  { month: 'Aug-25', cutoffDate: '2025-08-11', payDate: '2025-08-28' },
-  { month: 'Sep-25', cutoffDate: '2025-09-12', payDate: '2025-09-29' },
-  { month: 'Oct-25', cutoffDate: '2025-10-15', payDate: '2025-10-30' },
-  { month: 'Nov-25', cutoffDate: '2025-11-12', payDate: '2025-11-27' },
-  { month: 'Dec-25', cutoffDate: '2025-12-08', payDate: '2025-12-24' }
-]
+const getSecondSaturday = (date: Date) => {
+  const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1)
+  let saturdayCount = 0
+  for (let i = 0; i < 31; i++) {
+    const current = new Date(firstOfMonth.getFullYear(), firstOfMonth.getMonth(), firstOfMonth.getDate() + i)
+    if (current.getMonth() !== date.getMonth()) break
+    if (current.getDay() === 6) {
+      saturdayCount++
+      if (saturdayCount === 2) return current
+    }
+  }
+  return firstOfMonth
+}
+
+const getSecondLastSunday = (date: Date) => {
+  // date should be first day of target month
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+  let sundayCount = 0
+  for (let i = 0; i < 31; i++) {
+    const current = new Date(lastDay.getFullYear(), lastDay.getMonth(), lastDay.getDate() - i)
+    if (current.getDay() === 0) {
+      sundayCount++
+      if (sundayCount === 2) {
+        current.setHours(23, 59, 59, 999)
+        return current
+      }
+    }
+  }
+  return lastDay
+}
+
+const generatePayPeriods = (startYear: number, totalMonths: number): PayPeriod[] => {
+  const periods: PayPeriod[] = []
+  for (let i = 0; i < totalMonths; i++) {
+    const monthDate = new Date(startYear, i, 1)
+    const start = getSecondSaturday(monthDate)
+    const followingMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1)
+    const end = getSecondLastSunday(followingMonth)
+    periods.push({
+      id: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`,
+      label: format(monthDate, 'MMM yyyy'),
+      start,
+      end
+    })
+  }
+  return periods
+}
 
 // Aviation shift fixed allowances (£) based on provided table
 const AVIATION_PREMIUMS = {
@@ -73,7 +106,7 @@ interface PremiumTally {
 export const PremiumCalculator = () => {
   const { toast } = useToast()
   const [shifts, setShifts] = useState<Shift[]>([])
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('')
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string>('')
   const [premiumShifts, setPremiumShifts] = useState<PremiumShift[]>([])
   const [premiumTally, setPremiumTally] = useState<PremiumTally[]>([])
   const [selectedPremium, setSelectedPremium] = useState<PremiumTally | null>(null)
@@ -88,13 +121,32 @@ export const PremiumCalculator = () => {
   const [baseSalary, setBaseSalary] = useState<number>(0)
   const [leaveDays, setLeaveDays] = useState<number>(0)
 
+  const payPeriods = useMemo(() => {
+    const currentYear = new Date().getFullYear()
+    return generatePayPeriods(currentYear - 1, 24) // previous year + current year
+  }, [])
+  const selectedPeriod = useMemo(
+    () => payPeriods.find(period => period.id === selectedPeriodId) || null,
+    [payPeriods, selectedPeriodId]
+  )
+
   useEffect(() => {
     loadShifts()
   }, [])
 
   useEffect(() => {
+    if (payPeriods.length > 0 && !selectedPeriodId) {
+      const today = new Date()
+      const current = payPeriods.find(period => today >= period.start && today <= period.end) || payPeriods[payPeriods.length - 1]
+      if (current) {
+        setSelectedPeriodId(current.id)
+      }
+    }
+  }, [payPeriods, selectedPeriodId])
+
+  useEffect(() => {
     if (selectedPeriod && shifts.length > 0) {
-      calculatePremiums()
+      calculatePremiums(selectedPeriod)
     }
   }, [selectedPeriod, shifts])
 
@@ -106,14 +158,6 @@ export const PremiumCalculator = () => {
       const userShifts = await getUserShifts(user.id)
       setShifts(userShifts)
       
-      // Auto-select current month if available
-      const currentMonth = new Date().toISOString().slice(0, 7)
-      const currentPeriod = PAY_CALENDAR_2025.find(p => 
-        p.cutoffDate.startsWith(currentMonth)
-      )
-      if (currentPeriod) {
-        setSelectedPeriod(currentPeriod.month)
-      }
     } catch (error) {
       toast({
         title: "Error loading shifts",
@@ -242,25 +286,10 @@ export const PremiumCalculator = () => {
     return { labels, amount, items }
   }
 
-  const calculatePremiums = () => {
-    const period = PAY_CALENDAR_2025.find(p => p.month === selectedPeriod)
-    if (!period) return
-
-    const cutoffDate = new Date(period.cutoffDate)
-    cutoffDate.setHours(23, 59, 59, 999) // Include the entire cutoff date
-    
-    // Calculate start date: day after previous cutoff (or start of period if first period)
-    const previousPeriod = PAY_CALENDAR_2025[PAY_CALENDAR_2025.indexOf(period) - 1]
-    let startDate: Date
-    if (previousPeriod) {
-      startDate = new Date(previousPeriod.cutoffDate)
-      startDate.setDate(startDate.getDate() + 1) // Start from day after previous cutoff
-      startDate.setHours(0, 0, 0, 0) // Start of day
-    } else {
-      // For first period, use cutoff date minus one month
-      startDate = new Date(cutoffDate.getFullYear(), cutoffDate.getMonth() - 1, cutoffDate.getDate())
-      startDate.setHours(0, 0, 0, 0)
-    }
+  const calculatePremiums = (period: PayPeriod) => {
+    const cutoffDate = new Date(period.end)
+    const startDate = new Date(period.start)
+    startDate.setHours(0, 0, 0, 0)
 
     // Store period date range for display
     setPeriodDateRange({ start: startDate, end: cutoffDate })
@@ -410,14 +439,14 @@ export const PremiumCalculator = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex-1">
               <label className="text-sm font-semibold text-gray-700 mb-2 block">Pay Period</label>
-              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <Select value={selectedPeriodId} onValueChange={setSelectedPeriodId}>
                 <SelectTrigger className="h-12 text-base border-2 border-gray-200 hover:border-green-300 focus:border-green-500 rounded-xl transition-all duration-300">
                   <SelectValue placeholder="Select a pay period" />
                 </SelectTrigger>
                 <SelectContent>
-                  {PAY_CALENDAR_2025.map(period => (
-                    <SelectItem key={period.month} value={period.month}>
-                      {period.month} (Cutoff: {new Date(period.cutoffDate).toLocaleDateString('en-GB')})
+                  {payPeriods.map(period => (
+                    <SelectItem key={period.id} value={period.id}>
+                      {period.label} ({format(period.start, 'd MMM')} – {format(period.end, 'd MMM')})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -449,29 +478,23 @@ export const PremiumCalculator = () => {
               <p className="text-xs text-gray-500 mt-1">Adds £17.24 per leave day</p>
             </div>
           </div>
-          {periodDateRange && selectedPeriod && (() => {
-            const currentPeriod = PAY_CALENDAR_2025.find(p => p.month === selectedPeriod)
-            return currentPeriod ? (
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center gap-2 text-sm text-blue-900">
-                  <Calendar className="h-4 w-4" />
-                  <span className="font-semibold">Pay Period Range:</span>
-                  <span>
-                    {format(periodDateRange.start, 'd MMM yyyy')} - {format(periodDateRange.end, 'd MMM yyyy')}
-                  </span>
-                  <span className="text-blue-600">
-                    (Cutoff: {format(new Date(currentPeriod.cutoffDate), 'd MMM yyyy')})
-                  </span>
-                </div>
+          {periodDateRange && selectedPeriod && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-blue-900">
+                <Calendar className="h-4 w-4" />
+                <span className="font-semibold">Pay Period Range:</span>
+                <span>
+                  {format(periodDateRange.start, 'd MMM yyyy')} - {format(periodDateRange.end, 'd MMM yyyy')}
+                </span>
               </div>
-            ) : null
-          })()}
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Summary Stats */}
       {selectedPeriod && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-semibold text-orange-800">Total Hours</CardTitle>
@@ -482,32 +505,6 @@ export const PremiumCalculator = () => {
             <CardContent>
               <div className="text-3xl font-bold text-orange-900">{totals.totalHours.toFixed(1)}</div>
               <p className="text-xs text-orange-600 mt-1">Hours worked</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-semibold text-green-800">Premium Pay</CardTitle>
-              <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-900">£{totals.totalPremiumAmount.toFixed(2)}</div>
-              <p className="text-xs text-green-600 mt-1">Total premiums</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-semibold text-blue-800">Premium Types</CardTitle>
-              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-900">{premiumTally.length}</div>
-              <p className="text-xs text-blue-600 mt-1">Different premiums</p>
             </CardContent>
           </Card>
 
