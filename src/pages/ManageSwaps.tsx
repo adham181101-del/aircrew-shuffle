@@ -169,6 +169,40 @@ const ManageSwaps = () => {
       console.log('Swap ID:', swapId);
       console.log('Target month:', targetMonth);
       console.log('Requester shift date type:', typeof requesterShiftDate);
+
+      // Helper: parse a date string (either DD/MM/YYYY or YYYY-MM-DD) into a Date at midnight local time
+      const parseDate = (dateStr: string) => {
+        // Check if it's YYYY-MM-DD format (database format)
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const [yearStr, monthStr, dayStr] = dateStr.split('-');
+          return new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr));
+        }
+        // Otherwise assume DD/MM/YYYY format
+        const [dayStr, monthStr, yearStr] = dateStr.split('/');
+        const day = Number(dayStr);
+        const monthIndex = Number(monthStr) - 1; // zero-based
+        const year = Number(yearStr);
+        return new Date(year, monthIndex, day);
+      };
+
+      // Helper: convert Date to YYYY-MM-DD format (database format)
+      const toDatabaseDate = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      // Helper: normalize date string to database format (YYYY-MM-DD)
+      const normalizeToDatabaseFormat = (dateStr: string): string => {
+        // If already in YYYY-MM-DD format, return as is
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          return dateStr;
+        }
+        // Convert from DD/MM/YYYY to YYYY-MM-DD
+        const [dayStr, monthStr, yearStr] = dateStr.split('/');
+        return `${yearStr}-${monthStr.padStart(2, '0')}-${dayStr.padStart(2, '0')}`;
+      };
       
       // Get all shifts for the current user
       const { data: userShifts, error: shiftsError } = await supabase
@@ -229,24 +263,49 @@ const ManageSwaps = () => {
 
       console.log('Requester shifts:', requesterShifts);
 
+      // Get leave days for the user (accepter)
+      const { data: userLeaveDays, error: userLeaveError } = await supabase
+        .from('leave_days')
+        .select('date')
+        .eq('staff_id', userId);
+
+      if (userLeaveError) {
+        console.error('Error fetching user leave days:', userLeaveError);
+      }
+
+      // Get leave days for the requester
+      const { data: requesterLeaveDays, error: requesterLeaveError } = await supabase
+        .from('leave_days')
+        .select('date')
+        .eq('staff_id', requesterStaff.requester_id);
+
+      if (requesterLeaveError) {
+        console.error('Error fetching requester leave days:', requesterLeaveError);
+      }
+
+      // Create sets of leave dates in database format for quick lookup
+      const userLeaveDates = new Set(
+        (userLeaveDays || []).map(ld => normalizeToDatabaseFormat(ld.date))
+      );
+      const requesterLeaveDates = new Set(
+        (requesterLeaveDays || []).map(ld => normalizeToDatabaseFormat(ld.date))
+      );
+
+      console.log('User leave dates:', Array.from(userLeaveDates));
+      console.log('Requester leave dates:', Array.from(requesterLeaveDates));
+
+      // Normalize requester shift date to database format for comparison
+      const normalizedRequesterShiftDate = normalizeToDatabaseFormat(requesterShiftDate);
+      
       // Check if user is working on the requester's date
       const userWorkingOnRequesterDate = (userShifts || []).some(
-        shift => shift.date === requesterShiftDate
+        shift => normalizeToDatabaseFormat(shift.date) === normalizedRequesterShiftDate
       );
       
       console.log('User working on requester date:', userWorkingOnRequesterDate);
       console.log('All user shifts:', userShifts);
       console.log('Checking for requester date:', requesterShiftDate);
       console.log('User shift dates:', (userShifts || []).map(s => s.date));
-
-      // Helper: parse a UK date string (DD/MM/YYYY) into a Date at midnight local time
-      const parseUkDate = (dateStr: string) => {
-        const [dayStr, monthStr, yearStr] = dateStr.split('/');
-        const day = Number(dayStr);
-        const monthIndex = Number(monthStr) - 1; // zero-based
-        const year = Number(yearStr);
-        return new Date(year, monthIndex, day);
-      };
 
       // Get all future dates where the user is OFF (no shifts)
       const futureDates = [];
@@ -272,14 +331,11 @@ const ManageSwaps = () => {
         new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0).getDate() : 
         Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
       
+      // Generate dates in database format (YYYY-MM-DD) for proper comparison
       const nextDays = Array.from({ length: daysInMonth }, (_, i) => {
         const date = new Date(startDate);
         date.setDate(startDate.getDate() + i);
-        // Convert to DD/MM/YYYY format for UK
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
+        return toDatabaseDate(date);
       });
 
       console.log('Target month:', targetMonth ? `${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}` : 'Current month');
@@ -295,8 +351,9 @@ const ManageSwaps = () => {
 
       // Find dates where user is OFF and can work the requester's shift
       const availableDates = nextDays.filter(dateStr => {
+        // dateStr is now in YYYY-MM-DD format (database format)
         // Skip past dates
-        const dateObj = parseUkDate(dateStr);
+        const dateObj = parseDate(dateStr);
         if (dateObj < today) {
           console.log(`❌ ${dateStr} - Past date, skipping`);
           return false;
@@ -313,12 +370,28 @@ const ManageSwaps = () => {
           console.log(`✅ ${dateStr} - From target month ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}`);
         }
         
-        // Check if user has any shifts on this date
-        const userShiftsOnThisDate = (userShifts || []).filter(shift => shift.date === dateStr);
+        // Skip if user is on leave on this date
+        if (userLeaveDates.has(dateStr)) {
+          console.log(`❌ ${dateStr} - User is on leave, skipping`);
+          return false;
+        }
+
+        // Skip if requester is on leave on this date (they can't work their shift)
+        if (requesterLeaveDates.has(dateStr)) {
+          console.log(`❌ ${dateStr} - Requester is on leave, skipping`);
+          return false;
+        }
+
+        // Check if user has any shifts on this date (normalize both to database format for comparison)
+        const userShiftsOnThisDate = (userShifts || []).filter(shift => 
+          normalizeToDatabaseFormat(shift.date) === dateStr
+        );
         const userIsOffOnThisDate = userShiftsOnThisDate.length === 0;
         
-        // Check if requester has any shifts on this date
-        const requesterShiftsOnThisDate = (requesterShifts || []).filter(shift => shift.date === dateStr);
+        // Check if requester has any shifts on this date (normalize both to database format for comparison)
+        const requesterShiftsOnThisDate = (requesterShifts || []).filter(shift => 
+          normalizeToDatabaseFormat(shift.date) === dateStr
+        );
         const requesterIsWorkingOnThisDate = requesterShiftsOnThisDate.length > 0;
         
         console.log(`Date ${dateStr}: User ${userIsOffOnThisDate ? 'OFF' : 'WORKING'} (${userShiftsOnThisDate.length} shifts), Requester ${requesterIsWorkingOnThisDate ? 'WORKING' : 'OFF'} (${requesterShiftsOnThisDate.length} shifts)`);
@@ -367,6 +440,7 @@ const ManageSwaps = () => {
       console.log('Available dates for counter-offer:', availableDates);
 
       // Final filter: ensure all dates are from the target month if specified
+      // (This is already done in the filter above, but keeping for safety)
       let finalAvailableDates = availableDates;
       if (targetMonth) {
         console.log('=== FINAL MONTH FILTERING ===');
@@ -374,7 +448,7 @@ const ManageSwaps = () => {
         console.log('Target month for filtering:', targetMonth);
         
         finalAvailableDates = availableDates.filter(date => {
-          const dateObj = parseUkDate(date);
+          const dateObj = parseDate(date); // date is in YYYY-MM-DD format
           const dateMonth = dateObj.getMonth();
           const dateYear = dateObj.getFullYear();
           const targetMonthNum = targetMonth.getMonth();
@@ -512,7 +586,7 @@ const ManageSwaps = () => {
     }
   };
 
-  const handleAcceptSwapWithCounterOffer = async (swapId: string, selectedDate: string) => {
+  const handleAcceptSwapWithCounterOffer = async (swapId: string, selectedShiftId: string) => {
     try {
       if (!user) {
         toast({
@@ -523,24 +597,50 @@ const ManageSwaps = () => {
         return;
       }
 
+      // Extract the date from the selected shift ID (format: "counter-offer-YYYY-MM-DD")
+      // or find the shift in availableShifts to get the date
+      const selectedShift = availableShifts.find(s => s.id === selectedShiftId);
+      if (!selectedShift) {
+        toast({
+          title: "Error",
+          description: "Selected date not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const counterOfferDate = selectedShift.date; // This is now in YYYY-MM-DD format
+
       // Update the swap request with the counter-offer date
       const { error } = await supabase
         .from('swap_requests')
         .update({ 
           status: 'pending',
-          counter_offer_date: selectedDate
+          counter_offer_date: counterOfferDate
         })
         .eq('id', swapId);
 
       if (error) throw error;
 
+      // Format date for display
+      const displayDate = (() => {
+        const [y, m, d] = counterOfferDate.split('-').map(Number);
+        const dateObj = new Date(y, m - 1, d);
+        return dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      })();
+
       toast({
         title: "Counter-Offer Sent",
-        description: `Your counter-offer for ${selectedDate} has been sent to the requester`,
+        description: `Your counter-offer for ${displayDate} has been sent to the requester`,
       });
 
       // Reload the requests
-        await loadIncomingRequests(user.id);
+      await loadIncomingRequests(user.id);
+      
+      // Reset the counter-offer UI
+      setShowCounterOffer(null);
+      setSelectedCounterShift("");
+      setAvailableShifts([]);
     } catch (error) {
       console.error('Error sending counter-offer:', error);
       toast({
@@ -1187,15 +1287,43 @@ const ManageSwaps = () => {
                                           >
                                             <div className="text-center">
                                               <div className="text-sm font-medium text-gray-900">
-                                                {new Date(shift.date).toLocaleDateString('en-GB', { 
-                                                  month: 'short', 
-                                                  day: 'numeric' 
-                                                })}
+                                                {(() => {
+                                                  // Parse date (handles both YYYY-MM-DD and DD/MM/YYYY)
+                                                  const dateStr = shift.date;
+                                                  let dateObj: Date;
+                                                  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                                                    // YYYY-MM-DD format
+                                                    const [y, m, d] = dateStr.split('-').map(Number);
+                                                    dateObj = new Date(y, m - 1, d);
+                                                  } else {
+                                                    // DD/MM/YYYY format
+                                                    const [d, m, y] = dateStr.split('/').map(Number);
+                                                    dateObj = new Date(y, m - 1, d);
+                                                  }
+                                                  return dateObj.toLocaleDateString('en-GB', { 
+                                                    month: 'short', 
+                                                    day: 'numeric' 
+                                                  });
+                                                })()}
                                                 </div>
                                               <div className="text-xs text-gray-500">
-                                                {new Date(shift.date).toLocaleDateString('en-GB', { 
-                                                  weekday: 'short' 
-                                                })}
+                                                {(() => {
+                                                  // Parse date (handles both YYYY-MM-DD and DD/MM/YYYY)
+                                                  const dateStr = shift.date;
+                                                  let dateObj: Date;
+                                                  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                                                    // YYYY-MM-DD format
+                                                    const [y, m, d] = dateStr.split('-').map(Number);
+                                                    dateObj = new Date(y, m - 1, d);
+                                                  } else {
+                                                    // DD/MM/YYYY format
+                                                    const [d, m, y] = dateStr.split('/').map(Number);
+                                                    dateObj = new Date(y, m - 1, d);
+                                                  }
+                                                  return dateObj.toLocaleDateString('en-GB', { 
+                                                    weekday: 'short' 
+                                                  });
+                                                })()}
                                                 </div>
                                             </div>
                                           </div>
