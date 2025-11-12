@@ -19,56 +19,41 @@ import { format } from 'date-fns'
 interface PayPeriod {
   id: string
   label: string
-  start: Date // Second Saturday of the month
-  end: Date   // Second last Sunday of the following month
+  start: Date // Sunday start
+  end: Date   // Saturday end (inclusive)
+  weeks: 4 | 5 // Period length in weeks
 }
 
-const getSecondSaturday = (date: Date) => {
-  const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1)
-  let saturdayCount = 0
-  for (let i = 0; i < 31; i++) {
-    const current = new Date(firstOfMonth.getFullYear(), firstOfMonth.getMonth(), firstOfMonth.getDate() + i)
-    if (current.getMonth() !== date.getMonth()) break
-    if (current.getDay() === 6) {
-      saturdayCount++
-      if (saturdayCount === 2) return current
+// Fixed 2025 premium periods (Sunday-Saturday blocks)
+const PREMIUM_PERIODS_2025: PayPeriod[] = [
+  { id: '2025-01', label: '12 Jan - 8 Feb 2025', start: new Date('2025-01-12'), end: new Date('2025-02-08'), weeks: 4 },
+  { id: '2025-02', label: '9 Feb - 8 Mar 2025', start: new Date('2025-02-09'), end: new Date('2025-03-08'), weeks: 4 },
+  { id: '2025-03', label: '9 Mar - 5 Apr 2025', start: new Date('2025-03-09'), end: new Date('2025-04-05'), weeks: 4 },
+  { id: '2025-04', label: '6 Apr - 10 May 2025', start: new Date('2025-04-06'), end: new Date('2025-05-10'), weeks: 5 },
+  { id: '2025-05', label: '11 May - 7 Jun 2025', start: new Date('2025-05-11'), end: new Date('2025-06-07'), weeks: 4 },
+  { id: '2025-06', label: '13 Jul - 9 Aug 2025', start: new Date('2025-07-13'), end: new Date('2025-08-09'), weeks: 4 },
+  { id: '2025-07', label: '10 Aug - 13 Sep 2025', start: new Date('2025-08-10'), end: new Date('2025-09-13'), weeks: 5 },
+  { id: '2025-08', label: '14 Sep - 11 Oct 2025', start: new Date('2025-09-14'), end: new Date('2025-10-11'), weeks: 4 },
+  { id: '2025-09', label: '12 Oct - 8 Nov 2025', start: new Date('2025-10-12'), end: new Date('2025-11-08'), weeks: 4 },
+  { id: '2025-10', label: '9 Nov - 6 Dec 2025', start: new Date('2025-11-09'), end: new Date('2025-12-06'), weeks: 4 },
+]
+
+// Helper function to find which period a shift date falls into
+const findPeriodForDate = (date: Date): PayPeriod | null => {
+  const shiftDate = new Date(date)
+  shiftDate.setHours(0, 0, 0, 0)
+  
+  for (const period of PREMIUM_PERIODS_2025) {
+    const periodStart = new Date(period.start)
+    periodStart.setHours(0, 0, 0, 0)
+    const periodEnd = new Date(period.end)
+    periodEnd.setHours(23, 59, 59, 999)
+    
+    if (shiftDate >= periodStart && shiftDate <= periodEnd) {
+      return period
     }
   }
-  return firstOfMonth
-}
-
-const getSecondLastSunday = (date: Date) => {
-  // date should be first day of target month
-  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0)
-  let sundayCount = 0
-  for (let i = 0; i < 31; i++) {
-    const current = new Date(lastDay.getFullYear(), lastDay.getMonth(), lastDay.getDate() - i)
-    if (current.getDay() === 0) {
-      sundayCount++
-      if (sundayCount === 2) {
-        current.setHours(23, 59, 59, 999)
-        return current
-      }
-    }
-  }
-  return lastDay
-}
-
-const generatePayPeriods = (startYear: number, totalMonths: number): PayPeriod[] => {
-  const periods: PayPeriod[] = []
-  for (let i = 0; i < totalMonths; i++) {
-    const monthDate = new Date(startYear, i, 1)
-    const start = getSecondSaturday(monthDate)
-    const followingMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1)
-    const end = getSecondLastSunday(followingMonth)
-    periods.push({
-      id: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`,
-      label: format(monthDate, 'MMM yyyy'),
-      start,
-      end
-    })
-  }
-  return periods
+  return null
 }
 
 // Aviation shift fixed allowances (£) based on provided table
@@ -121,13 +106,9 @@ export const PremiumCalculator = () => {
   const [baseSalary, setBaseSalary] = useState<number>(0)
   const [leaveDays, setLeaveDays] = useState<number>(0)
 
-  const payPeriods = useMemo(() => {
-    const currentYear = new Date().getFullYear()
-    return generatePayPeriods(currentYear - 1, 24) // previous year + current year
-  }, [])
   const selectedPeriod = useMemo(
-    () => payPeriods.find(period => period.id === selectedPeriodId) || null,
-    [payPeriods, selectedPeriodId]
+    () => PREMIUM_PERIODS_2025.find(period => period.id === selectedPeriodId) || null,
+    [selectedPeriodId]
   )
 
   useEffect(() => {
@@ -135,14 +116,14 @@ export const PremiumCalculator = () => {
   }, [])
 
   useEffect(() => {
-    if (payPeriods.length > 0 && !selectedPeriodId) {
+    if (!selectedPeriodId) {
       const today = new Date()
-      const current = payPeriods.find(period => today >= period.start && today <= period.end) || payPeriods[payPeriods.length - 1]
+      const current = findPeriodForDate(today) || PREMIUM_PERIODS_2025[PREMIUM_PERIODS_2025.length - 1]
       if (current) {
         setSelectedPeriodId(current.id)
       }
     }
-  }, [payPeriods, selectedPeriodId])
+  }, [selectedPeriodId])
 
   useEffect(() => {
     if (selectedPeriod && shifts.length > 0) {
@@ -287,17 +268,18 @@ export const PremiumCalculator = () => {
   }
 
   const calculatePremiums = (period: PayPeriod) => {
-    const cutoffDate = new Date(period.end)
     const startDate = new Date(period.start)
     startDate.setHours(0, 0, 0, 0)
+    const endDate = new Date(period.end)
+    endDate.setHours(23, 59, 59, 999) // Include the entire Saturday
 
     // Store period date range for display
-    setPeriodDateRange({ start: startDate, end: cutoffDate })
+    setPeriodDateRange({ start: startDate, end: endDate })
 
-    // Filter shifts: from startDate (inclusive) to cutoffDate (inclusive)
+    // Filter shifts: from startDate (inclusive Sunday) to endDate (inclusive Saturday)
     const periodShifts = shifts.filter(shift => {
       const shiftDate = new Date(`${shift.date}T00:00:00`)
-      return shiftDate >= startDate && shiftDate <= cutoffDate
+      return shiftDate >= startDate && shiftDate <= endDate
     })
 
     // Determine which dates are double-shift days (2+ shifts on the same date)
@@ -444,9 +426,9 @@ export const PremiumCalculator = () => {
                   <SelectValue placeholder="Select a pay period" />
                 </SelectTrigger>
                 <SelectContent>
-                  {payPeriods.map(period => (
+                  {PREMIUM_PERIODS_2025.map(period => (
                     <SelectItem key={period.id} value={period.id}>
-                      {period.label} ({format(period.start, 'd MMM')} – {format(period.end, 'd MMM')})
+                      {period.label} ({period.weeks} weeks)
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -485,6 +467,9 @@ export const PremiumCalculator = () => {
                 <span className="font-semibold">Pay Period Range:</span>
                 <span>
                   {format(periodDateRange.start, 'd MMM yyyy')} - {format(periodDateRange.end, 'd MMM yyyy')}
+                </span>
+                <span className="text-blue-600">
+                  ({selectedPeriod.weeks} weeks)
                 </span>
               </div>
             </div>
