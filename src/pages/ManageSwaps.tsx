@@ -298,7 +298,7 @@ const ManageSwaps = () => {
         // Skip past dates
         const dateObj = parseUkDate(dateStr);
         if (dateObj < today) {
-          console.log(`❌ ${date} - Past date, skipping`);
+          console.log(`❌ ${dateStr} - Past date, skipping`);
           return false;
         }
         
@@ -835,7 +835,7 @@ const ManageSwaps = () => {
     }
   };
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
+  const navigateMonth = async (direction: 'prev' | 'next') => {
     console.log('=== NAVIGATING MONTH ===');
     console.log('Current month before:', currentMonth);
     console.log('Direction:', direction);
@@ -871,22 +871,25 @@ const ManageSwaps = () => {
         console.log('Requester shift date:', swapRequest.requester_shift.date);
         console.log('Calling fetchAvailableShifts with new month:', newMonth);
         
-        // Clear current available shifts first
+        // Set loading state and clear current available shifts
+        setLoadingCounterShifts(true);
         setAvailableShifts([]);
         
-        // Fetch new shifts for the new month
-        fetchAvailableShifts(user.id, swapRequest.requester_shift.date, activeSwapId, newMonth);
+        // Fetch new shifts for the new month and await it
+        await fetchAvailableShifts(user.id, swapRequest.requester_shift.date, activeSwapId, newMonth);
       } else {
         console.log('No swap request or requester shift date found');
+        setLoadingCounterShifts(false);
       }
     } else {
       console.log('No active swap ID or user');
       console.log('  - activeSwapId is:', activeSwapId);
       console.log('  - user is:', user);
+      setLoadingCounterShifts(false);
     }
   };
 
-  const resetToCurrentMonth = () => {
+  const resetToCurrentMonth = async () => {
     const today = new Date();
     setCurrentMonth(today);
     
@@ -897,7 +900,9 @@ const ManageSwaps = () => {
     if (activeSwapId && user) {
       const swapRequest = incomingRequests.find(req => req.id === activeSwapId);
       if (swapRequest?.requester_shift?.date) {
-        fetchAvailableShifts(user.id, swapRequest.requester_shift.date, activeSwapId, today);
+        setLoadingCounterShifts(true);
+        setAvailableShifts([]);
+        await fetchAvailableShifts(user.id, swapRequest.requester_shift.date, activeSwapId, today);
       }
     }
   };
