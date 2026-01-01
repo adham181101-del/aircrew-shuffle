@@ -348,6 +348,90 @@ const CreateSwapRequest = () => {
     }
   };
 
+  const handleDummySwapSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedDummyRequesterShift || !selectedDummyAccepterShift || !dummyRepayDate || !finalRepayDate || !user) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all fields for the dummy swap",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const requesterShift = userShifts.find(s => s.id === selectedDummyRequesterShift);
+    if (!requesterShift) {
+      toast({
+        title: "Invalid Shift",
+        description: "Selected requester shift is invalid",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Find the colleague's shift and staff member
+    const { data: accepterShiftData, error: shiftError } = await supabase
+      .from('shifts')
+      .select('*, staff_id')
+      .eq('id', selectedDummyAccepterShift)
+      .single();
+
+    if (shiftError || !accepterShiftData) {
+      toast({
+        title: "Error",
+        description: "Could not find the colleague's shift. Please verify the shift ID is correct.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Verify the shift doesn't belong to the current user
+    if (accepterShiftData.staff_id === user.id) {
+      toast({
+        title: "Invalid Selection",
+        description: "You cannot select your own shift as the colleague's shift",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Create dummy swap request
+      const { error } = await supabase
+        .from('swap_requests')
+        .insert({
+          requester_id: user.id,
+          requester_shift_id: selectedDummyRequesterShift,
+          accepter_id: accepterShiftData.staff_id,
+          accepter_shift_id: selectedDummyAccepterShift,
+          is_dummy: true,
+          dummy_repay_date: dummyRepayDate,
+          final_repay_date: finalRepayDate,
+          message: dummyMessage || null,
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Dummy Swap Request Created!",
+        description: `Your dummy swap request has been created. You'll work the colleague's shift on ${accepterShiftData.date} and get a temporary repayment on ${dummyRepayDate}, with final repayment on ${finalRepayDate}.`,
+      });
+      
+      navigate('/swaps');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create dummy swap request",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleTimeChangeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
