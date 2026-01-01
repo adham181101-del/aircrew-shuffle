@@ -1083,14 +1083,14 @@ const ManageSwaps = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="manage-swaps-tabs">
             <div className="mb-8">
               <TabsList className="w-full p-4">
-                <div className="flex flex-col w-full space-y-4">
+                <div className="flex flex-col w-full space-y-3">
                   <TabsTrigger 
                     value="incoming" 
                     className="w-full px-6 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:bg-gray-50 data-[state=inactive]:text-gray-700 hover:bg-gray-100"
                   >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="font-medium text-base">Incoming</span>
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200">
+                    <div className="flex items-center justify-between w-full gap-4">
+                      <span className="font-medium text-base whitespace-nowrap">Incoming</span>
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200 flex-shrink-0">
                         {incomingRequests.length}
                       </Badge>
                     </div>
@@ -1099,9 +1099,9 @@ const ManageSwaps = () => {
                     value="counter-offers" 
                     className="w-full px-6 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:bg-gray-50 data-[state=inactive]:text-gray-700 hover:bg-gray-100"
                   >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="font-medium text-base">Counter Offers</span>
-                      <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200">
+                    <div className="flex items-center justify-between w-full gap-4">
+                      <span className="font-medium text-base whitespace-nowrap">Counter Offers</span>
+                      <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200 flex-shrink-0">
                         {myRequests.filter(r => r.status === 'pending' && r.counter_offer_date).length}
                       </Badge>
                     </div>
@@ -1110,9 +1110,9 @@ const ManageSwaps = () => {
                     value="my-requests" 
                     className="w-full px-6 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:bg-gray-50 data-[state=inactive]:text-gray-700 hover:bg-gray-100"
                   >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="font-medium text-base">My Requests</span>
-                      <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                    <div className="flex items-center justify-between w-full gap-4">
+                      <span className="font-medium text-base whitespace-nowrap">My Requests</span>
+                      <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200 flex-shrink-0">
                         {myRequests.length}
                       </Badge>
                     </div>
@@ -1121,9 +1121,9 @@ const ManageSwaps = () => {
                     value="accepted-swaps" 
                     className="w-full px-6 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:bg-gray-50 data-[state=inactive]:text-gray-700 hover:bg-gray-100"
                   >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="font-medium text-base">Accepted Swaps</span>
-                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 border-emerald-200">
+                    <div className="flex items-center justify-between w-full gap-4">
+                      <span className="font-medium text-base whitespace-nowrap">Accepted Swaps</span>
+                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 border-emerald-200 flex-shrink-0">
                         {myRequests.filter(r => r.status === 'accepted').length + incomingRequests.filter(r => r.status === 'accepted').length}
                       </Badge>
                     </div>
@@ -1132,9 +1132,9 @@ const ManageSwaps = () => {
                     value="dummy-swaps" 
                     className="w-full px-6 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:bg-gray-50 data-[state=inactive]:text-gray-700 hover:bg-gray-100"
                   >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="font-medium text-base">Dummy Swaps</span>
-                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                    <div className="flex items-center justify-between w-full gap-4">
+                      <span className="font-medium text-base whitespace-nowrap">Dummy Swaps</span>
+                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200 flex-shrink-0">
                         {myRequests.filter(r => r.is_dummy).length + incomingRequests.filter(r => r.is_dummy).length}
                       </Badge>
                     </div>

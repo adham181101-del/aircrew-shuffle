@@ -135,7 +135,7 @@ export const getCurrentSubscription = async (): Promise<Subscription | null> => 
       return null
     }
 
-    return data
+    return data as Subscription | null
   } catch (error) {
     console.error('Error getting current subscription:', error)
     return null
