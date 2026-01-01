@@ -24,18 +24,20 @@ interface PayPeriod {
   weeks: 4 | 5 // Period length in weeks
 }
 
-// Fixed 2025 premium periods (Sunday-Saturday blocks)
-const PREMIUM_PERIODS_2025: PayPeriod[] = [
-  { id: '2025-01', label: '12 Jan - 8 Feb 2025', start: new Date('2025-01-12'), end: new Date('2025-02-08'), weeks: 4 },
-  { id: '2025-02', label: '9 Feb - 8 Mar 2025', start: new Date('2025-02-09'), end: new Date('2025-03-08'), weeks: 4 },
-  { id: '2025-03', label: '9 Mar - 5 Apr 2025', start: new Date('2025-03-09'), end: new Date('2025-04-05'), weeks: 4 },
-  { id: '2025-04', label: '6 Apr - 10 May 2025', start: new Date('2025-04-06'), end: new Date('2025-05-10'), weeks: 5 },
-  { id: '2025-05', label: '11 May - 7 Jun 2025', start: new Date('2025-05-11'), end: new Date('2025-06-07'), weeks: 4 },
-  { id: '2025-06', label: '13 Jul - 9 Aug 2025', start: new Date('2025-07-13'), end: new Date('2025-08-09'), weeks: 4 },
-  { id: '2025-07', label: '10 Aug - 13 Sep 2025', start: new Date('2025-08-10'), end: new Date('2025-09-13'), weeks: 5 },
-  { id: '2025-08', label: '14 Sep - 11 Oct 2025', start: new Date('2025-09-14'), end: new Date('2025-10-11'), weeks: 4 },
-  { id: '2025-09', label: '12 Oct - 8 Nov 2025', start: new Date('2025-10-12'), end: new Date('2025-11-08'), weeks: 4 },
-  { id: '2025-10', label: '9 Nov - 6 Dec 2025', start: new Date('2025-11-09'), end: new Date('2025-12-06'), weeks: 4 },
+// Fixed 2026 premium periods (Overtime work periods → Paid month)
+const PREMIUM_PERIODS_2026: PayPeriod[] = [
+  { id: '2026-01', label: '8 Dec 2025 - 11 Jan 2026', start: new Date('2025-12-08'), end: new Date('2026-01-11'), weeks: 5 },
+  { id: '2026-02', label: '12 Jan - 8 Feb 2026', start: new Date('2026-01-12'), end: new Date('2026-02-08'), weeks: 4 },
+  { id: '2026-03', label: '9 Feb - 8 Mar 2026', start: new Date('2026-02-09'), end: new Date('2026-03-08'), weeks: 4 },
+  { id: '2026-04', label: '9 Mar - 5 Apr 2026', start: new Date('2026-03-09'), end: new Date('2026-04-05'), weeks: 4 },
+  { id: '2026-05', label: '6 Apr - 10 May 2026', start: new Date('2026-04-06'), end: new Date('2026-05-10'), weeks: 5 },
+  { id: '2026-06', label: '11 May - 7 Jun 2026', start: new Date('2026-05-11'), end: new Date('2026-06-07'), weeks: 4 },
+  { id: '2026-07', label: '8 Jun - 12 Jul 2026', start: new Date('2026-06-08'), end: new Date('2026-07-12'), weeks: 5 },
+  { id: '2026-08', label: '13 Jul - 9 Aug 2026', start: new Date('2026-07-13'), end: new Date('2026-08-09'), weeks: 4 },
+  { id: '2026-09', label: '10 Aug - 13 Sep 2026', start: new Date('2026-08-10'), end: new Date('2026-09-13'), weeks: 5 },
+  { id: '2026-10', label: '14 Sep - 11 Oct 2026', start: new Date('2026-09-14'), end: new Date('2026-10-11'), weeks: 4 },
+  { id: '2026-11', label: '12 Oct - 8 Nov 2026', start: new Date('2026-10-12'), end: new Date('2026-11-08'), weeks: 4 },
+  { id: '2026-12', label: '9 Nov - 6 Dec 2026', start: new Date('2026-11-09'), end: new Date('2026-12-06'), weeks: 4 },
 ]
 
 // Helper function to find which period a shift date falls into
@@ -43,7 +45,7 @@ const findPeriodForDate = (date: Date): PayPeriod | null => {
   const shiftDate = new Date(date)
   shiftDate.setHours(0, 0, 0, 0)
   
-  for (const period of PREMIUM_PERIODS_2025) {
+  for (const period of PREMIUM_PERIODS_2026) {
     const periodStart = new Date(period.start)
     periodStart.setHours(0, 0, 0, 0)
     const periodEnd = new Date(period.end)
@@ -107,7 +109,7 @@ export const PremiumCalculator = () => {
   const [leaveDays, setLeaveDays] = useState<number>(0)
 
   const selectedPeriod = useMemo(
-    () => PREMIUM_PERIODS_2025.find(period => period.id === selectedPeriodId) || null,
+    () => PREMIUM_PERIODS_2026.find(period => period.id === selectedPeriodId) || null,
     [selectedPeriodId]
   )
 
@@ -118,7 +120,7 @@ export const PremiumCalculator = () => {
   useEffect(() => {
     if (!selectedPeriodId) {
       const today = new Date()
-      const current = findPeriodForDate(today) || PREMIUM_PERIODS_2025[PREMIUM_PERIODS_2025.length - 1]
+      const current = findPeriodForDate(today) || PREMIUM_PERIODS_2026[PREMIUM_PERIODS_2026.length - 1]
       if (current) {
         setSelectedPeriodId(current.id)
       }
@@ -426,7 +428,7 @@ export const PremiumCalculator = () => {
                   <SelectValue placeholder="Select a pay period" />
                 </SelectTrigger>
                 <SelectContent>
-                  {PREMIUM_PERIODS_2025.map(period => (
+                  {PREMIUM_PERIODS_2026.map(period => (
                     <SelectItem key={period.id} value={period.id}>
                       {period.label} ({period.weeks} weeks)
                     </SelectItem>

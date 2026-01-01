@@ -12,7 +12,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { 
   Calendar, 
-  Users, 
   Upload, 
   Settings, 
   LogOut,
@@ -31,7 +30,6 @@ import {
   Lock
 } from 'lucide-react'
 import { PremiumCalculator } from '@/components/premium/PremiumCalculator'
-import { TeamView } from '@/components/team/TeamView'
 import { SubscriptionStatus } from '@/components/SubscriptionStatus'
 import { hasActiveSubscription } from '@/lib/subscriptions'
 import { supabase } from '@/integrations/supabase/client'
@@ -57,7 +55,7 @@ const Dashboard = () => {
   const { toast } = useToast()
   const { user, signOut } = useAuth()
   const [shifts, setShifts] = useState<Shift[]>([])
-  const [activeTab, setActiveTab] = useState<'calendar' | 'premiums' | 'team'>('calendar')
+  const [activeTab, setActiveTab] = useState<'calendar' | 'premiums'>('calendar')
   const [stats, setStats] = useState({
     totalShifts: 0,
     pendingSwaps: 0,
@@ -496,19 +494,6 @@ const Dashboard = () => {
             <DollarSign className="h-4 w-4 mr-2" />
             Premiums
           </Button>
-          <Button
-            variant={activeTab === 'team' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setActiveTab('team')}
-            className={`flex-1 px-4 py-2 rounded-md transition-all duration-200 ${
-              activeTab === 'team' 
-                ? 'bg-blue-600 text-white shadow-sm' 
-                : 'hover:bg-gray-100 text-gray-600'
-            }`}
-          >
-            <Users className="h-4 w-4 mr-2" />
-            Team
-          </Button>
         </div>
 
         {/* Professional Quick Actions */}
@@ -540,28 +525,14 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        {/* Mobile Sign Out Button */}
-        <div className="md:hidden mb-6">
-          <Button
-            onClick={handleSignOut}
-            variant="outline"
-            className="w-full h-12 border-red-200 text-red-600 hover:bg-red-50"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
-        </div>
-
         {/* Content based on active tab */}
         {activeTab === 'calendar' ? (
           <ShiftCalendar 
             onShiftClick={handleShiftClick}
             onCreateShift={() => navigate('/shifts/create')}
           />
-        ) : activeTab === 'premiums' ? (
-          <PremiumCalculator />
         ) : (
-          <TeamView />
+          <PremiumCalculator />
         )}
 
         {/* Delete All Shifts Confirmation Dialog */}
