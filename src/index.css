@@ -280,6 +280,10 @@
   @apply bg-gradient-to-r from-green-400 to-emerald-500 shadow-lg;
 }
 
+.shift-double {
+  @apply bg-gradient-to-r from-red-600 to-red-700 shadow-lg;
+}
+
 .shift-day {
   @apply bg-gradient-to-r from-blue-400 to-cyan-500 shadow-lg;
 }

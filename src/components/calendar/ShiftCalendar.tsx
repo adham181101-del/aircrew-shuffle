@@ -131,9 +131,18 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
     }
   }
 
-  const getShiftColorClass = (timeOfDay: string, isSwapped: boolean) => {
+  const isDoubleShift = (timeRange: string): boolean => {
+    return timeRange === '04:15-22:15'
+  }
+
+  const getShiftColorClass = (timeOfDay: string, isSwapped: boolean, timeRange: string) => {
     if (isSwapped) {
       return 'shift-swapped'
+    }
+    
+    // Check for double shift first (4:15-22:15)
+    if (isDoubleShift(timeRange)) {
+      return 'shift-double'
     }
     
     switch (timeOfDay) {
@@ -164,7 +173,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
             <div
               key={shift.id}
               className={`w-full text-xs px-1 py-1 rounded-lg text-center font-semibold cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-105
-                ${getShiftColorClass(timeOfDay, shift.is_swapped)}
+                ${getShiftColorClass(timeOfDay, shift.is_swapped, shift.time)}
                 ${shift.is_swapped ? 'text-white/90' : 'text-white'}
               `}
               onClick={(e) => {
@@ -279,6 +288,10 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 <span className="text-xs font-medium text-gray-700">Night</span>
               </div>
               <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-red-600 to-red-700 shadow-sm"></div>
+                <span className="text-xs font-medium text-gray-700">Double</span>
+              </div>
+              <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 shadow-sm"></div>
                 <span className="text-xs font-medium text-gray-700">Swapped</span>
               </div>
@@ -320,7 +333,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${getShiftColorClass(getShiftTimeOfDay(shift.time), shift.is_swapped)}`}>
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${getShiftColorClass(getShiftTimeOfDay(shift.time), shift.is_swapped, shift.time)}`}>
                         <Clock className="h-6 w-6 text-white" />
                       </div>
                       <div>
