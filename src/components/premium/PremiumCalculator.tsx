@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getUserShifts, type Shift } from '@/lib/shifts'
 import { getCurrentUser } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
-import { Calendar, DollarSign, TrendingUp, Clock, X, ChevronRight } from 'lucide-react'
+import { Calendar, DollarSign, TrendingUp, Clock, ChevronRight } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -591,16 +591,8 @@ export const PremiumCalculator = () => {
       <Dialog open={!!selectedPremium} onOpenChange={() => setSelectedPremium(null)}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl flex items-center justify-between">
-              <span>{selectedPremium?.premiumType} - Detailed Breakdown</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSelectedPremium(null)}
-                className="h-8 w-8"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+            <DialogTitle className="text-2xl">
+              {selectedPremium?.premiumType} - Detailed Breakdown
             </DialogTitle>
             <DialogDescription>
               Showing all {selectedPremium?.count} occurrences of {selectedPremium?.premiumType}
