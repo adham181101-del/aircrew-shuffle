@@ -104,9 +104,9 @@ export const PremiumCalculator = () => {
     totalPremiumAmount: 0,
     totalHours: 0
   })
-  // New: base salary and leave days inputs
-  const [baseSalary, setBaseSalary] = useState<number>(0)
-  const [leaveDays, setLeaveDays] = useState<number>(0)
+  // New: base salary and leave days inputs (using string to allow empty values)
+  const [baseSalary, setBaseSalary] = useState<string>('')
+  const [leaveDays, setLeaveDays] = useState<string>('')
 
   const selectedPeriod = useMemo(
     () => PREMIUM_PERIODS_2026.find(period => period.id === selectedPeriodId) || null,
@@ -443,7 +443,7 @@ export const PremiumCalculator = () => {
                 min="0"
                 step="0.01"
                 value={baseSalary}
-                onChange={(e) => setBaseSalary(parseFloat(e.target.value || '0'))}
+                onChange={(e) => setBaseSalary(e.target.value)}
                 className="h-12 w-full rounded-xl border-2 border-gray-200 px-4 text-base hover:border-green-300 focus:border-green-500 focus:outline-none transition-all duration-300"
                 placeholder="£ e.g. 2200.00"
               />
@@ -455,7 +455,7 @@ export const PremiumCalculator = () => {
                 min="0"
                 step="1"
                 value={leaveDays}
-                onChange={(e) => setLeaveDays(parseInt(e.target.value || '0', 10))}
+                onChange={(e) => setLeaveDays(e.target.value)}
                 className="h-12 w-full rounded-xl border-2 border-gray-200 px-4 text-base hover:border-green-300 focus:border-green-500 focus:outline-none transition-all duration-300"
                 placeholder="e.g. 2"
               />
@@ -504,13 +504,15 @@ export const PremiumCalculator = () => {
             </CardHeader>
             <CardContent>
               {(() => {
-                const leavePremium = leaveDays * 17.24;
-                const expected = Math.max(0, baseSalary) + totals.totalPremiumAmount + leavePremium;
+                const baseSalaryNum = parseFloat(baseSalary) || 0;
+                const leaveDaysNum = parseInt(leaveDays, 10) || 0;
+                const leavePremium = leaveDaysNum * 17.24;
+                const expected = Math.max(0, baseSalaryNum) + totals.totalPremiumAmount + leavePremium;
                 return (
                   <>
                     <div className="text-3xl font-bold text-emerald-900">£{expected.toFixed(2)}</div>
                     <p className="text-xs text-emerald-700 mt-1">
-                      Base £{Math.max(0, baseSalary).toFixed(2)} + Premiums £{totals.totalPremiumAmount.toFixed(2)} + Leave £{leavePremium.toFixed(2)}
+                      Base £{baseSalaryNum.toFixed(2)} + Premiums £{totals.totalPremiumAmount.toFixed(2)} + Leave £{leavePremium.toFixed(2)}
                     </p>
                   </>
                 )
