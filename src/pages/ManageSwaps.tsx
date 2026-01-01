@@ -1044,7 +1044,7 @@ const ManageSwaps = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           <Card className="bg-white border border-gray-200 shadow-sm rounded-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Incoming Requests</CardTitle>
@@ -1079,9 +1079,9 @@ const ManageSwaps = () => {
             <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
             <p className="text-gray-600 text-lg">Loading swap requests...</p>
             </div>
-          ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="manage-swaps-tabs">
-            <div className="mb-8">
+           ) : (
+           <Tabs value={activeTab} onValueChange={setActiveTab} className="manage-swaps-tabs mt-6">
+             <div className="mb-8">
               <TabsList className="w-full p-4">
                 <div className="flex flex-col w-full space-y-3">
                   <TabsTrigger 
