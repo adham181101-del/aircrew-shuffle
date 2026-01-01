@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, FileText, AlertCircle, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { upsertShift, parseShiftsFromText, clearAllShiftsForUser } from "@/lib/shifts";
+import { upsertShift, parseShiftsFromText, clearAllShiftsForUser, getUserShifts } from "@/lib/shifts";
 import { getCurrentUser } from "@/lib/auth";
 
 const UploadPage = () => {
