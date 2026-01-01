@@ -123,7 +123,10 @@ export type Database = {
           accepter_shift_id: string | null
           counter_offer_date: string | null
           created_at: string
+          dummy_repay_date: string | null
+          final_repay_date: string | null
           id: string
+          is_dummy: boolean
           message: string | null
           repay_date: string | null
           requester_id: string
@@ -135,7 +138,10 @@ export type Database = {
           accepter_shift_id?: string | null
           counter_offer_date?: string | null
           created_at?: string
+          dummy_repay_date?: string | null
+          final_repay_date?: string | null
           id?: string
+          is_dummy?: boolean
           message?: string | null
           repay_date?: string | null
           requester_id: string
@@ -147,7 +153,10 @@ export type Database = {
           accepter_shift_id?: string | null
           counter_offer_date?: string | null
           created_at?: string
+          dummy_repay_date?: string | null
+          final_repay_date?: string | null
           id?: string
+          is_dummy?: boolean
           message?: string | null
           repay_date?: string | null
           requester_id?: string

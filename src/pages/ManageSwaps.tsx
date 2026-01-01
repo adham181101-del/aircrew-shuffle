@@ -32,6 +32,9 @@ type SwapRequestWithDetails = {
   status: string;
   message: string | null;
   created_at: string;
+  is_dummy?: boolean;
+  dummy_repay_date?: string | null;
+  final_repay_date?: string | null;
   requester_staff?: Staff;
   accepter_staff?: Staff;
   requester_shift?: any;
@@ -1124,6 +1127,17 @@ const ManageSwaps = () => {
                     </Badge>
                   </div>
                 </TabsTrigger>
+                <TabsTrigger 
+                  value="dummy-swaps" 
+                  className="w-full px-6 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:bg-gray-50 data-[state=inactive]:text-gray-700 hover:bg-gray-100"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="font-medium text-base">Dummy Swaps</span>
+                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                      {myRequests.filter(r => r.is_dummy).length + incomingRequests.filter(r => r.is_dummy).length}
+                    </Badge>
+                  </div>
+                </TabsTrigger>
               </div>
               </TabsList>
 
@@ -1725,6 +1739,150 @@ const ManageSwaps = () => {
                                   </span>
         </div>
                               </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="dummy-swaps" className="manage-swaps-content space-y-6">
+                {/* Spacer to prevent overlap with tabs */}
+                <div className="h-3"></div>
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Dummy Swaps</h2>
+                    <p className="text-gray-600">
+                      Track temporary swaps with placeholder dates that need to be resolved when dates open.
+                    </p>
+                  </div>
+
+                  {(() => {
+                    const dummyMyRequests = myRequests.filter(r => r.is_dummy);
+                    const dummyIncomingRequests = incomingRequests.filter(r => r.is_dummy);
+                    const allDummySwaps = [...dummyMyRequests, ...dummyIncomingRequests];
+
+                    if (allDummySwaps.length === 0) {
+                      return (
+                        <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200 shadow-lg">
+                          <CardHeader className="text-center pb-4">
+                            <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                              <Calendar className="h-8 w-8 text-white" />
+                            </div>
+                            <CardTitle className="text-2xl font-bold text-gray-900">No Dummy Swaps</CardTitle>
+                            <CardDescription className="text-gray-600 max-w-2xl mx-auto">
+                              You don't have any dummy swaps at the moment. Dummy swaps are temporary swaps with placeholder dates that need to be resolved when dates open.
+                            </CardDescription>
+                          </CardHeader>
+                        </Card>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-4">
+                        {allDummySwaps.map((swap) => (
+                          <Card key={swap.id} className="bg-gradient-to-br from-white to-yellow-50 border-yellow-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                            <CardHeader className="pb-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <CardTitle className="text-xl font-bold text-gray-900 mb-2">
+                                    {swap.requester_id === user?.id 
+                                      ? `Dummy Swap with ${swap.accepter_staff?.staff_number || 'Staff Member'}`
+                                      : `Dummy Swap with ${swap.requester_staff?.staff_number || 'Staff Member'}`
+                                    }
+                                  </CardTitle>
+                                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                                    <span>Created {new Date(swap.created_at).toLocaleDateString('en-GB')}</span>
+                                    <Badge variant="outline" className="border-yellow-300 text-yellow-700 bg-yellow-50">
+                                      Dummy Swap
+                                    </Badge>
+                                    <Badge variant={getStatusBadge(swap.status)}>
+                                      {swap.status}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                                <p className="text-sm font-medium text-yellow-900 mb-2">
+                                  ⚠️ This is a temporary swap with placeholder dates
+                                </p>
+                                <p className="text-xs text-yellow-700">
+                                  When dates open, you'll need to resolve this swap by returning the dummy date and receiving the final repayment date.
+                                </p>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-3">
+                                  <h4 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
+                                    ORIGINAL SHIFT TO SWAP
+                                  </h4>
+                                  <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                    <div className="flex items-center space-x-2 text-gray-700 mb-2">
+                                      <Calendar className="h-4 w-4 text-blue-600" />
+                                      <span className="font-medium">{swap.requester_shift?.date}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2 text-gray-700">
+                                      <Clock className="h-4 w-4 text-green-600" />
+                                      <span className="font-medium">{swap.requester_shift?.time}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="space-y-3">
+                                  <h4 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
+                                    SHIFT BEING WORKED
+                                  </h4>
+                                  <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                    <div className="flex items-center space-x-2 text-gray-700 mb-2">
+                                      <Calendar className="h-4 w-4 text-blue-600" />
+                                      <span className="font-medium">{swap.accepter_shift?.date || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2 text-gray-700">
+                                      <Clock className="h-4 w-4 text-green-600" />
+                                      <span className="font-medium">{swap.accepter_shift?.time || 'N/A'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {swap.dummy_repay_date && (
+                                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                                  <h4 className="font-semibold text-blue-900 text-sm mb-2">DUMMY REPAYMENT DATE (Placeholder)</h4>
+                                  <div className="flex items-center space-x-2 text-blue-700">
+                                    <Calendar className="h-4 w-4" />
+                                    <span className="font-medium">{swap.dummy_repay_date}</span>
+                                  </div>
+                                  <p className="text-xs text-blue-600 mt-2">
+                                    This is the temporary placeholder date within the allowed swap period.
+                                  </p>
+                                </div>
+                              )}
+
+                              {swap.final_repay_date && (
+                                <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                                  <h4 className="font-semibold text-purple-900 text-sm mb-2">FINAL REPAYMENT DATE (To be resolved)</h4>
+                                  <div className="flex items-center space-x-2 text-purple-700">
+                                    <Calendar className="h-4 w-4" />
+                                    <span className="font-medium">{swap.final_repay_date}</span>
+                                  </div>
+                                  <p className="text-xs text-purple-600 mt-2">
+                                    This is the actual desired repayment date outside the allowed swap period. This swap needs to be resolved when dates open.
+                                  </p>
+                                </div>
+                              )}
+
+                              {swap.message && (
+                                <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-4 border border-gray-200">
+                                  <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
+                                    <MessageSquare className="h-4 w-4 mr-2 text-blue-600" />
+                                    Message
+                                  </h4>
+                                  <p className="text-gray-700">"{swap.message}"</p>
+                                </div>
+                              )}
                             </CardContent>
                           </Card>
                         ))}
