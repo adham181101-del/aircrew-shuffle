@@ -31,6 +31,15 @@ const CreateSwapRequest = () => {
   const [loadingTimeChangeEligible, setLoadingTimeChangeEligible] = useState(false);
   const [timeChangeMessage, setTimeChangeMessage] = useState("");
 
+  // Dummy swap request states
+  const [selectedDummyRequesterShift, setSelectedDummyRequesterShift] = useState<string>("");
+  const [selectedDummyAccepterShift, setSelectedDummyAccepterShift] = useState<string>("");
+  const [dummyRepayDate, setDummyRepayDate] = useState<string>("");
+  const [finalRepayDate, setFinalRepayDate] = useState<string>("");
+  const [dummyEligibleStaff, setDummyEligibleStaff] = useState<Staff[]>([]);
+  const [loadingDummyEligible, setLoadingDummyEligible] = useState(false);
+  const [dummyMessage, setDummyMessage] = useState("");
+
   // Get the selected shift data for display
   const selectedShiftData = userShifts.find(s => s.id === selectedShift);
   const selectedTimeChangeShiftData = userShifts.find(s => s.id === selectedTimeChangeShift);
@@ -439,7 +448,7 @@ const CreateSwapRequest = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <Tabs defaultValue="swap" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsList className="grid w-full grid-cols-3 mb-8">
               <TabsTrigger value="swap" className="flex items-center space-x-2">
                 <ArrowRightLeft className="h-4 w-4" />
                 <span>Shift Swap</span>
@@ -447,6 +456,10 @@ const CreateSwapRequest = () => {
               <TabsTrigger value="time-change" className="flex items-center space-x-2">
                 <RotateCcw className="h-4 w-4" />
                 <span>Time Change</span>
+              </TabsTrigger>
+              <TabsTrigger value="dummy-swap" className="flex items-center space-x-2">
+                <Calendar className="h-4 w-4" />
+                <span>Dummy Swap</span>
               </TabsTrigger>
             </TabsList>
 
@@ -813,6 +826,154 @@ const CreateSwapRequest = () => {
                         className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                       >
                         {loading ? 'Sending Request...' : `Send Time Change Request to ${timeChangeEligibleStaff.length} Staff`}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => navigate('/dashboard')}
+                        disabled={loading}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Dummy Swap Tab */}
+            <TabsContent value="dummy-swap">
+              <Card className="bg-white shadow-xl border border-gray-100">
+                <CardHeader className="bg-gradient-to-r from-gray-50 to-yellow-50 border-b border-gray-100 rounded-t-2xl">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center">
+                      <Calendar className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-2xl text-gray-900">Create Dummy Swap</CardTitle>
+                      <CardDescription className="text-gray-600 text-base">
+                        Create a temporary swap with placeholder dates when your desired date is outside the allowed swap period.
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="p-8">
+                  <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      <strong>How dummy swaps work:</strong> If you need a date off that's outside the allowed swap period (e.g., April 4th), 
+                      you can create a dummy swap where you work a colleague's shift (e.g., March 8th) and get a temporary repayment date 
+                      within the allowed period (e.g., March 20th). Later when dates open, you'll resolve this swap.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleDummySwapSubmit} className="space-y-8">
+                    {/* Your shift to swap (final repayment date - outside allowed period) */}
+                    <div className="space-y-4">
+                      <Label htmlFor="dummy-requester-shift" className="text-lg font-semibold text-gray-900">
+                        Your Shift to Swap (Final Date You Want Off)
+                      </Label>
+                      <Select value={selectedDummyRequesterShift} onValueChange={setSelectedDummyRequesterShift}>
+                        <SelectTrigger className="h-12 text-base border-2 border-gray-200 hover:border-yellow-300 focus:border-yellow-500 rounded-xl transition-all duration-300">
+                          <SelectValue placeholder="Select the date you want off (outside allowed period)..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {userShifts.length === 0 ? (
+                            <SelectItem value="no-shifts" disabled>No future shifts available</SelectItem>
+                          ) : (
+                            userShifts.map((shift) => (
+                              <SelectItem key={shift.id} value={shift.id}>
+                                {new Date(shift.date).toLocaleDateString('en-GB')} - {shift.time}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {selectedDummyRequesterShift && (
+                        <p className="text-sm text-gray-600">
+                          This is the date you want off that's outside the allowed swap period. This will be your final repayment date.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Colleague's shift to work */}
+                    <div className="space-y-4">
+                      <Label htmlFor="dummy-accepter-shift" className="text-lg font-semibold text-gray-900">
+                        Colleague's Shift ID to Work
+                      </Label>
+                      <input
+                        type="text"
+                        id="dummy-accepter-shift"
+                        value={selectedDummyAccepterShift}
+                        onChange={(e) => setSelectedDummyAccepterShift(e.target.value)}
+                        placeholder="Enter the shift ID of the colleague's shift you'll work (e.g., from calendar or colleague)"
+                        className="w-full h-12 text-base border-2 border-gray-200 hover:border-yellow-300 focus:border-yellow-500 rounded-xl px-4 transition-all duration-300"
+                      />
+                      <p className="text-sm text-gray-600">
+                        Enter the shift ID of the shift you'll work for the colleague. 
+                        You can find this shift ID by checking the calendar or asking the colleague for their shift details.
+                        The colleague must have a shift on the date you want to work for them.
+                      </p>
+                      <p className="text-xs text-yellow-700 bg-yellow-50 p-2 rounded border border-yellow-200">
+                        <strong>Tip:</strong> To find a shift ID, you can check the database, ask the colleague, or look it up in the calendar view.
+                      </p>
+                    </div>
+
+                    {/* Dummy repayment date (within allowed period) */}
+                    <div className="space-y-4">
+                      <Label htmlFor="dummy-repay-date" className="text-lg font-semibold text-gray-900">
+                        Dummy Repayment Date (Within Allowed Period)
+                      </Label>
+                      <input
+                        type="date"
+                        id="dummy-repay-date"
+                        value={dummyRepayDate}
+                        onChange={(e) => setDummyRepayDate(e.target.value)}
+                        className="w-full h-12 text-base border-2 border-gray-200 hover:border-yellow-300 focus:border-yellow-500 rounded-xl px-4 transition-all duration-300"
+                      />
+                      <p className="text-sm text-gray-600">
+                        This is a temporary placeholder date within the allowed swap period (e.g., March 20th). 
+                        You'll work this date temporarily until the swap is resolved.
+                      </p>
+                    </div>
+
+                    {/* Final repayment date (same as requester shift date, but stored separately) */}
+                    {selectedDummyRequesterShift && (
+                      <div className="space-y-4">
+                        <Label htmlFor="final-repay-date" className="text-lg font-semibold text-gray-900">
+                          Final Repayment Date (Date You Actually Want Off)
+                        </Label>
+                        <input
+                          type="date"
+                          id="final-repay-date"
+                          value={finalRepayDate}
+                          onChange={(e) => setFinalRepayDate(e.target.value)}
+                          className="w-full h-12 text-base border-2 border-gray-200 hover:border-yellow-300 focus:border-yellow-500 rounded-xl px-4 transition-all duration-300"
+                        />
+                        <p className="text-sm text-gray-600">
+                          This should match the date of your shift above. This is the date you actually want off (outside allowed period).
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="dummy-message">Message (Optional)</Label>
+                      <Textarea
+                        id="dummy-message"
+                        value={dummyMessage}
+                        onChange={(e) => setDummyMessage(e.target.value)}
+                        placeholder="Add a message to explain the dummy swap arrangement..."
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                      <Button 
+                        type="submit" 
+                        disabled={loading || !selectedDummyRequesterShift || !selectedDummyAccepterShift || !dummyRepayDate || !finalRepayDate}
+                        className="flex-1 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700"
+                      >
+                        {loading ? 'Creating Dummy Swap...' : 'Create Dummy Swap'}
                       </Button>
                       <Button 
                         type="button" 
