@@ -4,9 +4,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getUserShifts, type Shift } from '@/lib/shifts'
+import { getMyLeaveDays, type LeaveDay } from '@/lib/leave'
 import { getCurrentUser } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
-import { Calendar, DollarSign, TrendingUp, Clock, ChevronRight } from 'lucide-react'
+import { Calendar, DollarSign, TrendingUp, Clock, ChevronRight, Palmtree } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { format } from 'date-fns'
+
+// Leave day premium amount
+const LEAVE_DAY_PREMIUM = 17.24
 
 interface PayPeriod {
   id: string
@@ -93,6 +97,7 @@ interface PremiumTally {
 export const PremiumCalculator = () => {
   const { toast } = useToast()
   const [shifts, setShifts] = useState<Shift[]>([])
+  const [allLeaveDays, setAllLeaveDays] = useState<LeaveDay[]>([])
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('')
   const [premiumShifts, setPremiumShifts] = useState<PremiumShift[]>([])
   const [premiumTally, setPremiumTally] = useState<PremiumTally[]>([])
@@ -104,14 +109,30 @@ export const PremiumCalculator = () => {
     totalPremiumAmount: 0,
     totalHours: 0
   })
-  // New: base salary and leave days inputs (using string to allow empty values)
+  // Base salary input (using string to allow empty values)
   const [baseSalary, setBaseSalary] = useState<string>('')
-  const [leaveDays, setLeaveDays] = useState<string>('')
 
   const selectedPeriod = useMemo(
     () => PREMIUM_PERIODS_2026.find(period => period.id === selectedPeriodId) || null,
     [selectedPeriodId]
   )
+
+  // Calculate leave days count for the selected period
+  const periodLeaveDays = useMemo(() => {
+    if (!selectedPeriod) return []
+    const startDate = new Date(selectedPeriod.start)
+    startDate.setHours(0, 0, 0, 0)
+    const endDate = new Date(selectedPeriod.end)
+    endDate.setHours(23, 59, 59, 999)
+    
+    return allLeaveDays.filter(leave => {
+      const leaveDate = new Date(`${leave.date}T00:00:00`)
+      return leaveDate >= startDate && leaveDate <= endDate
+    })
+  }, [selectedPeriod, allLeaveDays])
+
+  const leaveDaysCount = periodLeaveDays.length
+  const leavePremiumTotal = leaveDaysCount * LEAVE_DAY_PREMIUM
 
   useEffect(() => {
     loadShifts()
@@ -138,8 +159,12 @@ export const PremiumCalculator = () => {
       const user = await getCurrentUser()
       if (!user) return
 
-      const userShifts = await getUserShifts(user.id)
+      const [userShifts, userLeaveDays] = await Promise.all([
+        getUserShifts(user.id),
+        getMyLeaveDays()
+      ])
       setShifts(userShifts)
+      setAllLeaveDays(userLeaveDays)
       
     } catch (error) {
       toast({
@@ -450,16 +475,17 @@ export const PremiumCalculator = () => {
             </div>
             <div className="flex-1">
               <label className="text-sm font-semibold text-gray-700 mb-2 block">Leave Days in Period</label>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={leaveDays}
-                onChange={(e) => setLeaveDays(e.target.value)}
-                className="h-12 w-full rounded-xl border-2 border-gray-200 px-4 text-base hover:border-green-300 focus:border-green-500 focus:outline-none transition-all duration-300"
-                placeholder="e.g. 2"
-              />
-              <p className="text-xs text-gray-500 mt-1">Adds £17.24 per leave day</p>
+              <div className="h-12 w-full rounded-xl border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Palmtree className="h-4 w-4 text-amber-600" />
+                  <span className="font-semibold text-amber-800">{leaveDaysCount}</span>
+                  <span className="text-amber-700">day{leaveDaysCount !== 1 ? 's' : ''}</span>
+                </div>
+                <Badge className="bg-amber-100 text-amber-800 border-amber-300">
+                  +£{leavePremiumTotal.toFixed(2)}
+                </Badge>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Auto-calculated from calendar leave days (£{LEAVE_DAY_PREMIUM.toFixed(2)} each)</p>
             </div>
           </div>
           {periodDateRange && selectedPeriod && (
@@ -481,7 +507,7 @@ export const PremiumCalculator = () => {
 
       {/* Summary Stats */}
       {selectedPeriod && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-semibold text-orange-800">Total Hours</CardTitle>
@@ -495,6 +521,19 @@ export const PremiumCalculator = () => {
             </CardContent>
           </Card>
 
+          <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-amber-800">Leave Days</CardTitle>
+              <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
+                <Palmtree className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-amber-900">{leaveDaysCount}</div>
+              <p className="text-xs text-amber-600 mt-1">+£{leavePremiumTotal.toFixed(2)} premium</p>
+            </CardContent>
+          </Card>
+
           <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-semibold text-emerald-800">Expected Salary</CardTitle>
@@ -505,14 +544,12 @@ export const PremiumCalculator = () => {
             <CardContent>
               {(() => {
                 const baseSalaryNum = parseFloat(baseSalary) || 0;
-                const leaveDaysNum = parseInt(leaveDays, 10) || 0;
-                const leavePremium = leaveDaysNum * 17.24;
-                const expected = Math.max(0, baseSalaryNum) + totals.totalPremiumAmount + leavePremium;
+                const expected = Math.max(0, baseSalaryNum) + totals.totalPremiumAmount + leavePremiumTotal;
                 return (
                   <>
                     <div className="text-3xl font-bold text-emerald-900">£{expected.toFixed(2)}</div>
                     <p className="text-xs text-emerald-700 mt-1">
-                      Base £{baseSalaryNum.toFixed(2)} + Premiums £{totals.totalPremiumAmount.toFixed(2)} + Leave £{leavePremium.toFixed(2)}
+                      Base £{baseSalaryNum.toFixed(2)} + Premiums £{totals.totalPremiumAmount.toFixed(2)} + Leave £{leavePremiumTotal.toFixed(2)}
                     </p>
                   </>
                 )

@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Calendar from 'react-calendar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { getUserShifts, getShiftTimeOfDay, deleteShift, updateShiftTime, type Shift } from '@/lib/shifts'
+import { getMyLeaveDays, addLeaveDay, removeLeaveDay, type LeaveDay } from '@/lib/leave'
 import { useToast } from '@/hooks/use-toast'
 import { getCurrentUser, type Staff } from '@/lib/auth'
-import { Calendar as CalendarIcon, Plus, Clock } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, Clock, Palmtree, DollarSign } from 'lucide-react'
 import 'react-calendar/dist/Calendar.css'
 import {
   AlertDialog,
@@ -27,6 +28,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
+// Leave day premium amount (£17.24 per day as per aviation rules)
+const LEAVE_DAY_PREMIUM = 17.24
+
 interface ShiftCalendarProps {
   onShiftClick?: (shift: Shift) => void
   onCreateShift?: () => void
@@ -34,6 +38,7 @@ interface ShiftCalendarProps {
 
 export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProps) => {
   const [shifts, setShifts] = useState<Shift[]>([])
+  const [leaveDays, setLeaveDays] = useState<LeaveDay[]>([])
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [user, setUser] = useState<Staff | null>(null)
   const [loading, setLoading] = useState(true)
@@ -45,7 +50,11 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   const [editStart, setEditStart] = useState('')
   const [editEnd, setEditEnd] = useState('')
   const [saving, setSaving] = useState(false)
+  const [togglingLeave, setTogglingLeave] = useState(false)
   const { toast } = useToast()
+
+  // Set of leave day dates for quick lookup
+  const leaveDaysSet = useMemo(() => new Set(leaveDays.map(l => l.date)), [leaveDays])
 
   useEffect(() => {
     loadUserAndShifts()
@@ -57,9 +66,12 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
       if (!currentUser) return
 
       setUser(currentUser)
-      const userShifts = await getUserShifts(currentUser.id)
+      const [userShifts, userLeaveDays] = await Promise.all([
+        getUserShifts(currentUser.id),
+        getMyLeaveDays()
+      ])
       setShifts(userShifts)
-      
+      setLeaveDays(userLeaveDays)
       
       if (userShifts.length === 0) {
         console.log('No shifts found for user:', currentUser.id)
@@ -106,14 +118,59 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
     }
   }, [user])
 
-  const getShiftsForDate = (date: Date): Shift[] => {
-    // Convert date to YYYY-MM-DD format to match database format
+  const toDateStr = (date: Date): string => {
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const day = String(date.getDate()).padStart(2, '0')
-    const dateStr = `${year}-${month}-${day}`
-    
+    return `${year}-${month}-${day}`
+  }
+
+  const getShiftsForDate = (date: Date): Shift[] => {
+    const dateStr = toDateStr(date)
     return shifts.filter(shift => shift.date === dateStr)
+  }
+
+  const isLeaveDay = (date: Date): boolean => {
+    return leaveDaysSet.has(toDateStr(date))
+  }
+
+  const toggleLeaveDay = async (date: Date) => {
+    const dateStr = toDateStr(date)
+    setTogglingLeave(true)
+    try {
+      if (leaveDaysSet.has(dateStr)) {
+        // Remove leave day
+        const ok = await removeLeaveDay(dateStr)
+        if (ok) {
+          setLeaveDays(prev => prev.filter(l => l.date !== dateStr))
+          toast({ 
+            title: 'Leave day removed', 
+            description: `Removed leave for ${date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}` 
+          })
+        } else {
+          toast({ title: 'Failed to remove leave day', variant: 'destructive' })
+        }
+      } else {
+        // Add leave day
+        const ok = await addLeaveDay(dateStr)
+        if (ok) {
+          // Refresh leave days to get the new entry with ID
+          const updatedLeaveDays = await getMyLeaveDays()
+          setLeaveDays(updatedLeaveDays)
+          toast({ 
+            title: 'Leave day added', 
+            description: `Added leave for ${date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} (+£${LEAVE_DAY_PREMIUM.toFixed(2)} premium)` 
+          })
+        } else {
+          toast({ title: 'Failed to add leave day', variant: 'destructive' })
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling leave day:', error)
+      toast({ title: 'Error updating leave day', variant: 'destructive' })
+    } finally {
+      setTogglingLeave(false)
+    }
   }
 
   const getShiftBadgeVariant = (timeOfDay: string, isSwapped: boolean) => {
@@ -161,10 +218,25 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
     if (view !== 'month') return null
     
     const dayShifts = getShiftsForDate(date)
-    if (dayShifts.length === 0) return null
+    const isOnLeave = isLeaveDay(date)
+
+    if (dayShifts.length === 0 && !isOnLeave) return null
 
     return (
       <div className="flex flex-col items-center mt-1 space-y-1">
+        {/* Leave day indicator */}
+        {isOnLeave && (
+          <div 
+            className="w-full text-xs px-1 py-1 rounded-lg text-center font-semibold bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-sm"
+            title={`Leave Day (+£${LEAVE_DAY_PREMIUM.toFixed(2)})`}
+          >
+            <span className="font-medium text-[10px] leading-tight flex items-center justify-center gap-0.5">
+              <Palmtree className="h-2.5 w-2.5" />
+              Leave
+            </span>
+          </div>
+        )}
+        {/* Shift indicators */}
         {dayShifts.map((shift) => {
           const timeOfDay = getShiftTimeOfDay(shift.time)
           const [startTime, endTime] = shift.time.split('-')
@@ -182,7 +254,6 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
               }}
               title={`${startTime}-${endTime}`}
             >
-              {/* Show full time with minutes on all devices */}
               <span className="font-medium text-[10px] leading-tight">{startTime}</span>
             </div>
           )
@@ -195,9 +266,14 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
     if (view !== 'month') return ''
     
     const dayShifts = getShiftsForDate(date)
-    if (dayShifts.length === 0) return ''
+    const isOnLeave = isLeaveDay(date)
     
-    return 'has-shifts relative'
+    const classes: string[] = []
+    if (dayShifts.length > 0) classes.push('has-shifts')
+    if (isOnLeave) classes.push('is-leave-day')
+    if (classes.length > 0) classes.push('relative')
+    
+    return classes.join(' ')
   }
 
   if (loading) {
@@ -295,37 +371,93 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 shadow-sm"></div>
                 <span className="text-xs font-medium text-gray-700">Swapped</span>
               </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-sm"></div>
+                <span className="text-xs font-medium text-gray-700">Leave</span>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Selected Date Details */}
-      {selectedDate && selectedDateShifts.length > 0 && (
+      {/* Selected Date Details - Show when date is selected */}
+      {selectedDate && (
         <Card className="bg-white shadow-xl border border-gray-100">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100 rounded-t-2xl">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-white" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                  isLeaveDay(selectedDate) 
+                    ? 'bg-gradient-to-br from-amber-400 to-orange-500' 
+                    : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                }`}>
+                  {isLeaveDay(selectedDate) ? (
+                    <Palmtree className="h-5 w-5 text-white" />
+                  ) : (
+                    <CalendarIcon className="h-5 w-5 text-white" />
+                  )}
+                </div>
+                <div>
+                  <CardTitle className="text-xl text-gray-900">
+                    {selectedDate.toLocaleDateString('en-GB', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </CardTitle>
+                  <p className="text-sm text-gray-600">
+                    {selectedDateShifts.length > 0 
+                      ? `${selectedDateShifts.length} shift${selectedDateShifts.length > 1 ? 's' : ''} scheduled`
+                      : 'No shifts scheduled'}
+                    {isLeaveDay(selectedDate) && ' • On Leave'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-xl text-gray-900">
-                  {selectedDate.toLocaleDateString('en-GB', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </CardTitle>
-                <p className="text-sm text-gray-600">
-                  {selectedDateShifts.length} shift{selectedDateShifts.length > 1 ? 's' : ''} scheduled
-                </p>
-              </div>
+              
+              {/* Toggle Leave Button */}
+              <Button
+                variant={isLeaveDay(selectedDate) ? "destructive" : "outline"}
+                size="sm"
+                onClick={() => toggleLeaveDay(selectedDate)}
+                disabled={togglingLeave}
+                className={isLeaveDay(selectedDate) 
+                  ? "bg-amber-500 hover:bg-amber-600 text-white border-0"
+                  : "border-amber-300 text-amber-700 hover:bg-amber-50"
+                }
+              >
+                <Palmtree className="h-4 w-4 mr-2" />
+                {togglingLeave 
+                  ? 'Updating...' 
+                  : isLeaveDay(selectedDate) 
+                    ? 'Remove Leave' 
+                    : 'Mark as Leave'
+                }
+              </Button>
             </div>
           </CardHeader>
           
           <CardContent className="p-6">
-            <div className="space-y-4">
+            {/* Leave Day Premium Info */}
+            {isLeaveDay(selectedDate) && (
+              <div className="mb-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center">
+                    <DollarSign className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-amber-900">Leave Day Premium</h4>
+                    <p className="text-sm text-amber-700">
+                      This leave day adds <span className="font-bold">£{LEAVE_DAY_PREMIUM.toFixed(2)}</span> to your premium pay calculation
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Shifts for the day */}
+            {selectedDateShifts.length > 0 ? (
+              <div className="space-y-4">
               {selectedDateShifts.map((shift) => (
                 <div 
                   key={shift.id} 
@@ -403,7 +535,13 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No shifts scheduled for this day.</p>
+                <p className="text-sm mt-1">You can mark this day as leave if needed.</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
