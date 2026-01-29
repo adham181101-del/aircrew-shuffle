@@ -17,12 +17,41 @@ const CreateSwapRequest = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<Staff | null>(null);
-  const [userShifts, setUserShifts] = useState<Shift[]>([]);
   const [selectedShift, setSelectedShift] = useState<string>("");
-  const [eligibleStaff, setEligibleStaff] = useState<Staff[]>([]);
   const [message, setMessage] = useState("");
-  const [loadingEligible, setLoadingEligible] = useState(false);
+  
+  // Performance profiling
+  useEffect(() => {
+    profiler.mark('CreateSwapRequest rendered', 'render')
+  }, [])
+
+  // Use React Query hooks
+  const { data: user } = useCurrentUser()
+  const { data: shiftsData } = useShifts()
+  const userShifts = useMemo(() => shiftsData?.shifts || [], [shiftsData])
+  
+  // Get selected shift data
+  const selectedShiftData = useMemo(() => 
+    userShifts.find(s => s.id === selectedShift),
+    [userShifts, selectedShift]
+  )
+  
+  // Debounce selected shift to avoid rapid API calls
+  const debouncedSelectedShift = useDebounce(selectedShift, 300) // 300ms debounce
+  
+  // Use React Query for eligible staff with debouncing
+  const { 
+    data: eligibleStaff = [], 
+    isLoading: loadingEligible 
+  } = useEligibleStaffForSwap(
+    user?.base_location || null,
+    selectedShiftData?.date || null,
+    user?.id || null,
+    {
+      enabled: !!debouncedSelectedShift && !!selectedShiftData, // Only fetch when shift is selected and debounced
+      staleTime: 5 * 60 * 1000, // 5 minutes cache
+    }
+  )
   
   // Time change request states
   const [selectedTimeChangeShift, setSelectedTimeChangeShift] = useState<string>("");
@@ -40,19 +69,10 @@ const CreateSwapRequest = () => {
   const [loadingDummyEligible, setLoadingDummyEligible] = useState(false);
   const [dummyMessage, setDummyMessage] = useState("");
 
-  // Get the selected shift data for display
-  const selectedShiftData = userShifts.find(s => s.id === selectedShift);
-  const selectedTimeChangeShiftData = userShifts.find(s => s.id === selectedTimeChangeShift);
-
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  useEffect(() => {
-    if (selectedShift) {
-      findEligibleStaff();
-    }
-  }, [selectedShift]);
+  const selectedTimeChangeShiftData = useMemo(() => 
+    userShifts.find(s => s.id === selectedTimeChangeShift),
+    [userShifts, selectedTimeChangeShift]
+  )
 
   useEffect(() => {
     if (selectedTimeChangeShift && desiredTime) {
@@ -60,128 +80,12 @@ const CreateSwapRequest = () => {
     }
   }, [selectedTimeChangeShift, desiredTime]);
 
-  const loadUserData = async () => {
-    try {
-      const currentUser = await getCurrentUser();
-      if (!currentUser) {
-        navigate('/login');
-        return;
-      }
-      setUser(currentUser);
-      
-      const shifts = await getUserShifts(currentUser.id);
-      // Only show future shifts
-      const futureShifts = shifts.filter(shift => new Date(shift.date) >= new Date());
-      setUserShifts(futureShifts);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load your data",
-        variant: "destructive"
-      });
+  // Redirect if no user
+  useEffect(() => {
+    if (user === null && !loading) {
+      navigate('/login');
     }
-  };
-
-  const findEligibleStaff = async () => {
-    if (!selectedShift || !user) return;
-    
-    setLoadingEligible(true);
-    try {
-      const shift = userShifts.find(s => s.id === selectedShift);
-      if (!shift) return;
-
-      console.log(`=== SWAP REQUEST DEBUG ===`);
-      console.log(`Selected shift:`, shift);
-      console.log(`Your user ID: ${user.id}`);
-      console.log(`Your base location: ${user.base_location}`);
-      console.log(`Looking for staff who are OFF on ${shift.date}`);
-      console.log(`Shift date type: ${typeof shift.date}`);
-      console.log(`Shift date value: "${shift.date}"`);
-
-      // Use the new database function for better performance
-      console.log('Fetching eligible staff using database function...');
-      
-      // Try to use the database function first, fallback to manual query if it fails
-      // Note: Using 'as any' because the Supabase client doesn't have this RPC function typed
-      // This is a known limitation - the function exists in the database but not in the TypeScript types
-      try {
-        const { data: eligibleStaffData, error: eligibleError } = await (supabase as any)
-          .rpc('get_eligible_staff_for_swap', {
-            requester_base_location: user.base_location,
-            swap_date: shift.date,
-            requester_id: user.id
-          });
-
-        if (eligibleError) {
-          console.error('Error fetching eligible staff:', eligibleError);
-          throw eligibleError;
-        }
-
-        if (eligibleStaffData && Array.isArray(eligibleStaffData)) {
-          console.log(`Found ${eligibleStaffData.length} eligible staff members using database function`);
-          setEligibleStaff(eligibleStaffData);
-          return;
-        } else {
-          console.log('No eligible staff data returned from function');
-          setEligibleStaff([]);
-          return;
-        }
-      } catch (rpcError) {
-        console.log('RPC function failed, falling back to manual query...');
-        // Continue to fallback method below
-      }
-
-      // Fallback to manual query if function fails
-      console.log('Falling back to manual query...');
-      const { data: baseStaff, error: staffError } = await supabase
-        .from('staff')
-        .select('*')
-        .eq('base_location', user.base_location)
-        .neq('id', user.id);
-
-      if (staffError) {
-        console.error('Error fetching staff:', staffError);
-        throw staffError;
-      }
-
-      console.log(`Found ${baseStaff?.length || 0} staff members at ${user.base_location}`);
-      
-      // Get all shifts for the selected date to see who's working
-      console.log('Fetching shifts for the selected date...');
-      const { data: shiftsOnDate, error: shiftsError } = await supabase
-        .from('shifts')
-        .select('staff_id')
-        .eq('date', shift.date);
-
-      if (shiftsError) {
-        console.error('Error fetching shifts:', shiftsError);
-        throw shiftsError;
-      }
-
-      // Create a set of staff IDs who are working on this date
-      const workingStaffIds = new Set(shiftsOnDate?.map(s => s.staff_id) || []);
-      
-      // Filter to eligible staff (those who are OFF on the selected date)
-      const eligibleList = baseStaff?.filter(staff => !workingStaffIds.has(staff.id)) || [];
-      
-      console.log(`\n=== FALLBACK RESULTS ===`);
-      console.log(`Total staff at ${user.base_location}: ${baseStaff?.length || 0}`);
-      console.log(`Staff working on ${shift.date}: ${workingStaffIds.size}`);
-      console.log(`Eligible staff (OFF): ${eligibleList.length}`);
-      
-      setEligibleStaff(eligibleList);
-      return;
-    } catch (error) {
-      console.error('Error finding eligible staff:', error);
-      toast({
-        title: "Error",
-        description: "Failed to find eligible staff members",
-        variant: "destructive"
-      });
-    } finally {
-      setLoadingEligible(false);
-    }
-  };
+  }, [user, loading, navigate]);
 
   const findTimeChangeEligibleStaff = async () => {
     if (!selectedTimeChangeShift || !desiredTime || !user) return;
@@ -637,7 +541,12 @@ const CreateSwapRequest = () => {
                             <Label className="text-lg font-semibold text-gray-900">Eligible Staff Members</Label>
                           </div>
                           
-                          {loadingEligible ? (
+                          {loadingEligible && !eligibleStaff.length ? (
+                            <div className="space-y-2">
+                              <Skeleton className="h-20 w-full" />
+                              <Skeleton className="h-20 w-full" />
+                            </div>
+                          ) : loadingEligible ? (
                             <div className="flex items-center justify-center space-x-3 p-8 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50">
                               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                               <span className="text-gray-600 font-medium">Finding eligible staff...</span>
