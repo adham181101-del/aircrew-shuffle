@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +12,12 @@ import { ArrowLeft, ArrowRightLeft, Calendar, Clock, MapPin, Users, RotateCcw } 
 import { getUserShifts, validateWHL, type Shift } from "@/lib/shifts";
 import { getCurrentUser, type Staff } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useShifts } from "@/hooks/useShifts";
+import { useEligibleStaffForSwap } from "@/hooks/useEligibleStaff";
+import { useDebounce } from "@/hooks/useDebounce";
+import { profiler } from "@/lib/performance";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const CreateSwapRequest = () => {
   const navigate = useNavigate();
