@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Calendar from 'react-calendar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -6,6 +6,10 @@ import { Button } from '@/components/ui/button'
 import { getUserShifts, getShiftTimeOfDay, deleteShift, updateShiftTime, type Shift } from '@/lib/shifts'
 import { useToast } from '@/hooks/use-toast'
 import { getCurrentUser, type Staff } from '@/lib/auth'
+import { useShifts, useInvalidateShifts } from '@/hooks/useShifts'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { profiler } from '@/lib/performance'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Calendar as CalendarIcon, Plus, Clock } from 'lucide-react'
 import 'react-calendar/dist/Calendar.css'
 import {
@@ -33,10 +37,7 @@ interface ShiftCalendarProps {
 }
 
 export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProps) => {
-  const [shifts, setShifts] = useState<Shift[]>([])
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [user, setUser] = useState<Staff | null>(null)
-  const [loading, setLoading] = useState(true)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [shiftPendingDelete, setShiftPendingDelete] = useState<Shift | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -47,53 +48,23 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
 
+  // Performance profiling
   useEffect(() => {
-    loadUserAndShifts()
+    profiler.mark('ShiftCalendar rendered', 'render')
   }, [])
 
-  const loadUserAndShifts = async () => {
-    try {
-      const currentUser = await getCurrentUser()
-      if (!currentUser) return
+  // Use React Query hooks
+  const { data: user } = useCurrentUser()
+  const { data: shiftsData, isLoading: loading } = useShifts()
+  const invalidateShifts = useInvalidateShifts()
 
-      setUser(currentUser)
-      const userShifts = await getUserShifts(currentUser.id)
-      setShifts(userShifts)
-      
-      
-      if (userShifts.length === 0) {
-        console.log('No shifts found for user:', currentUser.id)
-      }
-    } catch (error) {
-      console.error('Error loading shifts:', error)
-      toast({
-        title: "Error loading shifts",
-        description: error instanceof Error ? error.message : "Failed to load your shifts",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Extract shifts from query result
+  const shifts = useMemo(() => shiftsData?.shifts || [], [shiftsData])
 
   // Function to refresh shifts (can be called from parent component)
   const refreshShifts = async () => {
-    console.log('ShiftCalendar: refreshShifts called, user:', user?.id)
-    if (user) {
-      setLoading(true)
-      try {
-        console.log('ShiftCalendar: Fetching shifts for user:', user.id)
-        const userShifts = await getUserShifts(user.id)
-        console.log('ShiftCalendar: Fetched shifts:', userShifts.length)
-        setShifts(userShifts)
-      } catch (error) {
-        console.error('Error refreshing shifts:', error)
-      } finally {
-        setLoading(false)
-      }
-    } else {
-      console.log('ShiftCalendar: No user found for refresh')
-    }
+    profiler.mark('ShiftCalendar refresh', 'fetch')
+    await invalidateShifts.mutateAsync()
   }
 
   // Expose refresh function to parent component
@@ -104,7 +75,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
       // @ts-ignore
       delete window.refreshCalendarShifts
     }
-  }, [user])
+  }, [invalidateShifts])
 
   const getShiftsForDate = (date: Date): Shift[] => {
     // Convert date to YYYY-MM-DD format to match database format
@@ -200,16 +171,11 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
     return 'has-shifts relative'
   }
 
-  if (loading) {
+  if (loading && !shifts.length) {
     return (
       <Card className="bg-white shadow-lg border border-gray-100">
         <CardContent className="p-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading your shifts...</p>
-            </div>
-          </div>
+          <Skeleton className="h-64 w-full" />
         </CardContent>
       </Card>
     )
@@ -576,8 +542,8 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 if (!shiftPendingDelete || !user) return
                 setDeleting(true)
                 try {
-                  await deleteShift(shiftPendingDelete.id, user.id)
-                  setShifts((prev) => prev.filter((s) => s.id !== shiftPendingDelete.id))
+                  await deleteShift(shiftPendingDelete.id, user!.id)
+                  await invalidateShifts.mutateAsync()
                   toast({ title: 'Shift deleted', description: 'The shift was removed from your calendar.' })
                 } catch (error) {
                   toast({
@@ -641,8 +607,8 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 const time = `${editStart}-${editEnd}`
                 setSaving(true)
                 try {
-                  const updated = await updateShiftTime(shiftPendingEdit.id, user.id, time)
-                  setShifts((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+                  await updateShiftTime(shiftPendingEdit.id, user!.id, time)
+                  await invalidateShifts.mutateAsync()
                   toast({ title: 'Shift updated', description: 'The shift time was saved.' })
                   setEditOpen(false)
                   setShiftPendingEdit(null)

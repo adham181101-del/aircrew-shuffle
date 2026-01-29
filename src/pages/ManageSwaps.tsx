@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,10 @@ import { enGB } from "date-fns/locale";
 import { getCurrentUser, type Staff } from "@/lib/auth";
 import { validateWHL, executeShiftSwap } from '@/lib/shifts';
 import { supabase } from "@/integrations/supabase/client";
+import { useIncomingSwapRequests, useMySwapRequests, useInvalidateSwapRequests, type SwapRequestWithDetails } from "@/hooks/useSwapRequests";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { profiler } from "@/lib/performance";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,33 +26,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type SwapRequestWithDetails = {
-  id: string;
-  requester_id: string;
-  requester_shift_id: string;
-  accepter_id: string | null;
-  accepter_shift_id: string | null;
-  counter_offer_date: string | null;
-  status: string;
-  message: string | null;
-  created_at: string;
-  is_dummy?: boolean;
-  dummy_repay_date?: string | null;
-  final_repay_date?: string | null;
-  requester_staff?: Staff;
-  accepter_staff?: Staff;
-  requester_shift?: any;
-  accepter_shift?: any;
-};
-
 const ManageSwaps = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("incoming");
-  const [user, setUser] = useState<Staff | null>(null);
-  const [incomingRequests, setIncomingRequests] = useState<SwapRequestWithDetails[]>([]);
-  const [myRequests, setMyRequests] = useState<SwapRequestWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
   const [availableShifts, setAvailableShifts] = useState<any[]>([]);
   const [selectedCounterShift, setSelectedCounterShift] = useState<string>("");
   const [showCounterOffer, setShowCounterOffer] = useState<string | null>(null);
@@ -57,6 +38,24 @@ const ManageSwaps = () => {
   const [requestToRevoke, setRequestToRevoke] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [currentSwapId, setCurrentSwapId] = useState<string | null>(null);
+  
+  // Performance profiling
+  useEffect(() => {
+    profiler.mark('ManageSwaps rendered', 'render')
+  }, [])
+  
+  useEffect(() => {
+    profiler.mark(`ManageSwaps tab change to ${activeTab}`, 'tab-change')
+  }, [activeTab])
+
+  // Use React Query hooks for data fetching
+  const { data: user } = useCurrentUser()
+  const { data: incomingRequests = [], isLoading: incomingLoading } = useIncomingSwapRequests(user?.id || null)
+  const { data: myRequests = [], isLoading: myRequestsLoading } = useMySwapRequests(user?.id || null)
+  const invalidateSwapRequests = useInvalidateSwapRequests()
+  
+  const loading = incomingLoading || myRequestsLoading
+
   // Deep-link: open a specific swap request from notifications
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -69,88 +68,12 @@ const ManageSwaps = () => {
     }
   }, []);
 
+  // Redirect if no user
   useEffect(() => {
-    loadUserAndRequests();
-  }, []);
-
-  const loadUserAndRequests = async () => {
-    try {
-      const currentUser = await getCurrentUser();
-      if (!currentUser) {
-        navigate('/login');
-        return;
-      }
-      setUser(currentUser);
-      
-      
-      await Promise.all([
-        loadIncomingRequests(currentUser.id),
-        loadMyRequests(currentUser.id)
-      ]);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load swap requests",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
+    if (user === null && !loading) {
+      navigate('/login');
     }
-  };
-
-  const loadIncomingRequests = async (userId: string) => {
-    console.log('=== LOADING INCOMING REQUESTS ===');
-    console.log('User ID:', userId);
-    
-    const { data, error } = await supabase
-      .from('swap_requests')
-      .select(`
-        *,
-        requester_staff:staff!swap_requests_requester_id_fkey(*),
-        requester_shift:shifts!swap_requests_requester_shift_id_fkey(*)
-      `)
-      .eq('accepter_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error loading incoming requests:', error);
-      return;
-    }
-
-    console.log('Incoming requests data:', data);
-    console.log('Number of incoming requests:', data?.length || 0);
-    
-    if (data && data.length > 0) {
-      console.log('First request details:', {
-        id: data[0].id,
-        requester_staff: data[0].requester_staff,
-        requester_shift: data[0].requester_shift,
-        status: data[0].status
-      });
-    }
-
-    setIncomingRequests(data || []);
-  };
-
-  const loadMyRequests = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('swap_requests')
-      .select(`
-        *,
-        accepter_staff:staff!swap_requests_accepter_id_fkey(*),
-        requester_shift:shifts!swap_requests_requester_shift_id_fkey(*),
-        accepter_shift:shifts!swap_requests_accepter_shift_id_fkey(*)
-      `)
-      .eq('requester_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error loading my requests:', error);
-      return;
-    }
-
-    setMyRequests(data || []);
-  };
+  }, [user, loading, navigate]);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
@@ -669,7 +592,7 @@ const ManageSwaps = () => {
       });
 
       if (user) {
-        await loadIncomingRequests(user.id);
+        await invalidateSwapRequests.mutateAsync();
       }
     } catch (error) {
       toast({
@@ -735,7 +658,7 @@ const ManageSwaps = () => {
       }, 1000);
 
       if (user) {
-        await loadIncomingRequests(user.id);
+        await invalidateSwapRequests.mutateAsync();
       }
     } catch (error) {
       console.error('Error in handleAcceptDirectSwap:', error);
@@ -802,7 +725,7 @@ const ManageSwaps = () => {
       }, 1000);
 
       if (user) {
-        await loadMyRequests(user.id);
+        await invalidateSwapRequests.mutateAsync();
       }
     } catch (error) {
       console.error('Error in handleAcceptCounterOffer:', error);
@@ -840,7 +763,7 @@ const ManageSwaps = () => {
       });
 
       if (user) {
-        await loadMyRequests(user.id);
+        await invalidateSwapRequests.mutateAsync();
       }
     } catch (error) {
       console.error('Error in handleRejectCounterOffer:', error);
@@ -913,7 +836,7 @@ const ManageSwaps = () => {
 
       // Refresh the requests
       if (user) {
-        await loadMyRequests(user.id);
+        await invalidateSwapRequests.mutateAsync();
       }
     } catch (error) {
       console.error('Error in handleRevokeRequest:', error);
@@ -1074,11 +997,12 @@ const ManageSwaps = () => {
         </div>
 
         {/* Action Buttons */}
-          {loading ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-600 text-lg">Loading swap requests...</p>
-            </div>
+          {loading && !incomingRequests.length && !myRequests.length ? (
+          <div className="space-y-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
           ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="manage-swaps-tabs">
             <div className="mb-8">

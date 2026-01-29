@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, memo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getUserShifts, type Shift } from '@/lib/shifts'
 import { getCurrentUser } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
+import { useShifts } from '@/hooks/useShifts'
+import { profiler } from '@/lib/performance'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Calendar, DollarSign, TrendingUp, Clock, ChevronRight } from 'lucide-react'
 import {
   Dialog,
@@ -90,32 +93,27 @@ interface PremiumTally {
   }>
 }
 
-export const PremiumCalculator = () => {
+export const PremiumCalculator = memo(() => {
   const { toast } = useToast()
-  const [shifts, setShifts] = useState<Shift[]>([])
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('')
-  const [premiumShifts, setPremiumShifts] = useState<PremiumShift[]>([])
-  const [premiumTally, setPremiumTally] = useState<PremiumTally[]>([])
   const [selectedPremium, setSelectedPremium] = useState<PremiumTally | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [periodDateRange, setPeriodDateRange] = useState<{ start: Date; end: Date } | null>(null)
-  const [totals, setTotals] = useState({
-    totalShifts: 0,
-    totalPremiumAmount: 0,
-    totalHours: 0
-  })
   // New: base salary and leave days inputs (using string to allow empty values)
   const [baseSalary, setBaseSalary] = useState<string>('')
   const [leaveDays, setLeaveDays] = useState<string>('')
+
+  // Performance profiling
+  useEffect(() => {
+    profiler.mark('PremiumCalculator rendered', 'render')
+  }, [])
+
+  // Use React Query for shifts
+  const { data: shiftsData, isLoading: loading } = useShifts()
+  const shifts = useMemo(() => shiftsData?.shifts || [], [shiftsData])
 
   const selectedPeriod = useMemo(
     () => PREMIUM_PERIODS_2026.find(period => period.id === selectedPeriodId) || null,
     [selectedPeriodId]
   )
-
-  useEffect(() => {
-    loadShifts()
-  }, [])
 
   useEffect(() => {
     if (!selectedPeriodId) {
@@ -126,31 +124,6 @@ export const PremiumCalculator = () => {
       }
     }
   }, [selectedPeriodId])
-
-  useEffect(() => {
-    if (selectedPeriod && shifts.length > 0) {
-      calculatePremiums(selectedPeriod)
-    }
-  }, [selectedPeriod, shifts])
-
-  const loadShifts = async () => {
-    try {
-      const user = await getCurrentUser()
-      if (!user) return
-
-      const userShifts = await getUserShifts(user.id)
-      setShifts(userShifts)
-      
-    } catch (error) {
-      toast({
-        title: "Error loading shifts",
-        description: "Could not load shift data for premium calculation",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const calculateShiftHours = (timeRange: string): number => {
     const [start, end] = timeRange.split('-')
@@ -269,14 +242,13 @@ export const PremiumCalculator = () => {
     return { labels, amount, items }
   }
 
-  const calculatePremiums = (period: PayPeriod) => {
-    const startDate = new Date(period.start)
-    startDate.setHours(0, 0, 0, 0)
+  // Memoize premium calculations - define function first
+  const calculatePremiumsMemoized = useMemo(() => {
+    return (period: PayPeriod, shifts: Shift[]) => {
+      const startDate = new Date(period.start)
+      startDate.setHours(0, 0, 0, 0)
     const endDate = new Date(period.end)
     endDate.setHours(23, 59, 59, 999) // Include the entire Saturday
-
-    // Store period date range for display
-    setPeriodDateRange({ start: startDate, end: endDate })
 
     // Filter shifts: from startDate (inclusive Sunday) to endDate (inclusive Saturday)
     const periodShifts = shifts.filter(shift => {
@@ -324,8 +296,6 @@ export const PremiumCalculator = () => {
       totalPremiumAmount += premiumAmount
     })
 
-    setPremiumShifts(premiumShiftsData)
-
     // Calculate premium tally
     const tallyMap: Record<string, PremiumTally> = {}
     
@@ -368,14 +338,33 @@ export const PremiumCalculator = () => {
 
     // Sort by total amount (descending)
     const sortedTally = Object.values(tallyMap).sort((a, b) => b.totalAmount - a.totalAmount)
-    setPremiumTally(sortedTally)
 
-    setTotals({
-      totalShifts: periodShifts.length,
-      totalPremiumAmount,
-      totalHours
-    })
-  }
+    return {
+      premiumShifts: premiumShiftsData,
+      premiumTally: sortedTally,
+      totals: {
+        totalShifts: periodShifts.length,
+        totalPremiumAmount,
+        totalHours
+      },
+      periodDateRange: { start: startDate, end: endDate }
+    }
+    }
+  }, [])
+
+  // Memoize premium calculations result
+  const { premiumShifts, premiumTally, totals, periodDateRange } = useMemo(() => {
+    if (!selectedPeriod || shifts.length === 0) {
+      return {
+        premiumShifts: [],
+        premiumTally: [],
+        totals: { totalShifts: 0, totalPremiumAmount: 0, totalHours: 0 },
+        periodDateRange: null
+      }
+    }
+    
+    return calculatePremiumsMemoized(selectedPeriod, shifts)
+  }, [selectedPeriod, shifts, calculatePremiumsMemoized])
 
   const getPremiumLabelColor = (label: string) => {
     switch (label) {
@@ -389,16 +378,11 @@ export const PremiumCalculator = () => {
     }
   }
 
-  if (loading) {
+  if (loading && !shifts.length) {
     return (
       <Card className="bg-white shadow-lg border border-gray-100">
         <CardContent className="p-8">
-          <div className="flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading premium calculations...</p>
-            </div>
-          </div>
+          <Skeleton className="h-64 w-full" />
         </CardContent>
       </Card>
     )
@@ -662,4 +646,6 @@ export const PremiumCalculator = () => {
       </Dialog>
     </div>
   )
-}
+})
+
+PremiumCalculator.displayName = 'PremiumCalculator'

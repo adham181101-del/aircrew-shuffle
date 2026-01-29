@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -10,6 +10,11 @@ import { getUserShifts, deleteAllShifts, type Shift } from '@/lib/shifts'
 import { getCurrentUser, type Staff, type Company } from '@/lib/auth'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
+import { useShifts, useInvalidateShifts } from '@/hooks/useShifts'
+import { useIncomingSwapRequests } from '@/hooks/useSwapRequests'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { profiler } from '@/lib/performance'
+import { Skeleton } from '@/components/ui/skeleton'
 import { 
   Calendar, 
   Upload, 
@@ -32,7 +37,6 @@ import {
 import { PremiumCalculator } from '@/components/premium/PremiumCalculator'
 import { SubscriptionStatus } from '@/components/SubscriptionStatus'
 import { hasActiveSubscription } from '@/lib/subscriptions'
-import { supabase } from '@/integrations/supabase/client'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,27 +58,44 @@ const Dashboard = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const { user, signOut } = useAuth()
-  const [shifts, setShifts] = useState<Shift[]>([])
   const [activeTab, setActiveTab] = useState<'calendar' | 'premiums'>('calendar')
-  const [stats, setStats] = useState({
-    totalShifts: 0,
-    pendingSwaps: 0,
-    acceptedSwaps: 0
-  })
-  const [loading, setLoading] = useState(true)
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false)
   const [deletingAll, setDeletingAll] = useState(false)
-  const [incomingRequests, setIncomingRequests] = useState<any[]>([])
   // TEMPORARY: Always grant Pro access during development/testing
   const TEMPORARY_PRO_ACCESS = true
   const [hasProAccess, setHasProAccess] = useState(TEMPORARY_PRO_ACCESS)
 
+  // Performance profiling
+  useEffect(() => {
+    profiler.mark('Dashboard rendered', 'render')
+  }, [])
+
+  // Use React Query hooks for data fetching
+  const { data: currentUser } = useCurrentUser()
+  const { data: shiftsData, isLoading: shiftsLoading } = useShifts()
+  const { data: incomingRequests = [], isLoading: requestsLoading } = useIncomingSwapRequests(currentUser?.id || null)
+  const invalidateShifts = useInvalidateShifts()
+
+  // Extract shifts from query result
+  const shifts = useMemo(() => shiftsData?.shifts || [], [shiftsData])
+  const loading = shiftsLoading || requestsLoading
+
+  // Calculate stats from cached data
+  const stats = useMemo(() => {
+    const totalShifts = shifts.length
+    const pendingSwaps = incomingRequests.length
+    const acceptedSwaps = incomingRequests.filter((r: any) => r.status === 'accepted').length
+    return { totalShifts, pendingSwaps, acceptedSwaps }
+  }, [shifts, incomingRequests])
+
   console.log('🏠 DASHBOARD PAGE LOADED - CONSOLE IS WORKING!');
 
   useEffect(() => {
+    profiler.mark('Dashboard tab change', 'tab-change')
+  }, [activeTab])
+
+  useEffect(() => {
     if (user) {
-      loadDashboardData()
-      
       // Check for pending subscription
       const pendingSession = localStorage.getItem('pending_subscription_session')
       if (pendingSession) {
@@ -168,156 +189,11 @@ const Dashboard = () => {
     }
   }, [])
 
-  const loadDashboardData = async () => {
-    if (!user) return
-    
-    try {
-      setLoading(true)
-      
-      // TEMPORARY: Always grant Pro access during development/testing
-      const TEMPORARY_PRO_ACCESS = true
-      setHasProAccess(TEMPORARY_PRO_ACCESS)
-      if (TEMPORARY_PRO_ACCESS) {
-        console.log('🚀 DASHBOARD: TEMPORARY PRO ACCESS ENABLED (OFFLINE MODE)')
-      }
-      
-      // Use getCurrentUser() to match ManageSwaps approach
-      const currentUser = await getCurrentUser();
-      if (!currentUser) {
-        console.error('No current user found');
-        return;
-      }
-      
-      const userShifts = await getUserShifts(currentUser.id)
-      console.log('Dashboard: Loaded shifts from database:', userShifts.length, 'shifts')
-      console.log('Dashboard: Shift data:', userShifts)
-      setShifts(userShifts)
-      
-      // Also refresh calendar shifts if calendar is available
-      if (typeof window !== 'undefined' && (window as any).refreshCalendarShifts) {
-        console.log('Dashboard: Refreshing calendar shifts from loadDashboardData...')
-        setTimeout(() => {
-          (window as any).refreshCalendarShifts()
-        }, 500)
-      }
-      
-      // Fetch incoming requests using getCurrentUser ID (EXACT SAME AS MANAGESWAPS)
-      const incomingRequestsData = await loadIncomingRequests(currentUser.id)
-      setIncomingRequests(incomingRequestsData)
-      
-      // Fetch accepted swaps count from swap_requests table using getCurrentUser ID
-      const { data: acceptedSwapsData, error: acceptedError } = await supabase
-        .from('swap_requests')
-        .select('id')
-        .eq('accepter_id', currentUser.id)
-        .eq('status', 'accepted');
-
-      if (acceptedError) {
-        console.error('Error fetching accepted swaps:', acceptedError);
-      }
-
-      const acceptedSwapsCount = acceptedSwapsData?.length || 0;
-      
-      // Update stats after all data is fetched
-      const newStats = {
-        totalShifts: userShifts.length,
-        pendingSwaps: incomingRequestsData.length, // This is all incoming requests (like ManageSwaps)
-        acceptedSwaps: acceptedSwapsCount // This is properly counted accepted swaps
-      };
-      
-      setStats(newStats);
-      
-      // Only check Pro access if not using temporary mode
-      if (!TEMPORARY_PRO_ACCESS) {
-        try {
-          const proAccess = await hasActiveSubscription()
-          setHasProAccess(proAccess)
-        } catch (error) {
-          console.log('Supabase connection failed in Dashboard, using temporary Pro access:', error)
-          setHasProAccess(true)
-        }
-      }
-
-    } catch (error) {
-      toast({
-        title: "Error loading dashboard",
-        description: "Please try refreshing the page",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // Refresh dashboard stats (now uses React Query invalidation)
   const refreshDashboardStats = async () => {
-    if (!user) return;
-    
-    try {
-      // Use getCurrentUser() to match ManageSwaps approach
-      const currentUser = await getCurrentUser();
-      if (!currentUser) {
-        console.error('No current user found in refresh');
-        return;
-      }
-      
-      // Refresh pending swaps (incoming requests) using getCurrentUser ID
-      const incomingRequestsData = await loadIncomingRequests(currentUser.id);
-      setIncomingRequests(incomingRequestsData);
-      
-      // Refresh accepted swaps count using getCurrentUser ID
-      const { data: acceptedSwapsData, error: acceptedError } = await supabase
-        .from('swap_requests')
-        .select('id')
-        .eq('accepter_id', currentUser.id)
-        .eq('status', 'accepted');
-
-      if (acceptedError) {
-        console.error('Error refreshing accepted swaps:', acceptedError);
-        return;
-      }
-
-      const acceptedSwapsCount = acceptedSwapsData?.length || 0;
-      
-      setStats(prev => ({
-        ...prev,
-        pendingSwaps: incomingRequestsData.length,
-        acceptedSwaps: acceptedSwapsCount
-      }));
-      
-    } catch (error) {
-      console.error('Error refreshing dashboard stats:', error);
-    }
-  };
-
-  const checkAuthAndLoadData = async () => {
-    // This function is no longer needed since we use AuthContext
-    // Keeping it for backward compatibility but it's not used
-  }
-
-  const loadIncomingRequests = async (userId: string) => {
-    try {
-      
-      // EXACT SAME QUERY AS MANAGESWAPS
-      const { data, error } = await supabase
-        .from('swap_requests')
-        .select(`
-          *,
-          requester_staff:staff!swap_requests_requester_id_fkey(*),
-          requester_shift:shifts!swap_requests_requester_shift_id_fkey(*)
-        `)
-        .eq('accepter_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching incoming requests:', error);
-        return [];
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Error in loadIncomingRequests:', error);
-      return [];
-    }
+    profiler.mark('refresh dashboard stats', 'fetch')
+    // Invalidate queries to trigger refetch
+    await invalidateShifts.mutateAsync()
   }
 
   const handleSignOut = async () => {
@@ -343,8 +219,8 @@ const Dashboard = () => {
     setDeletingAll(true)
     try {
       await deleteAllShifts(user.id)
-      setShifts([])
-      setStats(prev => ({ ...prev, totalShifts: 0, acceptedSwaps: 0 }))
+      // Invalidate shifts cache to refetch
+      await invalidateShifts.mutateAsync()
       setDeleteAllDialogOpen(false)
       
       toast({
@@ -362,10 +238,19 @@ const Dashboard = () => {
     }
   }
 
-  if (loading) {
+  // Show skeleton loader instead of blocking spinner
+  if (loading && !shiftsData && !incomingRequests.length) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <Skeleton className="h-16 w-full mb-8" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
+          <Skeleton className="h-96 w-full" />
+        </div>
       </div>
     )
   }
@@ -525,15 +410,18 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        {/* Content based on active tab */}
-        {activeTab === 'calendar' ? (
-          <ShiftCalendar 
-            onShiftClick={handleShiftClick}
-            onCreateShift={() => navigate('/shifts/create')}
-          />
-        ) : (
-          <PremiumCalculator />
-        )}
+        {/* Content based on active tab - Use hidden/display to prevent remounts */}
+        <div className="relative">
+          <div className={activeTab === 'calendar' ? 'block' : 'hidden'}>
+            <ShiftCalendar 
+              onShiftClick={handleShiftClick}
+              onCreateShift={() => navigate('/shifts/create')}
+            />
+          </div>
+          <div className={activeTab === 'premiums' ? 'block' : 'hidden'}>
+            <PremiumCalculator />
+          </div>
+        </div>
 
         {/* Delete All Shifts Confirmation Dialog */}
         <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
