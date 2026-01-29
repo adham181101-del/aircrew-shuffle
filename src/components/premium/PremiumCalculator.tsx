@@ -7,6 +7,7 @@ import { getUserShifts, type Shift } from '@/lib/shifts'
 import { getCurrentUser } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
 import { useShifts } from '@/hooks/useShifts'
+import { useLeaveDays } from '@/hooks/useLeaveDays'
 import { profiler } from '@/lib/performance'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Calendar, DollarSign, TrendingUp, Clock, ChevronRight } from 'lucide-react'
@@ -97,9 +98,11 @@ export const PremiumCalculator = memo(() => {
   const { toast } = useToast()
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('')
   const [selectedPremium, setSelectedPremium] = useState<PremiumTally | null>(null)
-  // New: base salary and leave days inputs (using string to allow empty values)
+  // Base salary input (using string to allow empty values)
   const [baseSalary, setBaseSalary] = useState<string>('')
-  const [leaveDays, setLeaveDays] = useState<string>('')
+  
+  // Fetch leave days automatically
+  const { data: leaveDaysData = [] } = useLeaveDays()
 
   // Performance profiling
   useEffect(() => {
@@ -352,6 +355,21 @@ export const PremiumCalculator = memo(() => {
     }
   }, [])
 
+  // Calculate leave days in the selected period
+  const leaveDaysInPeriod = useMemo(() => {
+    if (!selectedPeriod || leaveDaysData.length === 0) return 0
+    
+    const startDate = new Date(selectedPeriod.start)
+    startDate.setHours(0, 0, 0, 0)
+    const endDate = new Date(selectedPeriod.end)
+    endDate.setHours(23, 59, 59, 999)
+    
+    return leaveDaysData.filter(leave => {
+      const leaveDate = new Date(`${leave.date}T00:00:00`)
+      return leaveDate >= startDate && leaveDate <= endDate
+    }).length
+  }, [selectedPeriod, leaveDaysData])
+
   // Memoize premium calculations result
   const { premiumShifts, premiumTally, totals, periodDateRange } = useMemo(() => {
     if (!selectedPeriod || shifts.length === 0) {
@@ -433,17 +451,38 @@ export const PremiumCalculator = memo(() => {
               />
             </div>
             <div className="flex-1">
-              <label className="text-sm font-semibold text-gray-700 mb-2 block">Leave Days in Period</label>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={leaveDays}
-                onChange={(e) => setLeaveDays(e.target.value)}
-                className="h-12 w-full rounded-xl border-2 border-gray-200 px-4 text-base hover:border-green-300 focus:border-green-500 focus:outline-none transition-all duration-300"
-                placeholder="e.g. 2"
-              />
-              <p className="text-xs text-gray-500 mt-1">Adds £17.24 per leave day</p>
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                Leave Days in Period
+                {selectedPeriod && leaveDaysInPeriod > 0 && (
+                  <span className="ml-2 text-green-600 font-normal">
+                    ({leaveDaysInPeriod} automatically detected)
+                  </span>
+                )}
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={leaveDaysInPeriod}
+                  readOnly
+                  className="h-12 w-full rounded-xl border-2 border-gray-200 px-4 text-base bg-gray-50 cursor-not-allowed"
+                  placeholder="Auto-calculated from your leave days"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <Badge variant="secondary" className="text-xs">
+                    Auto
+                  </Badge>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Automatically counted from your marked leave days. Adds £17.24 per leave day.
+              </p>
+              {selectedPeriod && leaveDaysInPeriod === 0 && (
+                <p className="text-xs text-blue-600 mt-1">
+                  💡 Mark leave days in the <a href="/leave" className="underline font-medium">Leave page</a> to auto-count them here
+                </p>
+              )}
             </div>
           </div>
           {periodDateRange && selectedPeriod && (
@@ -489,8 +528,7 @@ export const PremiumCalculator = memo(() => {
             <CardContent>
               {(() => {
                 const baseSalaryNum = parseFloat(baseSalary) || 0;
-                const leaveDaysNum = parseInt(leaveDays, 10) || 0;
-                const leavePremium = leaveDaysNum * 17.24;
+                const leavePremium = leaveDaysInPeriod * 17.24;
                 const expected = Math.max(0, baseSalaryNum) + totals.totalPremiumAmount + leavePremium;
                 return (
                   <>

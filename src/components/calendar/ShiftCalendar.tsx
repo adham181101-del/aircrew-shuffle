@@ -8,9 +8,10 @@ import { useToast } from '@/hooks/use-toast'
 import { getCurrentUser, type Staff } from '@/lib/auth'
 import { useShifts, useInvalidateShifts } from '@/hooks/useShifts'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { useLeaveDays } from '@/hooks/useLeaveDays'
 import { profiler } from '@/lib/performance'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Calendar as CalendarIcon, Plus, Clock } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, Clock, Plane } from 'lucide-react'
 import 'react-calendar/dist/Calendar.css'
 import {
   AlertDialog,
@@ -56,10 +57,17 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   // Use React Query hooks
   const { data: user } = useCurrentUser()
   const { data: shiftsData, isLoading: loading } = useShifts()
+  const { data: leaveDays = [] } = useLeaveDays()
   const invalidateShifts = useInvalidateShifts()
 
   // Extract shifts from query result
   const shifts = useMemo(() => shiftsData?.shifts || [], [shiftsData])
+  
+  // Create a set of leave dates for quick lookup
+  const leaveDatesSet = useMemo(() => 
+    new Set(leaveDays.map(ld => ld.date)),
+    [leaveDays]
+  )
 
   // Function to refresh shifts (can be called from parent component)
   const refreshShifts = async () => {
@@ -132,10 +140,20 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
     if (view !== 'month') return null
     
     const dayShifts = getShiftsForDate(date)
-    if (dayShifts.length === 0) return null
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}`
+    const isLeaveDay = leaveDatesSet.has(dateStr)
 
     return (
       <div className="flex flex-col items-center mt-1 space-y-1">
+        {isLeaveDay && (
+          <div className="w-full text-xs px-1 py-0.5 rounded bg-purple-100 border border-purple-300 text-purple-700 text-center flex items-center justify-center gap-1">
+            <Plane className="h-3 w-3" />
+            <span className="text-[9px] font-medium">Leave</span>
+          </div>
+        )}
         {dayShifts.map((shift) => {
           const timeOfDay = getShiftTimeOfDay(shift.time)
           const [startTime, endTime] = shift.time.split('-')
@@ -165,10 +183,18 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   const tileClassName = ({ date, view }: { date: Date; view: string }) => {
     if (view !== 'month') return ''
     
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}`
     const dayShifts = getShiftsForDate(date)
-    if (dayShifts.length === 0) return ''
+    const isLeaveDay = leaveDatesSet.has(dateStr)
     
-    return 'has-shifts relative'
+    const classes = []
+    if (dayShifts.length > 0) classes.push('has-shifts')
+    if (isLeaveDay) classes.push('has-leave')
+    
+    return classes.length > 0 ? classes.join(' ') + ' relative' : ''
   }
 
   if (loading && !shifts.length) {
@@ -260,6 +286,10 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 shadow-sm"></div>
                 <span className="text-xs font-medium text-gray-700">Swapped</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-400 to-purple-500 shadow-sm border border-purple-300"></div>
+                <span className="text-xs font-medium text-gray-700">Leave</span>
               </div>
             </div>
           </div>

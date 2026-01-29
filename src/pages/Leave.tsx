@@ -5,7 +5,7 @@ import { Calendar as CalendarIcon, X } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
-import { addLeaveDay, getMyLeaveDays, removeLeaveDay, type LeaveDay } from '@/lib/leave'
+import { useLeaveDays, useAddLeaveDay, useRemoveLeaveDay } from '@/hooks/useLeaveDays'
 
 const toIso = (d: Date) => {
   const year = d.getFullYear()
@@ -16,23 +16,20 @@ const toIso = (d: Date) => {
 
 const Leave = () => {
   const { toast } = useToast()
-  const [loading, setLoading] = useState(true)
-  const [leaveDays, setLeaveDays] = useState<LeaveDay[]>([])
+  const { data: leaveDays = [], isLoading: loading } = useLeaveDays()
+  const addLeaveDay = useAddLeaveDay()
+  const removeLeaveDay = useRemoveLeaveDay()
   const [selected, setSelected] = useState<Date[] | undefined>([])
 
   const selectedIsoSet = useMemo(() => new Set((selected || []).map(toIso)), [selected])
   const leaveIsoSet = useMemo(() => new Set(leaveDays.map(l => l.date)), [leaveDays])
 
+  // Update selected dates when leave days change
   useEffect(() => {
-    const load = async () => {
-      setLoading(true)
-      const items = await getMyLeaveDays()
-      setLeaveDays(items)
-      setSelected(items.map(i => new Date(`${i.date}T00:00:00`)))
-      setLoading(false)
+    if (leaveDays.length > 0) {
+      setSelected(leaveDays.map(i => new Date(`${i.date}T00:00:00`)))
     }
-    load()
-  }, [])
+  }, [leaveDays])
 
   const onDaySelect = async (dates: Date[] | undefined) => {
     // Determine additions and removals
@@ -42,8 +39,8 @@ const Leave = () => {
     // Additions: in next but not in existing leave
     for (const iso of nextIso) {
       if (!leaveIsoSet.has(iso)) {
-        const ok = await addLeaveDay(iso)
-        if (!ok) {
+        const success = await addLeaveDay.mutateAsync(iso)
+        if (!success) {
           toast({ title: 'Failed to add leave day', variant: 'destructive' })
         }
       }
@@ -51,29 +48,23 @@ const Leave = () => {
     // Removals: in existing leave but not in next
     for (const iso of leaveIsoSet) {
       if (!nextIso.has(iso)) {
-        const ok = await removeLeaveDay(iso)
-        if (!ok) {
+        const success = await removeLeaveDay.mutateAsync(iso)
+        if (!success) {
           toast({ title: 'Failed to remove leave day', variant: 'destructive' })
         }
       }
     }
 
-    // Refresh from backend to ensure consistency
-    const items = await getMyLeaveDays()
-    setLeaveDays(items)
-    setSelected(items.map(i => new Date(`${i.date}T00:00:00`)))
     toast({ title: 'Leave updated' })
   }
 
   const removeSingle = async (iso: string) => {
-    const ok = await removeLeaveDay(iso)
-    if (!ok) {
+    const success = await removeLeaveDay.mutateAsync(iso)
+    if (!success) {
       toast({ title: 'Failed to remove leave day', variant: 'destructive' })
       return
     }
-    const items = await getMyLeaveDays()
-    setLeaveDays(items)
-    setSelected(items.map(i => new Date(`${i.date}T00:00:00`)))
+    toast({ title: 'Leave day removed' })
   }
 
   return (
@@ -128,5 +119,6 @@ const Leave = () => {
 }
 
 export default Leave
+
 
 
