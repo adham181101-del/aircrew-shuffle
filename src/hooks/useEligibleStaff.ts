@@ -87,9 +87,22 @@ export const useEligibleStaffForSwap = (
           throw shiftsError
         }
 
-        // Filter to eligible staff (those who are OFF)
+        // Get leave days for the selected date
+        const { data: leaveDaysOnDate, error: leaveError } = await supabase
+          .from('leave_days')
+          .select('staff_id')
+          .eq('date', swapDate)
+
+        if (leaveError) {
+          console.warn('Error fetching leave days:', leaveError)
+        }
+
+        // Filter to eligible staff (those who are OFF and not on leave)
         const workingStaffIds = new Set(shiftsOnDate?.map(s => s.staff_id) || [])
-        const eligibleList = baseStaff?.filter(staff => !workingStaffIds.has(staff.id)) || []
+        const onLeaveStaffIds = new Set(leaveDaysOnDate?.map(ld => ld.staff_id) || [])
+        const eligibleList = baseStaff?.filter(staff => 
+          !workingStaffIds.has(staff.id) && !onLeaveStaffIds.has(staff.id)
+        ) || []
 
         const duration = performance.now() - startTime
         profiler.logFetch('get_eligible_staff_for_swap (fallback)', 'FETCH', duration)
