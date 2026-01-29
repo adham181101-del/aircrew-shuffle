@@ -296,15 +296,10 @@ export const getCurrentUser = async (): Promise<(Staff & { company: Company }) |
 // Security: Function to verify data integrity
 export const verifyDataIntegrity = async () => {
   try {
-    const { data, error } = await supabase
-      .rpc('verify_data_integrity')
-    
-    if (error) {
-      console.error('Error verifying data integrity:', error)
-      return null
-    }
-    
-    return data
+    // This function is not available in the current database schema
+    // Return null for now as a placeholder
+    console.log('verifyDataIntegrity: Function not available in current schema')
+    return null
   } catch (error) {
     console.error('Error in verifyDataIntegrity:', error)
     return null

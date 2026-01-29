@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          category: string
+          created_at: string
+          details: Json
+          id: string
+          ip_address: string | null
+          resource_id: string | null
+          resource_type: string
+          severity: string
+          timestamp: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          category: string
+          created_at?: string
+          details?: Json
+          id?: string
+          ip_address?: string | null
+          resource_id?: string | null
+          resource_type: string
+          severity: string
+          timestamp?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          category?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          ip_address?: string | null
+          resource_id?: string | null
+          resource_type?: string
+          severity?: string
+          timestamp?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           config: Json | null
@@ -41,6 +86,68 @@ export type Database = {
           industry?: string
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      leave_days: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          staff_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          staff_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          staff_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_days_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rls_policies_backup: {
+        Row: {
+          cmd: string | null
+          permissive: string | null
+          policyname: unknown
+          qual: string | null
+          roles: unknown[] | null
+          schemaname: unknown
+          tablename: unknown
+          with_check: string | null
+        }
+        Insert: {
+          cmd?: string | null
+          permissive?: string | null
+          policyname?: unknown
+          qual?: string | null
+          roles?: unknown[] | null
+          schemaname?: unknown
+          tablename?: unknown
+          with_check?: string | null
+        }
+        Update: {
+          cmd?: string | null
+          permissive?: string | null
+          policyname?: unknown
+          qual?: string | null
+          roles?: unknown[] | null
+          schemaname?: unknown
+          tablename?: unknown
+          with_check?: string | null
         }
         Relationships: []
       }
@@ -116,6 +223,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          plan_id: string
+          plan_name: string
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          trial_end: string | null
+          trial_start: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end: string
+          current_period_start: string
+          id?: string
+          plan_id: string
+          plan_name: string
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          trial_end?: string | null
+          trial_start?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          plan_id?: string
+          plan_name?: string
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          trial_end?: string | null
+          trial_start?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       swap_requests: {
         Row: {
@@ -199,7 +357,45 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_old_audit_logs: { Args: never; Returns: undefined }
+      execute_shift_swap: {
+        Args: {
+          accepter_id: string
+          accepter_shift_id?: string
+          counter_offer_date?: string
+          requester_shift_id: string
+          swap_request_id: string
+        }
+        Returns: Json
+      }
+      get_all_staff_for_team: {
+        Args: never
+        Returns: {
+          base_location: string
+          can_work_doubles: boolean
+          company_id: string
+          created_at: string
+          email: string
+          id: string
+          staff_number: string
+        }[]
+      }
+      get_eligible_staff_for_swap: {
+        Args: {
+          requester_base_location: string
+          requester_id: string
+          swap_date: string
+        }
+        Returns: {
+          base_location: string
+          can_work_doubles: boolean
+          company_id: string
+          created_at: string
+          email: string
+          id: string
+          staff_number: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

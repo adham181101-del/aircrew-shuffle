@@ -250,7 +250,7 @@ export const getAuditLogs = async (
       return []
     }
 
-    return data || []
+    return (data || []) as AuditLog[]
   } catch (error) {
     console.error('Error fetching audit logs:', error)
     return []

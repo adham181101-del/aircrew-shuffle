@@ -48,11 +48,11 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           message,
           created_at,
           requester_shift_id,
-          requester:requester_id (
+          requester:staff!swap_requests_requester_id_fkey (
             email,
             staff_number
           ),
-          requester_shift:requester_shift_id (
+          requester_shift:shifts!swap_requests_requester_shift_id_fkey (
             date,
             time
           )
@@ -74,11 +74,11 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           message,
           created_at,
           counter_offer_date,
-          accepter:accepter_id (
+          accepter:staff!swap_requests_accepter_id_fkey (
             email,
             staff_number
           ),
-          requester_shift:requester_shift_id (
+          requester_shift:shifts!swap_requests_requester_shift_id_fkey (
             date,
             time
           )
@@ -100,15 +100,15 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           status,
           message,
           created_at,
-          requester:requester_id (
+          requester:staff!swap_requests_requester_id_fkey (
             email,
             staff_number
           ),
-          accepter:accepter_id (
+          accepter:staff!swap_requests_accepter_id_fkey (
             email,
             staff_number
           ),
-          requester_shift:requester_shift_id (
+          requester_shift:shifts!swap_requests_requester_shift_id_fkey (
             date,
             time
           )
@@ -127,7 +127,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
       // Incoming requests
       if (incomingRequests) {
-        incomingRequests.forEach(request => {
+        incomingRequests.forEach((request: any) => {
           allNotifications.push({
             id: `incoming_${request.id}`,
             type: 'incoming_request',
@@ -145,7 +145,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
       // Counter offers
       if (counterOffers) {
-        counterOffers.forEach(offer => {
+        counterOffers.forEach((offer: any) => {
           allNotifications.push({
             id: `counter_${offer.id}`,
             type: 'counter_offer',
@@ -163,7 +163,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
       // Accepted swaps
       if (acceptedSwaps) {
-        acceptedSwaps.forEach(swap => {
+        acceptedSwaps.forEach((swap: any) => {
           const isRequester = swap.requester?.email === user.email;
           const otherPerson = isRequester ? swap.accepter : swap.requester;
           

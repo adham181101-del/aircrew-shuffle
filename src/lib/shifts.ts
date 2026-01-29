@@ -283,9 +283,11 @@ export const executeShiftSwap = async (swapRequest: any): Promise<void> => {
       throw error;
     }
 
-    if (!data.success) {
-      console.error('Shift swap failed:', data.error);
-      throw new Error(data.error || 'Shift swap failed');
+    const result = data as { success?: boolean; error?: string } | null;
+
+    if (result && !result.success) {
+      console.error('Shift swap failed:', result.error);
+      throw new Error(result.error || 'Shift swap failed');
     }
 
     console.log('Shift swap executed successfully:', data);
