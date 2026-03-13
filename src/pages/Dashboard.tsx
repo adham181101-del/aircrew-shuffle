@@ -34,7 +34,8 @@ import {
   FileText,
   Lock
 } from 'lucide-react'
-import { PremiumCalculator } from '@/components/premium/PremiumCalculator'
+import { PremiumCalculator, type PremiumTotalsSummary } from '@/components/premium/PremiumCalculator'
+import { OvertimeCalculator } from '@/components/premium/OvertimeCalculator'
 import { SubscriptionStatus } from '@/components/SubscriptionStatus'
 import { hasActiveSubscription } from '@/lib/subscriptions'
 import {
@@ -58,7 +59,7 @@ const Dashboard = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const { user, signOut } = useAuth()
-  const [activeTab, setActiveTab] = useState<'calendar' | 'premiums'>('calendar')
+  const [activeTab, setActiveTab] = useState<'calendar' | 'premiums' | 'overtime'>('calendar')
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false)
   const [deletingAll, setDeletingAll] = useState(false)
   // TEMPORARY: Always grant Pro access during development/testing
@@ -75,6 +76,8 @@ const Dashboard = () => {
   const { data: shiftsData, isLoading: shiftsLoading } = useShifts()
   const { data: incomingRequests = [], isLoading: requestsLoading } = useIncomingSwapRequests(currentUser?.id || null)
   const invalidateShifts = useInvalidateShifts()
+
+  const [premiumSummary, setPremiumSummary] = useState<PremiumTotalsSummary | null>(null)
 
   // Extract shifts from query result
   const shifts = useMemo(() => shiftsData?.shifts || [], [shiftsData])
@@ -352,7 +355,7 @@ const Dashboard = () => {
 
 
         {/* Professional Navigation Tabs */}
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-8 bg-white p-1 rounded-lg shadow-sm border border-gray-200 w-full max-w-md">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-8 bg-white p-1 rounded-lg shadow-sm border border-gray-200 w-full max-w-xl">
           <Button
             variant={activeTab === 'calendar' ? 'default' : 'ghost'}
             size="sm"
@@ -378,6 +381,19 @@ const Dashboard = () => {
           >
             <DollarSign className="h-4 w-4 mr-2" />
             Premiums
+          </Button>
+          <Button
+            variant={activeTab === 'overtime' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('overtime')}
+            className={`flex-1 px-4 py-2 rounded-md transition-all duration-200 ${
+              activeTab === 'overtime' 
+                ? 'bg-blue-600 text-white shadow-sm' 
+                : 'hover:bg-gray-100 text-gray-600'
+            }`}
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            Overtime
           </Button>
         </div>
 
@@ -419,7 +435,10 @@ const Dashboard = () => {
             />
           </div>
           <div className={activeTab === 'premiums' ? 'block' : 'hidden'}>
-            <PremiumCalculator />
+            <PremiumCalculator onTotalsChange={setPremiumSummary} />
+          </div>
+          <div className={activeTab === 'overtime' ? 'block' : 'hidden'}>
+            <OvertimeCalculator summary={premiumSummary} />
           </div>
         </div>
 

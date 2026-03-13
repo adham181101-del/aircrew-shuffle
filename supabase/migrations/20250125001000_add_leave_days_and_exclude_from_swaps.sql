@@ -109,3 +109,4 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.get_eligible_staff_for_swap(text, date, uuid) TO authenticated;
 
+

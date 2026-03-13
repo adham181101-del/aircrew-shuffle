@@ -28,20 +28,33 @@ interface PayPeriod {
   weeks: 4 | 5 // Period length in weeks
 }
 
+export interface PremiumTotalsSummary {
+  baseSalary: number
+  premiumAmount: number
+  leavePremium: number
+  totalWithoutOvertime: number
+  totalHours: number
+}
+
+interface PremiumCalculatorProps {
+  onTotalsChange?: (totals: PremiumTotalsSummary) => void
+}
+
 // Fixed 2026 premium periods (Overtime work periods → Paid month)
+// Updated to match the latest BA table (as per our reference screenshot)
 const PREMIUM_PERIODS_2026: PayPeriod[] = [
-  { id: '2026-01', label: '8 Dec 2025 - 11 Jan 2026', start: new Date('2025-12-08'), end: new Date('2026-01-11'), weeks: 5 },
-  { id: '2026-02', label: '12 Jan - 8 Feb 2026', start: new Date('2026-01-12'), end: new Date('2026-02-08'), weeks: 4 },
-  { id: '2026-03', label: '9 Feb - 8 Mar 2026', start: new Date('2026-02-09'), end: new Date('2026-03-08'), weeks: 4 },
-  { id: '2026-04', label: '9 Mar - 5 Apr 2026', start: new Date('2026-03-09'), end: new Date('2026-04-05'), weeks: 4 },
-  { id: '2026-05', label: '6 Apr - 10 May 2026', start: new Date('2026-04-06'), end: new Date('2026-05-10'), weeks: 5 },
-  { id: '2026-06', label: '11 May - 7 Jun 2026', start: new Date('2026-05-11'), end: new Date('2026-06-07'), weeks: 4 },
-  { id: '2026-07', label: '8 Jun - 12 Jul 2026', start: new Date('2026-06-08'), end: new Date('2026-07-12'), weeks: 5 },
-  { id: '2026-08', label: '13 Jul - 9 Aug 2026', start: new Date('2026-07-13'), end: new Date('2026-08-09'), weeks: 4 },
-  { id: '2026-09', label: '10 Aug - 13 Sep 2026', start: new Date('2026-08-10'), end: new Date('2026-09-13'), weeks: 5 },
-  { id: '2026-10', label: '14 Sep - 11 Oct 2026', start: new Date('2026-09-14'), end: new Date('2026-10-11'), weeks: 4 },
-  { id: '2026-11', label: '12 Oct - 8 Nov 2026', start: new Date('2026-10-12'), end: new Date('2026-11-08'), weeks: 4 },
-  { id: '2026-12', label: '9 Nov - 6 Dec 2026', start: new Date('2026-11-09'), end: new Date('2026-12-06'), weeks: 4 },
+  { id: '2026-01', label: '7 Dec 2025 - 10 Jan 2026', start: new Date('2025-12-07'), end: new Date('2026-01-10'), weeks: 5 },
+  { id: '2026-02', label: '11 Jan - 7 Feb 2026', start: new Date('2026-01-11'), end: new Date('2026-02-07'), weeks: 4 },
+  { id: '2026-03', label: '8 Feb - 14 Mar 2026', start: new Date('2026-02-08'), end: new Date('2026-03-14'), weeks: 5 },
+  { id: '2026-04', label: '15 Mar - 11 Apr 2026', start: new Date('2026-03-15'), end: new Date('2026-04-11'), weeks: 4 },
+  { id: '2026-05', label: '12 Apr - 9 May 2026', start: new Date('2026-04-12'), end: new Date('2026-05-09'), weeks: 4 },
+  { id: '2026-06', label: '10 May - 13 Jun 2026', start: new Date('2026-05-10'), end: new Date('2026-06-13'), weeks: 5 },
+  { id: '2026-07', label: '14 Jun - 11 Jul 2026', start: new Date('2026-06-14'), end: new Date('2026-07-11'), weeks: 4 },
+  { id: '2026-08', label: '12 Jul - 8 Aug 2026', start: new Date('2026-07-12'), end: new Date('2026-08-08'), weeks: 4 },
+  { id: '2026-09', label: '9 Aug - 12 Sep 2026', start: new Date('2026-08-09'), end: new Date('2026-09-12'), weeks: 5 },
+  { id: '2026-10', label: '13 Sep - 10 Oct 2026', start: new Date('2026-09-13'), end: new Date('2026-10-10'), weeks: 4 },
+  { id: '2026-11', label: '11 Oct - 7 Nov 2026', start: new Date('2026-10-11'), end: new Date('2026-11-07'), weeks: 4 },
+  { id: '2026-12', label: '8 Nov - 5 Dec 2026', start: new Date('2026-11-08'), end: new Date('2026-12-05'), weeks: 4 },
 ]
 
 // Helper function to find which period a shift date falls into
@@ -94,7 +107,7 @@ interface PremiumTally {
   }>
 }
 
-export const PremiumCalculator = memo(() => {
+export const PremiumCalculator = memo(({ onTotalsChange }: PremiumCalculatorProps) => {
   const { toast } = useToast()
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('')
   const [selectedPremium, setSelectedPremium] = useState<PremiumTally | null>(null)
@@ -384,6 +397,32 @@ export const PremiumCalculator = memo(() => {
     return calculatePremiumsMemoized(selectedPeriod, shifts)
   }, [selectedPeriod, shifts, calculatePremiumsMemoized])
 
+  const baseSalaryNum = useMemo(() => {
+    const parsed = parseFloat(baseSalary)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
+  }, [baseSalary])
+
+  const leavePremium = useMemo(() => {
+    return leaveDaysInPeriod * 17.24
+  }, [leaveDaysInPeriod])
+
+  const totalWithoutOvertime = useMemo(() => {
+    return baseSalaryNum + totals.totalPremiumAmount + leavePremium
+  }, [baseSalaryNum, totals.totalPremiumAmount, leavePremium])
+
+  // Expose totals to parent (for overtime calculator tab)
+  useEffect(() => {
+    if (!onTotalsChange || !selectedPeriod) return
+
+    onTotalsChange({
+      baseSalary: baseSalaryNum,
+      premiumAmount: totals.totalPremiumAmount,
+      leavePremium,
+      totalWithoutOvertime,
+      totalHours: totals.totalHours,
+    })
+  }, [onTotalsChange, selectedPeriod, baseSalaryNum, totals.totalPremiumAmount, totals.totalHours, leavePremium, totalWithoutOvertime])
+
   const getPremiumLabelColor = (label: string) => {
     switch (label) {
       case 'Shift Premium 1': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
@@ -526,19 +565,12 @@ export const PremiumCalculator = memo(() => {
               </div>
             </CardHeader>
             <CardContent>
-              {(() => {
-                const baseSalaryNum = parseFloat(baseSalary) || 0;
-                const leavePremium = leaveDaysInPeriod * 17.24;
-                const expected = Math.max(0, baseSalaryNum) + totals.totalPremiumAmount + leavePremium;
-                return (
-                  <>
-                    <div className="text-3xl font-bold text-emerald-900">£{expected.toFixed(2)}</div>
-                    <p className="text-xs text-emerald-700 mt-1">
-                      Base £{baseSalaryNum.toFixed(2)} + Premiums £{totals.totalPremiumAmount.toFixed(2)} + Leave £{leavePremium.toFixed(2)}
-                    </p>
-                  </>
-                )
-              })()}
+              <>
+                <div className="text-3xl font-bold text-emerald-900">£{totalWithoutOvertime.toFixed(2)}</div>
+                <p className="text-xs text-emerald-700 mt-1">
+                  Base £{baseSalaryNum.toFixed(2)} + Premiums £{totals.totalPremiumAmount.toFixed(2)} + Leave £{leavePremium.toFixed(2)}
+                </p>
+              </>
             </CardContent>
           </Card>
         </div>

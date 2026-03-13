@@ -138,11 +138,11 @@ const Index = () => {
               </Button>
             </div>
 
-            {/* Trust indicators */}
-            <div className="flex flex-wrap items-center justify-center gap-6 text-white/60">
+            {/* Simple reassurance without fake numbers */}
+            <div className="flex flex-wrap items-center justify-center gap-6 text-white/60 mt-2">
               <div className="flex items-center space-x-2">
                 <Star className="h-5 w-5 text-yellow-400 fill-current" />
-                <span>Trusted by 10,000+ crew members</span>
+                <span>Built for airline crew and shift-based teams</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Shield className="h-5 w-5 text-green-400" />
@@ -341,41 +341,6 @@ const Index = () => {
                 CAA Compliant
               </Badge>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600/20 to-purple-600/20">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-            {theme.stats.map((stat, index) => (
-              <div key={index} className="space-y-2">
-                <div className="text-4xl font-bold text-white">{stat.value}</div>
-                <div className="text-white/70">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Supported Industries */}
-      <section className="py-20 bg-white/5 backdrop-blur-sm">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h3 className="text-3xl md:text-4xl font-bold text-white mb-6">Trusted Across Industries</h3>
-            <p className="text-xl text-white/70">Serving professionals in shift-based industries worldwide</p>
-          </div>
-          
-          <div className="flex flex-wrap justify-center gap-4">
-            {theme.industries.map((industry) => (
-              <div key={industry.name} className="group">
-                <div className={`bg-gradient-to-r ${industry.color} p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer`}>
-                  <div className="text-3xl mb-2">{industry.icon}</div>
-                  <div className="text-white font-semibold">{industry.name}</div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
