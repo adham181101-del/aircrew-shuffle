@@ -32,7 +32,8 @@ import {
   RefreshCw,
   Shield,
   FileText,
-  Lock
+  Lock,
+  Clock
 } from 'lucide-react'
 import { PremiumCalculator, type PremiumTotalsSummary } from '@/components/premium/PremiumCalculator'
 import { OvertimeCalculator } from '@/components/premium/OvertimeCalculator'
