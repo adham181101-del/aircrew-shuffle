@@ -527,6 +527,7 @@ export const validateWHL = async (
 // Parse PDF content to extract shifts
 export const parseShiftsFromText = (text: string): Array<{date: string, time: string}> => {
   const shifts: Array<{date: string, time: string}> = []
+  const currentYear = new Date().getFullYear()
 
   const monthMap: Record<string, number> = {
     jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
@@ -548,6 +549,16 @@ export const parseShiftsFromText = (text: string): Array<{date: string, time: st
 
   console.log('Total lines to process:', lines.length)
 
+  const parseRosterYear = (yearStr: string): number | null => {
+    const parsed = parseInt(yearStr, 10)
+    if (Number.isNaN(parsed)) return null
+
+    const year = yearStr.length === 2 ? 2000 + parsed : parsed
+    // Accept realistic roster years only to avoid accidental bad matches.
+    if (year < currentYear - 1 || year > currentYear + 2) return null
+    return year
+  }
+
   // First pass: collect all dates and extract shift times directly from Date Summary
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
@@ -559,7 +570,11 @@ export const parseShiftsFromText = (text: string): Array<{date: string, time: st
       console.log(`Found date with times: ${dayStr}-${monthStr}-${yearStr} ${startTime}-${endTime}`)
       const month = monthMap[monthStr.toLowerCase()]
       if (month) {
-        const year = parseInt(yearStr.length === 2 ? '20' + yearStr : yearStr)
+        const year = parseRosterYear(yearStr)
+        if (!year) {
+          console.log(`❌ Invalid year: ${yearStr}`)
+          continue
+        }
         const day = parseInt(dayStr)
         // Create date in database format (YYYY-MM-DD)
         const dbDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
@@ -599,7 +614,11 @@ export const parseShiftsFromText = (text: string): Array<{date: string, time: st
       console.log(`Fallback match found: ${dayStr}-${monthStr}-${yearStr} ${startTime}-${endTime} in line: "${line}"`)
       const month = monthMap[monthStr.toLowerCase()]
       if (month) {
-        const year = parseInt(yearStr.length === 2 ? '20' + yearStr : yearStr)
+        const year = parseRosterYear(yearStr)
+        if (!year) {
+          console.log(`❌ Invalid year: ${yearStr}`)
+          continue
+        }
         const day = parseInt(dayStr)
         // Create date in database format (YYYY-MM-DD)
         const dbDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`

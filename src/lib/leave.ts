@@ -54,5 +54,81 @@ export const removeLeaveDay = async (dateIso: string): Promise<boolean> => {
   return true
 }
 
+export const parseLeaveDaysFromText = (text: string): string[] => {
+  const leaveDates: string[] = []
+  const currentYear = new Date().getFullYear()
+  const monthMap: Record<string, number> = {
+    jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+    jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+  }
+
+  const coalescedText = text
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/[\t ]+\n/g, '\n')
+    .replace(/\u00A0/g, ' ')
+
+  const lines = coalescedText
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+
+  const parseRosterYear = (yearStr: string): number | null => {
+    const parsed = parseInt(yearStr, 10)
+    if (Number.isNaN(parsed)) return null
+
+    const year = yearStr.length === 2 ? 2000 + parsed : parsed
+    if (year < currentYear - 1 || year > currentYear + 2) return null
+    return year
+  }
+
+  for (const line of lines) {
+    const descriptorMatch = line.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})\s*-\s*(.+)$/i)
+    if (!descriptorMatch) continue
+
+    const [, dayStr, monthStr, yearStr, descriptor] = descriptorMatch
+    if (!/LV\s*LEAVE/i.test(descriptor)) continue
+
+    const month = monthMap[monthStr.toLowerCase()]
+    const year = parseRosterYear(yearStr)
+    const day = parseInt(dayStr, 10)
+    if (!month || !year || Number.isNaN(day)) continue
+
+    const dbDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+    leaveDates.push(dbDate)
+  }
+
+  return Array.from(new Set(leaveDates))
+}
+
+export const replaceAllLeaveDaysForUser = async (staffId: string, leaveDatesIso: string[]): Promise<{ deletedCount: number; insertedCount: number }> => {
+  const { count, error: countError } = await supabase
+    .from('leave_days')
+    .select('*', { count: 'exact', head: true })
+    .eq('staff_id', staffId)
+
+  if (countError) throw countError
+
+  const { error: deleteError } = await supabase
+    .from('leave_days')
+    .delete()
+    .eq('staff_id', staffId)
+
+  if (deleteError) throw deleteError
+
+  if (leaveDatesIso.length === 0) {
+    return { deletedCount: count || 0, insertedCount: 0 }
+  }
+
+  const rows = leaveDatesIso.map((date) => ({ staff_id: staffId, date }))
+  const { error: insertError } = await supabase
+    .from('leave_days')
+    .insert(rows)
+
+  if (insertError) throw insertError
+
+  return { deletedCount: count || 0, insertedCount: rows.length }
+}
+
 
 

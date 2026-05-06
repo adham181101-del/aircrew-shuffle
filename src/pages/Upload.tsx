@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Upload, FileText, AlertCircle, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { upsertShift, parseShiftsFromText, getUserShifts } from "@/lib/shifts";
+import { upsertShift, parseShiftsFromText, clearAllShiftsForUser, getUserShifts } from "@/lib/shifts";
+import { parseLeaveDaysFromText, replaceAllLeaveDaysForUser } from "@/lib/leave";
 import { getCurrentUser } from "@/lib/auth";
 
 const UploadPage = () => {
@@ -128,25 +129,39 @@ const UploadPage = () => {
       });
       
       const shifts = parseShiftsFromText(pdfText);
+      const leaveDates = parseLeaveDaysFromText(pdfText);
       setExtractedShifts(shifts);
       
-      if (shifts.length === 0) {
+      if (shifts.length === 0 && leaveDates.length === 0) {
         toast({
-          title: "No Shifts Found",
-          description: "Could not extract any shifts from the PDF. Please check the format or add shifts manually.",
+          title: "No Roster Data Found",
+          description: "Could not extract shifts or leave days from the PDF. Please check the roster format.",
           variant: "destructive"
         });
         return;
       }
 
       // Keep only one shift per date from the uploaded roster (last occurrence wins).
-      // This makes the latest uploaded PDF the source of truth for dates it contains,
-      // while preserving existing app shifts for dates not present in the PDF.
+      // This makes the latest uploaded PDF the source of truth for the full roster.
       const latestShiftByDate = new Map<string, string>();
       for (const shift of shifts) {
         latestShiftByDate.set(shift.date, shift.time);
       }
       const uniquePdfShifts = Array.from(latestShiftByDate.entries()).map(([date, time]) => ({ date, time }));
+
+      // Replace existing app shifts so only the uploaded PDF roster remains.
+      toast({
+        title: "Refreshing roster...",
+        description: "Removing previous shifts before applying latest PDF",
+      });
+
+      const { deletedCount } = await clearAllShiftsForUser(user.id);
+      console.log(`Cleared ${deletedCount} existing shifts`);
+
+      // Replace leave days with the latest PDF leave markers (LV LEAVE).
+      const { deletedCount: deletedLeaveCount, insertedCount: insertedLeaveCount } =
+        await replaceAllLeaveDaysForUser(user.id, leaveDates);
+      console.log(`Synced leave days. Removed: ${deletedLeaveCount}, Added: ${insertedLeaveCount}`);
 
       // Save shifts to database
       toast({
@@ -187,6 +202,7 @@ const UploadPage = () => {
       
       const syncedCount = createdCount + updatedCount;
       let description = `Synced ${syncedCount} shifts from PDF (${createdCount} new, ${updatedCount} updated, ${skippedCount} unchanged)`;
+      description += `. Leave synced: ${insertedLeaveCount} day(s).`;
       if (errorCount > 0) {
         description += ` (${errorCount} failed to process)`;
       }
