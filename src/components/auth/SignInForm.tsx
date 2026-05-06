@@ -155,6 +155,16 @@ export const SignInForm = () => {
             {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
         </div>
+        <div className="text-right">
+          <Button
+            type="button"
+            variant="link"
+            onClick={() => navigate('/forgot-password')}
+            className="h-auto p-0 text-sm text-blue-300 hover:text-blue-200"
+          >
+            Forgot your password?
+          </Button>
+        </div>
       </div>
 
       {/* Submit Button */}

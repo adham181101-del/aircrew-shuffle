@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, FileText, AlertCircle, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { upsertShift, parseShiftsFromText, clearAllShiftsForUser, getUserShifts } from "@/lib/shifts";
+import { upsertShift, parseShiftsFromText, getUserShifts } from "@/lib/shifts";
 import { getCurrentUser } from "@/lib/auth";
 
 const UploadPage = () => {
@@ -139,34 +139,40 @@ const UploadPage = () => {
         return;
       }
 
-      // Clear all existing shifts for this user to prevent duplicates
-      toast({
-        title: "Clearing existing shifts...",
-        description: "Removing old shifts to prevent duplicates",
-      });
-      
-      const { deletedCount } = await clearAllShiftsForUser(user.id);
-      console.log(`Cleared ${deletedCount} existing shifts`);
+      // Keep only one shift per date from the uploaded roster (last occurrence wins).
+      // This makes the latest uploaded PDF the source of truth for dates it contains,
+      // while preserving existing app shifts for dates not present in the PDF.
+      const latestShiftByDate = new Map<string, string>();
+      for (const shift of shifts) {
+        latestShiftByDate.set(shift.date, shift.time);
+      }
+      const uniquePdfShifts = Array.from(latestShiftByDate.entries()).map(([date, time]) => ({ date, time }));
 
       // Save shifts to database
       toast({
         title: "Processing...",
-        description: `Processing ${shifts.length} shifts from your roster`,
+        description: `Syncing ${uniquePdfShifts.length} PDF shifts with your roster`,
       });
 
       let createdCount = 0;
+      let updatedCount = 0;
+      let skippedCount = 0;
       let errorCount = 0;
 
-      console.log('Processing shifts:', shifts.length, 'total shifts');
+      console.log('Processing shifts:', uniquePdfShifts.length, 'unique shifts');
       console.log('User ID:', user.id);
 
-      for (const shift of shifts) {
+      for (const shift of uniquePdfShifts) {
         try {
           console.log('Processing shift:', shift);
           const result = await upsertShift(shift.date, shift.time, user.id);
           console.log('Upsert result:', result);
           if (result.action === 'created') {
             createdCount++;
+          } else if (result.action === 'updated') {
+            updatedCount++;
+          } else if (result.action === 'skipped') {
+            skippedCount++;
           }
         } catch (error) {
           console.error('Failed to process shift:', shift, error);
@@ -174,12 +180,13 @@ const UploadPage = () => {
         }
       }
 
-      console.log('Upload summary - Created:', createdCount, 'Errors:', errorCount);
-      console.log('All processed shifts:', shifts);
+      console.log('Upload summary - Created:', createdCount, 'Updated:', updatedCount, 'Skipped:', skippedCount, 'Errors:', errorCount);
+      console.log('All processed shifts:', uniquePdfShifts);
 
       setProcessingStep('complete');
       
-      let description = `Successfully uploaded ${createdCount} shifts`;
+      const syncedCount = createdCount + updatedCount;
+      let description = `Synced ${syncedCount} shifts from PDF (${createdCount} new, ${updatedCount} updated, ${skippedCount} unchanged)`;
       if (errorCount > 0) {
         description += ` (${errorCount} failed to process)`;
       }

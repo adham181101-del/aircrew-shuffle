@@ -198,6 +198,22 @@ export const signOut = async () => {
   if (error) throw error
 }
 
+export const requestPasswordReset = async (email: string) => {
+  if (!validateEmailFormat(email)) {
+    throw new Error('Invalid email format')
+  }
+
+  const sanitizedEmail = sanitizeInput(email)
+  const { error } = await supabase.auth.resetPasswordForEmail(sanitizedEmail, {
+    redirectTo: `${window.location.origin}/login`,
+  })
+
+  if (error) {
+    console.error('Password reset request error:', error)
+    throw error
+  }
+}
+
 export const getAllStaff = async (): Promise<Staff[]> => {
   try {
     // Use the secure RPC function instead of direct table access
