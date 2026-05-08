@@ -257,11 +257,14 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 tileContent={tileContent}
                 tileClassName={tileClassName}
                 className="react-calendar roster-calendar"
-                locale="en-GB"
-                calendarType="iso8601"
+                locale="en-US"
+                calendarType="gregory"
                 minDetail="year"
                 maxDetail="month"
                 showNeighboringMonth={false}
+                formatShortWeekday={(_, date) =>
+                  date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()
+                }
                 navigationLabel={({ date, view }) => {
                   if (view === 'month') {
                     return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
@@ -471,8 +474,14 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           color: inherit;
         }
 
-        .calendar-container .react-calendar__tile abbr {
+        .calendar-container .react-calendar__month-view__days__day abbr {
           display: none;
+        }
+
+        .calendar-container .react-calendar__year-view abbr,
+        .calendar-container .react-calendar__decade-view abbr,
+        .calendar-container .react-calendar__century-view abbr {
+          display: inline;
         }
 
         .calendar-container .react-calendar__month-view__days__day {
