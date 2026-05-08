@@ -4,6 +4,7 @@ export type Shift = {
   id: string
   date: string
   time: string
+  note: string | null
   staff_id: string
   is_swapped: boolean
   created_at: string
@@ -117,16 +118,19 @@ export const isEligibleRepayForRequester = async (
   return false
 }
 
-export const createShift = async (date: string, time: string, staffId: string): Promise<Shift> => {
+export const createShift = async (date: string, time: string, staffId: string, note?: string): Promise<Shift> => {
   if (!isValidTimeRange(time)) {
     throw new Error('Invalid time format. Use HH:MM-HH:MM')
   }
+
+  const normalizedNote = note?.trim() ? note.trim() : null
 
   const { data, error } = await supabase
     .from('shifts')
     .insert({
       date,
       time,
+      note: normalizedNote,
       staff_id: staffId
     })
     .select()
@@ -225,6 +229,49 @@ export const updateShiftTime = async (
   const { data, error } = await supabase
     .from('shifts')
     .update({ time })
+    .eq('id', shiftId)
+    .eq('staff_id', staffId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export const updateShiftNote = async (
+  shiftId: string,
+  staffId: string,
+  note: string | null
+): Promise<Shift> => {
+  const normalizedNote = note?.trim() ? note.trim() : null
+
+  const { data, error } = await supabase
+    .from('shifts')
+    .update({ note: normalizedNote })
+    .eq('id', shiftId)
+    .eq('staff_id', staffId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export const updateShiftTimeAndNote = async (
+  shiftId: string,
+  staffId: string,
+  time: string,
+  note: string | null
+): Promise<Shift> => {
+  if (!isValidTimeRange(time)) {
+    throw new Error('Invalid time format. Use HH:MM-HH:MM')
+  }
+
+  const normalizedNote = note?.trim() ? note.trim() : null
+
+  const { data, error } = await supabase
+    .from('shifts')
+    .update({ time, note: normalizedNote })
     .eq('id', shiftId)
     .eq('staff_id', staffId)
     .select()
@@ -480,6 +527,7 @@ export const validateWHL = async (
     id: 'temp',
     date: newShiftDate,
     time: newShiftTime,
+    note: null,
     staff_id: staffId,
     is_swapped: false,
     created_at: new Date().toISOString()

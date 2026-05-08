@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { createShift } from "@/lib/shifts";
@@ -16,7 +17,8 @@ const CreateShift = () => {
   const [formData, setFormData] = useState({
     date: "",
     startTime: "",
-    endTime: ""
+    endTime: "",
+    note: ""
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,7 +49,7 @@ const CreateShift = () => {
 
       const timeRange = `${formData.startTime}-${formData.endTime}`;
       
-      await createShift(formData.date, timeRange, user.id);
+      await createShift(formData.date, timeRange, user.id, formData.note);
       
       toast({
         title: "Shift Created",
@@ -143,6 +145,17 @@ const CreateShift = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="note">Shift Note (optional)</Label>
+                  <Textarea
+                    id="note"
+                    value={formData.note}
+                    onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
+                    placeholder="Example: Spoke with Alex about swapping this shift"
+                    className="min-h-[96px]"
+                  />
                 </div>
 
                 <div className="flex gap-3 pt-4">

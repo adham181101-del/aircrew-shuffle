@@ -3,15 +3,15 @@ import Calendar from 'react-calendar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getUserShifts, getShiftTimeOfDay, deleteShift, updateShiftTime, type Shift } from '@/lib/shifts'
+import { Textarea } from '@/components/ui/textarea'
+import { getShiftTimeOfDay, deleteShift, updateShiftTimeAndNote, type Shift } from '@/lib/shifts'
 import { useToast } from '@/hooks/use-toast'
-import { getCurrentUser, type Staff } from '@/lib/auth'
 import { useShifts, useInvalidateShifts } from '@/hooks/useShifts'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useLeaveDays } from '@/hooks/useLeaveDays'
 import { profiler } from '@/lib/performance'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Calendar as CalendarIcon, Plus, Clock, Plane } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, Clock, Plane, StickyNote } from 'lucide-react'
 import 'react-calendar/dist/Calendar.css'
 import {
   AlertDialog,
@@ -46,6 +46,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   const [shiftPendingEdit, setShiftPendingEdit] = useState<Shift | null>(null)
   const [editStart, setEditStart] = useState('')
   const [editEnd, setEditEnd] = useState('')
+  const [editNote, setEditNote] = useState('')
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
 
@@ -146,36 +147,42 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
     const dateStr = `${year}-${month}-${day}`
     const isLeaveDay = leaveDatesSet.has(dateStr)
 
+    const primaryShift = dayShifts[0]
+
     return (
-      <div className="flex flex-col items-center mt-1 space-y-1">
-        {isLeaveDay && (
-          <div className="w-full text-xs px-1 py-0.5 rounded bg-purple-100 border border-purple-300 text-purple-700 text-center flex items-center justify-center gap-1">
-            <Plane className="h-3 w-3" />
-            <span className="text-[9px] font-medium">Leave</span>
+      <div className="calendar-tile-content">
+        {primaryShift ? (
+          <div
+            className={`calendar-shift-card ${getShiftColorClass(getShiftTimeOfDay(primaryShift.time), primaryShift.is_swapped, primaryShift.time)}`}
+            onClick={(e) => {
+              e.stopPropagation()
+              onShiftClick?.(primaryShift)
+            }}
+          >
+            <div className="calendar-day-number">{date.getDate()}</div>
+            <div className="calendar-shift-label">
+              {getShiftTimeOfDay(primaryShift.time).toUpperCase()}
+            </div>
+            <div className="calendar-shift-time">{primaryShift.time}</div>
+            {primaryShift.note && (
+              <div className="calendar-shift-note-indicator">
+                <StickyNote className="h-3 w-3" />
+                Note
+              </div>
+            )}
+          </div>
+        ) : isLeaveDay ? (
+          <div className="calendar-leave-card">
+            <span className="calendar-day-number">{date.getDate()}</span>
+            <Plane className="h-3.5 w-3.5" />
+            <span>Leave</span>
+          </div>
+        ) : (
+          <div className="calendar-off-card">
+            <span className="calendar-day-number">{date.getDate()}</span>
+            Off
           </div>
         )}
-        {dayShifts.map((shift) => {
-          const timeOfDay = getShiftTimeOfDay(shift.time)
-          const [startTime, endTime] = shift.time.split('-')
-          
-          return (
-            <div
-              key={shift.id}
-              className={`w-full text-xs px-1 py-1 rounded-lg text-center font-semibold cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-105
-                ${getShiftColorClass(timeOfDay, shift.is_swapped, shift.time)}
-                ${shift.is_swapped ? 'text-white/90' : 'text-white'}
-              `}
-              onClick={(e) => {
-                e.stopPropagation()
-                onShiftClick?.(shift)
-              }}
-              title={`${startTime}-${endTime}`}
-            >
-              {/* Show full time with minutes on all devices */}
-              <span className="font-medium text-[10px] leading-tight">{startTime}</span>
-            </div>
-          )
-        })}
       </div>
     )
   }
@@ -211,15 +218,15 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
 
   return (
     <div className="space-y-6">
-      <Card className="bg-white shadow-xl border border-gray-100">
-        <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-100 rounded-t-2xl">
+      <Card className="bg-white shadow-xl border border-slate-200">
+        <CardHeader className="bg-white border-b border-slate-200 rounded-t-2xl">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
                 <CalendarIcon className="h-6 w-6 text-white" />
               </div>
               <div>
-                <CardTitle className="text-2xl text-gray-900">Shift Calendar</CardTitle>
+                <CardTitle className="text-2xl text-slate-900">Shift Calendar</CardTitle>
                 <p className="text-gray-600">View and manage your scheduled shifts</p>
               </div>
             </div>
@@ -236,7 +243,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           </div>
         </CardHeader>
         
-        <CardContent className="p-4 sm:p-8">
+        <CardContent className="p-4 sm:p-6">
           <div className="calendar-container">
             <div className="mb-4 sm:mb-6 text-center">
               <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2">Your Shift Schedule</h3>
@@ -249,7 +256,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 value={selectedDate}
                 tileContent={tileContent}
                 tileClassName={tileClassName}
-                className="react-calendar"
+                className="react-calendar roster-calendar"
                 minDetail="year"
                 maxDetail="month"
                 showNeighboringMonth={false}
@@ -378,6 +385,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                           const [s, e] = shift.time.split('-')
                           setEditStart(s)
                           setEditEnd(e)
+                          setEditNote(shift.note || '')
                           setEditOpen(true)
                         }}
                         className="text-green-600 border-green-200 hover:bg-green-50"
@@ -397,6 +405,13 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                       </Button>
                     </div>
                   </div>
+
+                  {shift.note && (
+                    <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 p-3">
+                      <p className="text-xs font-semibold text-slate-600 mb-1">Note</p>
+                      <p className="text-sm text-slate-800 whitespace-pre-wrap">{shift.note}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -435,23 +450,31 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
         
         .calendar-container .react-calendar__tile {
           position: relative;
-          padding: 0.75rem 0.25rem;
-          background: none;
-          border: 1px solid hsl(var(--border));
+          padding: 0.45rem;
+          min-height: 104px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 14px;
           font-size: 0.875rem;
+          margin: 2px;
         }
         
         .calendar-container .react-calendar__tile:hover {
-          background-color: hsl(var(--accent));
+          background-color: #f1f5f9;
         }
         
         .calendar-container .react-calendar__tile--active {
-          background: hsl(var(--primary));
-          color: hsl(var(--primary-foreground));
+          background: #eff6ff;
+          border-color: #bfdbfe;
+          color: inherit;
         }
-        
-        .calendar-container .react-calendar__tile.has-shifts {
-          background-color: hsl(var(--muted));
+
+        .calendar-container .react-calendar__tile abbr {
+          display: none;
+        }
+
+        .calendar-container .react-calendar__month-view__days__day {
+          display: flex;
         }
         
         .calendar-container .react-calendar__navigation button {
@@ -531,6 +554,117 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
         .calendar-container .react-calendar__decade-view {
           padding: 1rem;
         }
+
+        .calendar-tile-content {
+          height: 100%;
+          width: 100%;
+          display: flex;
+          align-items: stretch;
+        }
+
+        .calendar-shift-card,
+        .calendar-leave-card,
+        .calendar-off-card {
+          width: 100%;
+          border-radius: 12px;
+          padding: 10px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 3px;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+        }
+
+        .calendar-shift-card {
+          color: #0f172a;
+          border: 1px solid rgba(30, 41, 59, 0.08);
+          cursor: pointer;
+          transition: transform 0.15s ease;
+        }
+
+        .calendar-shift-card:hover {
+          transform: translateY(-1px);
+        }
+
+        .calendar-shift-label {
+          font-size: 0.72rem;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+        }
+
+        .calendar-day-number {
+          font-size: 0.95rem;
+          font-weight: 800;
+          line-height: 1;
+          margin-bottom: 2px;
+        }
+
+        .calendar-shift-time {
+          font-size: 0.78rem;
+          font-weight: 600;
+        }
+
+        .calendar-shift-note-indicator {
+          margin-top: 2px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 0.65rem;
+          font-weight: 600;
+          opacity: 0.85;
+        }
+
+        .calendar-leave-card {
+          background: #f3e8ff;
+          color: #6b21a8;
+          border: 1px solid #d8b4fe;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.75rem;
+          font-weight: 700;
+        }
+
+        .calendar-off-card {
+          background: #e2e8f0;
+          color: #475569;
+          border: 1px solid #cbd5e1;
+          align-items: center;
+          font-size: 0.8rem;
+          font-weight: 700;
+        }
+
+        .calendar-container .react-calendar__month-view__days__day.has-shifts {
+          background: transparent;
+        }
+
+        .calendar-container .react-calendar__month-view__days__day.has-leave:not(.has-shifts) {
+          background: transparent;
+        }
+
+        .shift-morning {
+          background: #c7f9ff;
+        }
+
+        .shift-afternoon {
+          background: #bae6fd;
+        }
+
+        .shift-evening,
+        .shift-night {
+          background: #ddd6fe;
+        }
+
+        .shift-swapped {
+          background: #bbf7d0;
+        }
+
+        .shift-double {
+          background: #fecaca;
+        }
+
+        .shift-day {
+          background: #bae6fd;
+        }
         
         /* Fix mobile layout - prevent navigation from overlapping calendar */
         @media (max-width: 768px) {
@@ -552,6 +686,11 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           
           .calendar-container .react-calendar__month-view__weekdays {
             margin-top: 0.5rem;
+          }
+          
+          .calendar-container .react-calendar__tile {
+            min-height: 90px;
+            padding: 0.35rem;
           }
         }
       `}</style>
@@ -623,6 +762,15 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
               />
             </div>
           </div>
+          <div>
+            <label className="text-sm">Note (optional)</label>
+            <Textarea
+              className="mt-1 min-h-[90px]"
+              value={editNote}
+              onChange={(e) => setEditNote(e.target.value)}
+              placeholder="Add a reminder for swap follow-up or colleague conversation"
+            />
+          </div>
           <DialogFooter>
             <Button
               variant="outline"
@@ -637,9 +785,9 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 const time = `${editStart}-${editEnd}`
                 setSaving(true)
                 try {
-                  await updateShiftTime(shiftPendingEdit.id, user!.id, time)
+                  await updateShiftTimeAndNote(shiftPendingEdit.id, user!.id, time, editNote)
                   await invalidateShifts.mutateAsync()
-                  toast({ title: 'Shift updated', description: 'The shift time was saved.' })
+                  toast({ title: 'Shift updated', description: 'The shift details were saved.' })
                   setEditOpen(false)
                   setShiftPendingEdit(null)
                 } catch (error) {

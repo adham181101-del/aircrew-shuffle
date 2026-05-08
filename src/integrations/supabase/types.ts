@@ -157,6 +157,7 @@ export type Database = {
           date: string
           id: string
           is_swapped: boolean
+          note: string | null
           staff_id: string
           time: string
         }
@@ -165,6 +166,7 @@ export type Database = {
           date: string
           id?: string
           is_swapped?: boolean
+          note?: string | null
           staff_id: string
           time: string
         }
@@ -173,6 +175,7 @@ export type Database = {
           date?: string
           id?: string
           is_swapped?: boolean
+          note?: string | null
           staff_id?: string
           time?: string
         }
