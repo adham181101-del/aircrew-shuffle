@@ -1004,9 +1004,9 @@ const ManageSwaps = () => {
             <Skeleton className="h-32 w-full" />
           </div>
           ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="manage-swaps-tabs">
-            <div className="mb-8">
-              <TabsList className="w-full p-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="swap-requests-tabs flex flex-col gap-6 md:gap-8">
+            <div>
+              <TabsList className="w-full p-4 md:p-5">
                 <div className="flex flex-col w-full space-y-4">
                   <TabsTrigger 
                     value="incoming" 
@@ -1067,7 +1067,7 @@ const ManageSwaps = () => {
               </TabsList>
             </div>
 
-              <TabsContent value="incoming" className="manage-swaps-content space-y-6 mt-8">
+              <TabsContent value="incoming" className="swap-requests-content space-y-6">
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Incoming Swap Requests</h2>
@@ -1318,7 +1318,7 @@ const ManageSwaps = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="counter-offers" className="manage-swaps-content space-y-6 mt-8">
+              <TabsContent value="counter-offers" className="swap-requests-content space-y-6">
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Counter Offers to Review</h2>
@@ -1415,7 +1415,7 @@ const ManageSwaps = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="my-requests" className="manage-swaps-content space-y-6 mt-8">
+              <TabsContent value="my-requests" className="swap-requests-content space-y-6">
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Swap Requests</h2>
@@ -1546,10 +1546,7 @@ const ManageSwaps = () => {
                 </div>
               </TabsContent>
 
-              {/* Add spacing below tabs */}
-              <div className="h-8"></div>
-
-              <TabsContent value="accepted-swaps" className="manage-swaps-content space-y-6 mt-8">
+              <TabsContent value="accepted-swaps" className="swap-requests-content space-y-6">
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Accepted Swaps</h2>
@@ -1663,7 +1660,7 @@ const ManageSwaps = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="dummy-swaps" className="manage-swaps-content space-y-6 mt-8">
+              <TabsContent value="dummy-swaps" className="swap-requests-content space-y-6">
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Dummy Swaps</h2>
