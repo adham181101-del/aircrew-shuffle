@@ -52,7 +52,9 @@ export const SignInForm = () => {
       console.error('Login error:', error)
       
       let errorMessage = "Please check your credentials"
+      let debugDetail: string | null = null
       if (error instanceof Error) {
+        debugDetail = error.message
         if (error.message.includes('timeout')) {
           errorMessage = "Connection timeout - please check your internet and try again"
         } else if (error.message.includes('Invalid login credentials')) {
@@ -68,7 +70,7 @@ export const SignInForm = () => {
       
       toast({
         title: "Sign in failed",
-        description: errorMessage,
+        description: debugDetail ? `${errorMessage} (${debugDetail})` : errorMessage,
         variant: "destructive"
       })
     } finally {
