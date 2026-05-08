@@ -171,19 +171,33 @@ export const signIn = async (email: string, password: string) => {
   // Security: Sanitize email
   const sanitizedEmail = sanitizeInput(email)
   
-  // Create a timeout promise for Vercel compatibility
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error('Request timeout - please try again')), 10000);
-  });
+  const signInWithTimeout = async () => {
+    // Desktop Safari can be slower to resolve auth requests, so keep timeout generous.
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout - please try again')), 30000);
+    });
 
-  // Main sign in with timeout
-  const signInPromise = supabase.auth.signInWithPassword({
-    email: sanitizedEmail,
-    password
-  });
+    const signInPromise = supabase.auth.signInWithPassword({
+      email: sanitizedEmail,
+      password
+    });
 
-  // Race between timeout and sign in
-  const { data, error } = await Promise.race([signInPromise, timeoutPromise]);
+    return Promise.race([signInPromise, timeoutPromise]);
+  };
+
+  let response;
+  try {
+    response = await signInWithTimeout();
+  } catch (error) {
+    // Retry once if first attempt timed out (common on some desktop connections/browsers).
+    if (error instanceof Error && error.message.includes('timeout')) {
+      response = await signInWithTimeout();
+    } else {
+      throw error;
+    }
+  }
+
+  const { data, error } = response as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
 
   if (error) {
     console.error('Sign in error:', error);
