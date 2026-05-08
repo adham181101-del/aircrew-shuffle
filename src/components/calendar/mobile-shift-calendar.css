@@ -1,6 +1,6 @@
 /*
  * Dedicated mobile roster calendar (`msc-*` prefix).
- * Dense iOS-like layout: shift label primary, compact date/time, pastel cards.
+ * Dense layout + vibrant fills aligned with app blue→purple gradients (dashboard CTAs).
  */
 
 .msc-calendar-container {
@@ -101,8 +101,8 @@
 
 .msc-day--selected {
   box-shadow:
-    0 0 0 2px #38bdf8,
-    0 1px 2px rgba(15, 23, 42, 0.12);
+    0 0 0 2px #2563eb,
+    0 4px 14px rgba(37, 99, 235, 0.28);
 }
 
 .msc-day :where(.msc-date, .msc-shift, .msc-time-line) {
@@ -135,10 +135,10 @@
 }
 
 .msc-shift {
-  font-size: 11px;
+  font-size: 8.5px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  line-height: 1.14;
+  letter-spacing: 0.085em;
+  line-height: 1.18;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -148,9 +148,9 @@
 
 .msc-shift--solo {
   margin-top: 2px;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .msc-time-stack {
@@ -193,42 +193,49 @@
   box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35);
 }
 
-/* Spec palette */
+/* Vibrant roster palette — cyan/blue mornings, sapphire afternoons, violet nights, emerald swap, plum leave */
 .msc-day--morn {
-  background: #c8f3f7;
-  border: 1px solid #8be3ee;
+  background: linear-gradient(165deg, #ecfeff 0%, #7dd3fc 42%, #0ea5e9 100%);
+  border: 1px solid rgba(3, 105, 161, 0.55);
+  box-shadow: 0 2px 6px rgba(14, 165, 233, 0.2);
 }
 
 .msc-day--aftn {
-  background: #cfe8ff;
-  border: 1px solid #7bc2ff;
+  background: linear-gradient(165deg, #eff6ff 0%, #93c5fd 38%, #3b82f6 96%);
+  border: 1px solid rgba(37, 99, 235, 0.55);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.22);
 }
 
 .msc-day--ngt {
-  background: #eadcff;
-  border: 1px solid #caa8ff;
+  background: linear-gradient(165deg, #f5f3ff 0%, #c4b5fd 40%, #7c3aed 100%);
+  border: 1px solid rgba(91, 33, 182, 0.5);
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.25);
 }
 
 .msc-day--off {
-  background: #eceff4;
-  border: 1px solid #cfd5df;
-  color: #475569;
+  background: linear-gradient(180deg, #f1f5f9 0%, #dce5f2 100%);
+  border: 1px solid rgba(71, 85, 105, 0.35);
+  color: #334155;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .msc-day--long {
-  background: #ffd6d6;
-  border: 1px solid #ffaaaa;
+  background: linear-gradient(165deg, #fff1f2 0%, #fda4af 35%, #e11d48 100%);
+  border: 1px solid rgba(190, 18, 60, 0.55);
+  box-shadow: 0 2px 6px rgba(225, 29, 72, 0.2);
 }
 
 .msc-day--swap {
-  background: #d6f8e8;
-  border: 1px solid #7ddcae;
+  background: linear-gradient(165deg, #ecfdf5 0%, #6ee7b7 38%, #059669 100%);
+  border: 1px solid rgba(5, 122, 85, 0.55);
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.22);
 }
 
 .msc-day--leave {
-  background: #eee8fb;
-  border: 1px solid #cbb4fc;
-  color: #4c1d95;
+  background: linear-gradient(165deg, #faf5ff 0%, #d8b4fe 42%, #a855f7 100%);
+  border: 1px solid rgba(107, 33, 168, 0.5);
+  color: #5b21b6;
+  box-shadow: 0 2px 6px rgba(168, 85, 247, 0.22);
 }
 
 .msc-day--off .msc-time-stack,
@@ -245,8 +252,8 @@
   padding: 12px;
   gap: 8px;
   border-radius: 14px;
-  border: 1px solid rgba(226, 232, 240, 0.95);
-  background: #fafbfc;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
 }
 
 .msc-legend-title {
@@ -282,46 +289,46 @@
   min-width: 36px;
   padding: 2px 6px;
   border-radius: 8px;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.06em;
   color: #0f172a;
 }
 
 .msc-leg-pill--morn {
-  background: #c8f3f7;
-  border: 1px solid #8be3ee;
+  background: linear-gradient(145deg, #cffafe 0%, #38bdf8 100%);
+  border: 1px solid rgba(8, 145, 178, 0.5);
 }
 
 .msc-leg-pill--aftn {
-  background: #cfe8ff;
-  border: 1px solid #7bc2ff;
+  background: linear-gradient(145deg, #dbeafe 0%, #3b82f6 95%);
+  border: 1px solid rgba(37, 99, 235, 0.55);
 }
 
 .msc-leg-pill--ngt {
-  background: #eadcff;
-  border: 1px solid #caa8ff;
+  background: linear-gradient(145deg, #ede9fe 0%, #8b5cf6 100%);
+  border: 1px solid rgba(91, 33, 182, 0.55);
 }
 
 .msc-leg-pill--off {
-  background: #eceff4;
-  border: 1px solid #cfd5df;
+  background: linear-gradient(145deg, #f1f5f9 0%, #cbd5e1 100%);
+  border: 1px solid rgba(71, 85, 105, 0.4);
 }
 
 .msc-leg-pill--long {
-  background: #ffd6d6;
-  border: 1px solid #ffaaaa;
+  background: linear-gradient(145deg, #ffe4e6 0%, #f43f5e 92%);
+  border: 1px solid rgba(190, 18, 60, 0.5);
 }
 
 .msc-leg-pill--swap {
-  background: #d6f8e8;
-  border: 1px solid #7ddcae;
+  background: linear-gradient(145deg, #d1fae5 0%, #10b981 94%);
+  border: 1px solid rgba(5, 122, 85, 0.52);
 }
 
 .msc-leg-pill--leave {
-  background: #eee8fb;
-  border: 1px solid #cbb4fc;
-  color: #4c1d95;
+  background: linear-gradient(145deg, #fae8ff 0%, #c084fc 100%);
+  border: 1px solid rgba(107, 33, 168, 0.5);
+  color: #5b21b6;
 }
 
 .msc-leg-name {
