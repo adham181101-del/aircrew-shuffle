@@ -767,11 +767,11 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           }
 
           .calendar-shift-stack .calendar-shift-label {
-            line-height: 1.08;
+            line-height: 1.2;
           }
 
           .calendar-shift-stack .calendar-shift-time {
-            line-height: 1.18;
+            line-height: 1.2;
           }
         }
 
@@ -842,8 +842,10 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
 
         .calendar-tile-content {
           flex: 1;
+          flex-shrink: 1;
           min-height: 0;
           width: 100%;
+          min-width: 0;
           display: flex;
           align-items: stretch;
           justify-content: center;
@@ -858,25 +860,38 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           text-align: center;
           gap: clamp(4px, 1.35vw, 6px);
           width: 100%;
-          height: 100%;
           min-width: 0;
+          height: 100%;
           box-sizing: border-box;
           padding: clamp(2px, 0.85vw, 5px);
           overflow: hidden;
+          flex-shrink: 1;
+          writing-mode: horizontal-tb;
+          text-orientation: mixed;
         }
 
+        /* Never allow letter-by-letter wrapping from break-all anywhere in stack */
         .calendar-shift-stack .calendar-day-number,
         .calendar-shift-stack .calendar-shift-label,
         .calendar-shift-stack .calendar-shift-time {
-          min-width: 0;
+          flex-shrink: 0;
           max-width: 100%;
+          writing-mode: horizontal-tb;
+          text-orientation: mixed;
+          white-space: nowrap;
+          word-break: normal;
+          overflow-wrap: normal;
+          hyphens: manual;
+          line-height: 1.2;
         }
 
         .calendar-shift-card,
         .calendar-leave-card,
         .calendar-off-card {
           width: 100%;
+          min-width: 0;
           flex: 1;
+          flex-shrink: 1;
           border-radius: 12px;
           padding: 10px;
           display: flex;
@@ -922,14 +937,23 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
         }
 
         .calendar-shift-stack .calendar-shift-label {
-          font-size: clamp(0.58rem, 3vw, 0.8125rem);
+          font-size: clamp(10px, 2.6vw, 14px);
           font-weight: 800;
           letter-spacing: 0.02em;
           text-transform: none;
-          line-height: 1.05;
-          white-space: nowrap;
+          display: inline-block;
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+
+        @media (max-width: 767.98px) {
+          .calendar-shift-stack .calendar-day-number {
+            font-size: clamp(11px, 3.25vw, 15px);
+            line-height: 1.15;
+          }
+          .calendar-shift-stack .calendar-shift-time {
+            font-size: clamp(10px, 2vw, 13px);
+          }
         }
 
         @media (min-width: 768px) {
@@ -938,20 +962,21 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
             white-space: normal;
             overflow: visible;
             text-overflow: clip;
+            word-break: normal;
+            overflow-wrap: break-word;
+            max-width: 100%;
           }
         }
 
         .calendar-shift-stack .calendar-shift-time {
           font-weight: 700;
           color: rgba(15, 23, 42, 0.88);
-          overflow-wrap: anywhere;
-          word-break: break-all;
-          hyphens: auto;
-          line-height: 1.22;
-          max-width: 100%;
-          display: block;
-          font-size: clamp(0.5rem, 2.62vw, 0.765rem);
+          display: inline-block;
+          vertical-align: middle;
+          overflow: hidden;
+          text-overflow: ellipsis;
           font-variant-numeric: tabular-nums;
+          font-size: clamp(10px, 2vw, 14px);
         }
 
         @media (min-width: 768px) {
@@ -1003,13 +1028,21 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
         .calendar-leave-word {
           font-weight: 800;
           font-size: clamp(0.55rem, 2.82vw, 0.6875rem);
-          line-height: 1;
+          line-height: 1.2;
           letter-spacing: 0.06em;
+          writing-mode: horizontal-tb;
+          text-orientation: mixed;
+          white-space: nowrap;
+          word-break: normal;
+          overflow-wrap: normal;
+          max-width: 100%;
+          display: inline-block;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .calendar-leave-word span {
-          display: inline-block;
-          max-width: 100%;
+          display: inline;
         }
 
         @media (min-width: 768px) {
@@ -1029,6 +1062,12 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           font-weight: 800;
           font-size: clamp(0.62rem, 3.1vw, 0.6875rem);
           letter-spacing: 0.12em;
+          line-height: 1.2;
+          writing-mode: horizontal-tb;
+          text-orientation: mixed;
+          white-space: nowrap;
+          word-break: normal;
+          overflow-wrap: normal;
         }
 
         @media (min-width: 768px) {
