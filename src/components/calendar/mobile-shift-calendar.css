@@ -1,46 +1,51 @@
 /*
- * Dedicated mobile roster calendar — isolated namespace (msc).
- * Targets viewports ≤768px only; wired via conditional render in ShiftCalendar.
+ * Dedicated mobile roster calendar (`msc-*` prefix).
+ * Dense iOS-like layout: shift label primary, compact date/time, pastel cards.
  */
 
-.msc-root {
+.msc-calendar-container {
   box-sizing: border-box;
   width: 100%;
-  min-width: 0;
   max-width: 100%;
-  padding: 12px 10px 20px;
+  min-width: 0;
   overflow-x: hidden;
+  padding: 12px;
+}
+
+.msc-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.msc-month-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: #0f172a;
 }
 
 .msc-intro {
   text-align: center;
-  padding: 0 4px 14px;
-}
-
-.msc-nav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 14px;
-  min-height: 44px;
+  padding: 0 0 8px;
+  margin: 0;
 }
 
 .msc-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
-  margin-bottom: 10px;
-}
-
-.msc-weekday-cell {
+  margin-bottom: 8px;
   text-align: center;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 1px;
   color: #64748b;
+  opacity: 0.7;
   text-transform: uppercase;
-  padding: 4px 0;
 }
 
 .msc-grid {
@@ -49,6 +54,7 @@
   gap: 6px;
   width: 100%;
   min-width: 0;
+  grid-auto-rows: minmax(96px, auto);
 }
 
 .msc-slotbtn {
@@ -69,249 +75,221 @@
   transform: scale(0.98);
 }
 
-/* Card shell — fixed proportions, never collapsing */
-.msc-tile-shell {
+/* Leading / trailing blanks — invisible, aligned row height via grid-auto-rows */
+.msc-empty {
+  min-height: 0;
+  background: transparent;
+  border: none;
+  visibility: visible;
+}
+
+/* Single card surface (“day”) */
+.msc-day {
   box-sizing: border-box;
   width: 100%;
-  aspect-ratio: 0.72;
-  min-height: 88px;
-  padding: 6px;
-  border-radius: 16px;
-  background: linear-gradient(180deg, #fafbfc 0%, #f1f5f9 100%);
-  border: 1px solid rgba(148, 163, 184, 0.45);
-}
-
-.msc-tile-shell--selected {
-  background: linear-gradient(180deg, #eff8ff 0%, #dbeafe 100%);
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.25);
-}
-
-/* Single flex column interior — no nested shrinking flex wrappers */
-.msc-tile-fill {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
+  min-height: 96px;
+  border-radius: 14px;
+  padding: 6px 4px;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
   align-items: center;
-  justify-content: center;
+  text-align: center;
   gap: 4px;
-  border-radius: 12px;
-  padding: 2px;
-  box-sizing: border-box;
+  color: #0f172a;
 }
 
-.msc-placeholder {
-  width: 100%;
-  aspect-ratio: 0.72;
-  min-height: 88px;
-  visibility: hidden;
-  pointer-events: none;
+.msc-day--selected {
+  box-shadow:
+    0 0 0 2px #38bdf8,
+    0 1px 2px rgba(15, 23, 42, 0.12);
 }
 
-/* Typography — horizontal, no glyph stacking */
-
-.msc-dn {
+.msc-day :where(.msc-date, .msc-shift, .msc-time) {
   margin: 0;
   padding: 0;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1;
   writing-mode: horizontal-tb;
   text-orientation: mixed;
-  white-space: nowrap;
   word-break: normal;
   overflow-wrap: normal;
-  overflow: hidden;
-  text-overflow: clip;
-  min-width: 0;
 }
 
-.msc-lb {
-  margin: 0;
-  padding: 0;
-  font-size: 11px;
+.msc-date {
+  font-size: 13px;
   font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 2px;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.msc-shift {
+  font-size: 14px;
+  font-weight: 800;
   letter-spacing: 0.5px;
-  line-height: 1.2;
-  writing-mode: horizontal-tb;
-  text-orientation: mixed;
+  line-height: 1.1;
   white-space: nowrap;
-  word-break: normal;
-  overflow-wrap: normal;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
   min-width: 0;
 }
 
-.msc-tm {
-  margin: 0;
-  padding: 0;
+.msc-time {
   font-size: 10px;
-  font-weight: 600;
   line-height: 1.2;
-  writing-mode: horizontal-tb;
-  text-orientation: mixed;
+  opacity: 0.85;
+  font-weight: 600;
   white-space: nowrap;
-  word-break: normal;
-  overflow-wrap: normal;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
   min-width: 0;
   font-variant-numeric: tabular-nums;
-  color: rgba(15, 23, 42, 0.88);
 }
 
 .msc-note {
   flex-shrink: 0;
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
+  margin-top: 1px;
   border-radius: 9999px;
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3);
+  background: #f59e0b;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35);
 }
 
-.msc-leave-ic {
-  width: 13px;
-  height: 13px;
-  color: inherit;
+/* Spec palette */
+.msc-day--morn {
+  background: #c8f3f7;
+  border: 1px solid #8be3ee;
 }
 
-/* Palette (soft fills — avoids desktop gradient utilities) */
-
-.msc-fill[data-palette='morning'] {
-  background: #c7f9ff;
-  border: 1px solid rgba(34, 211, 238, 0.35);
-  color: #0f172a;
+.msc-day--aftn {
+  background: #cfe8ff;
+  border: 1px solid #7bc2ff;
 }
 
-.msc-fill[data-palette='afternoon'] {
-  background: #bae6fd;
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  color: #0f172a;
+.msc-day--ngt {
+  background: #eadcff;
+  border: 1px solid #caa8ff;
 }
 
-.msc-fill[data-palette='evening'] {
-  background: #ddd6fe;
-  border: 1px solid rgba(167, 139, 250, 0.45);
-  color: #0f172a;
-}
-
-.msc-fill[data-palette='double'] {
-  background: #fecaca;
-  border: 1px solid rgba(248, 113, 113, 0.4);
-  color: #0f172a;
-}
-
-.msc-fill[data-palette='swapped'] {
-  background: #bbf7d0;
-  border: 1px solid rgba(52, 211, 153, 0.45);
-  color: #0f172a;
-}
-
-.msc-fill[data-palette='leave'] {
-  background: #f3e8ff;
-  border: 1px solid #e9d5ff;
-  color: #5b2186;
-}
-
-.msc-fill[data-palette='off'] {
-  background: linear-gradient(180deg, #e8edf3 0%, #dfe5ec 100%);
-  border: 1px solid rgba(148, 163, 184, 0.55);
+.msc-day--off {
+  background: #eceff4;
+  border: 1px solid #cfd5df;
   color: #475569;
 }
 
-.msc-fill .msc-dn {
-  color: inherit;
+.msc-day--long {
+  background: #ffd6d6;
+  border: 1px solid #ffaaaa;
 }
 
-.msc-fill .msc-lb,
-.msc-fill .msc-tm {
-  color: inherit;
+.msc-day--swap {
+  background: #d6f8e8;
+  border: 1px solid #7ddcae;
 }
 
-.msc-fill[data-palette='off'] .msc-tm {
+.msc-day--leave {
+  background: #eee8fb;
+  border: 1px solid #cbb4fc;
+  color: #4c1d95;
+}
+
+.msc-day--off .msc-time,
+.msc-day--leave .msc-time {
   display: none;
 }
 
-/* Compact legend row */
-
+/* Legend */
 .msc-legend {
-  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-top: 12px;
   padding: 12px;
+  gap: 8px;
   border-radius: 14px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  background: linear-gradient(90deg, #f8fafc 0%, #f0f9ff 100%);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: #fafbfc;
 }
 
 .msc-legend-title {
-  text-align: center;
   font-size: 11px;
   font-weight: 700;
-  color: #0f172a;
-  margin: 0 0 10px;
-  letter-spacing: 0.04em;
+  text-align: center;
+  letter-spacing: 1px;
   text-transform: uppercase;
+  opacity: 0.75;
+  margin: 0;
 }
 
 .msc-legend-row {
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
-  gap: 8px 12px;
-  row-gap: 8px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .msc-leg {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
   color: #475569;
 }
 
-.msc-chip {
-  flex-shrink: 0;
-  width: 11px;
-  height: 11px;
-  border-radius: 3px;
+.msc-leg-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: #0f172a;
 }
 
-.msc-chip--morning {
-  background: #c7f9ff;
-  border: 1px solid rgba(34, 211, 238, 0.35);
+.msc-leg-pill--morn {
+  background: #c8f3f7;
+  border: 1px solid #8be3ee;
 }
 
-.msc-chip--afternoon {
-  background: #bae6fd;
-  border: 1px solid rgba(56, 189, 248, 0.4);
+.msc-leg-pill--aftn {
+  background: #cfe8ff;
+  border: 1px solid #7bc2ff;
 }
 
-.msc-chip--evening {
-  background: #ddd6fe;
-  border: 1px solid rgba(167, 139, 250, 0.45);
+.msc-leg-pill--ngt {
+  background: #eadcff;
+  border: 1px solid #caa8ff;
 }
 
-.msc-chip--off {
-  background: #dfe5ec;
-  border: 1px solid rgba(100, 116, 139, 0.45);
+.msc-leg-pill--off {
+  background: #eceff4;
+  border: 1px solid #cfd5df;
 }
 
-.msc-chip--long {
-  background: #fecaca;
-  border: 1px solid rgba(248, 113, 113, 0.4);
+.msc-leg-pill--long {
+  background: #ffd6d6;
+  border: 1px solid #ffaaaa;
 }
 
-.msc-chip--swap {
-  background: #bbf7d0;
-  border: 1px solid rgba(52, 211, 153, 0.45);
+.msc-leg-pill--swap {
+  background: #d6f8e8;
+  border: 1px solid #7ddcae;
 }
 
-.msc-chip--lv {
-  background: #f3e8ff;
-  border: 1px solid #d8b4fe;
+.msc-leg-pill--leave {
+  background: #eee8fb;
+  border: 1px solid #cbb4fc;
+  color: #4c1d95;
+}
+
+.msc-leg-name {
+  font-weight: 500;
+  opacity: 0.9;
 }
