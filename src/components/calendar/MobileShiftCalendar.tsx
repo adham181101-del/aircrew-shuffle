@@ -6,7 +6,9 @@ import {
   WEEKDAY_LABELS,
   formatDateStr,
   getMobileShiftAbbrevLine,
+  getShiftGridStartTime,
   getMobileTilePalette,
+  type MobileTilePalette,
 } from './calendarTileHelpers'
 import './mobile-shift-calendar.css'
 
@@ -99,22 +101,28 @@ export function MobileShiftCalendar({
               key={dateStr}
               className="msc-slotbtn"
               onClick={() => onDayClick(cellDate)}
-              aria-label={`${dateStr}, ${primaryShift ? 'shift' : isLeave ? 'leave' : 'off'}`}
+              aria-label={
+                primaryShift
+                  ? `${dateStr}, shift ${primaryShift.time}`
+                  : `${dateStr}, ${isLeave ? 'leave' : 'off'}`
+              }
             >
               <div className={`msc-day ${modifier}${selected ? ' msc-day--selected' : ''}`}>
                 <p className="msc-date">{cellDate.getDate()}</p>
 
                 {primaryShift && (
                   <>
-                    <p className="msc-shift">{getMobileShiftAbbrevLine(primaryShift)}</p>
-                    <p className="msc-time">{primaryShift.time}</p>
-                    {primaryShift.note ? <span className="msc-note" title="Note" /> : null}
+                    <div className="msc-day-primary">
+                      <p className="msc-shift">{getMobileShiftAbbrevLine(primaryShift)}</p>
+                    </div>
+                    <p className="msc-time">{getShiftGridStartTime(primaryShift.time)}</p>
+                    {primaryShift.note ? <span className="msc-note" aria-label="Has note" title="Note" /> : null}
                   </>
                 )}
 
-                {!primaryShift && isLeave && <p className="msc-shift">LV</p>}
+                {!primaryShift && isLeave && <p className="msc-shift msc-shift--solo">LV</p>}
 
-                {!primaryShift && !isLeave && <p className="msc-shift">OFF</p>}
+                {!primaryShift && !isLeave && <p className="msc-shift msc-shift--solo">OFF</p>}
               </div>
             </button>
           )

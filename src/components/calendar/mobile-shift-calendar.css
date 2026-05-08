@@ -54,7 +54,7 @@
   gap: 6px;
   width: 100%;
   min-width: 0;
-  grid-auto-rows: minmax(96px, auto);
+  grid-auto-rows: minmax(102px, auto);
 }
 
 .msc-slotbtn {
@@ -89,13 +89,13 @@
   width: 100%;
   min-height: 96px;
   border-radius: 14px;
-  padding: 6px 4px;
+  padding: 8px 6px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
   text-align: center;
-  gap: 4px;
+  gap: 0;
   color: #0f172a;
 }
 
@@ -115,19 +115,30 @@
 }
 
 .msc-date {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
-  line-height: 1.15;
-  margin-bottom: 2px;
-  opacity: 0.9;
+  line-height: 1.18;
+  margin-bottom: 4px;
+  opacity: 0.75;
   white-space: nowrap;
 }
 
+/* Primary band: abbreviation alone — separates from subtle start time below */
+.msc-day-primary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  flex: 0 0 auto;
+  margin-bottom: 6px;
+}
+
 .msc-shift {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: 0.5px;
-  line-height: 1.1;
+  letter-spacing: 0.4px;
+  line-height: 1.12;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -135,10 +146,14 @@
   min-width: 0;
 }
 
+.msc-shift--solo {
+  margin-top: 2px;
+}
+
 .msc-time {
   font-size: 10px;
-  line-height: 1.2;
-  opacity: 0.85;
+  line-height: 1.35;
+  opacity: 0.8;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -146,13 +161,14 @@
   max-width: 100%;
   min-width: 0;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
 .msc-note {
   flex-shrink: 0;
   width: 6px;
   height: 6px;
-  margin-top: 1px;
+  margin-top: 8px;
   border-radius: 9999px;
   background: #f59e0b;
   box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35);

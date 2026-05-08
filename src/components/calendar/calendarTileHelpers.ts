@@ -44,6 +44,15 @@ export function getShiftPaletteClass(timeOfDay: string, isSwapped: boolean, time
   }
 }
 
+/** First segment of roster time — mobile tiles show start only; full span in dialogs. */
+export function getShiftGridStartTime(timeRange: string): string {
+  const t = String(timeRange).trim()
+  if (!t) return ''
+  const parts = t.split(/[-–—]/, 2)
+  const head = parts[0]?.trim()
+  return parts.length >= 2 && head ? head : t
+}
+
 /** Mobile abbreviated shift line (NIGHT → NGT per product spec). */
 export function getMobileShiftAbbrevLine(shift: Shift): string {
   if (shift.is_swapped) return 'SWAP'
