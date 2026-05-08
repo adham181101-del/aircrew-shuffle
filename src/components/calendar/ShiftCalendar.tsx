@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react'
-import Calendar from 'react-calendar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,8 +10,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useLeaveDays } from '@/hooks/useLeaveDays'
 import { profiler } from '@/lib/performance'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Calendar as CalendarIcon, Plus, Clock, Plane, StickyNote } from 'lucide-react'
-import 'react-calendar/dist/Calendar.css'
+import { Calendar as CalendarIcon, Plus, Clock, Plane, StickyNote, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +37,12 @@ interface ShiftCalendarProps {
 
 export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProps) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  })
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false)
+  const [monthPickerYear, setMonthPickerYear] = useState(() => new Date().getFullYear())
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [shiftPendingDelete, setShiftPendingDelete] = useState<Shift | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -49,6 +53,8 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   const [editNote, setEditNote] = useState('')
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
+  const weekDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
   // Performance profiling
   useEffect(() => {
@@ -136,72 +142,31 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
         return 'shift-day'
     }
   }
+  const monthGrid = useMemo(() => {
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0).getDate()
+    const leadingEmptyCount = firstDay.getDay() // 0 = Sunday ... 6 = Saturday
+    const cells: Array<Date | null> = []
 
-  const tileContent = ({ date, view }: { date: Date; view: string }) => {
-    if (view !== 'month') return null
-    
-    const dayShifts = getShiftsForDate(date)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const dateStr = `${year}-${month}-${day}`
-    const isLeaveDay = leaveDatesSet.has(dateStr)
+    for (let i = 0; i < leadingEmptyCount; i++) cells.push(null)
+    for (let day = 1; day <= lastDay; day++) cells.push(new Date(year, month, day))
 
-    const primaryShift = dayShifts[0]
+    while (cells.length % 7 !== 0) cells.push(null)
+    return cells
+  }, [currentMonth])
 
-    return (
-      <div className="calendar-tile-content">
-        {primaryShift ? (
-          <div
-            className={`calendar-shift-card ${getShiftColorClass(getShiftTimeOfDay(primaryShift.time), primaryShift.is_swapped, primaryShift.time)}`}
-            onClick={(e) => {
-              e.stopPropagation()
-              onShiftClick?.(primaryShift)
-            }}
-          >
-            <div className="calendar-day-number">{date.getDate()}</div>
-            <div className="calendar-shift-label">
-              {getShiftTimeOfDay(primaryShift.time).toUpperCase()}
-            </div>
-            <div className="calendar-shift-time">{primaryShift.time}</div>
-            {primaryShift.note && (
-              <div className="calendar-shift-note-indicator">
-                <StickyNote className="h-3 w-3" />
-                Note
-              </div>
-            )}
-          </div>
-        ) : isLeaveDay ? (
-          <div className="calendar-leave-card">
-            <span className="calendar-day-number">{date.getDate()}</span>
-            <Plane className="h-3.5 w-3.5" />
-            <span>Leave</span>
-          </div>
-        ) : (
-          <div className="calendar-off-card">
-            <span className="calendar-day-number">{date.getDate()}</span>
-            Off
-          </div>
-        )}
-      </div>
-    )
-  }
+  const isSameDay = (a: Date | null, b: Date | null) =>
+    !!a &&
+    !!b &&
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
 
-  const tileClassName = ({ date, view }: { date: Date; view: string }) => {
-    if (view !== 'month') return ''
-    
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const dateStr = `${year}-${month}-${day}`
-    const dayShifts = getShiftsForDate(date)
-    const isLeaveDay = leaveDatesSet.has(dateStr)
-    
-    const classes = []
-    if (dayShifts.length > 0) classes.push('has-shifts')
-    if (isLeaveDay) classes.push('has-leave')
-    
-    return classes.length > 0 ? classes.join(' ') + ' relative' : ''
+  const openMonthPicker = () => {
+    setMonthPickerYear(currentMonth.getFullYear())
+    setMonthPickerOpen(true)
   }
 
   if (loading && !shifts.length) {
@@ -250,28 +215,87 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
               <p className="text-sm sm:text-base text-gray-600">Click on any date to view shift details</p>
             </div>
             
-            <div className="w-full overflow-x-auto">
-              <Calendar
-                onChange={(value) => setSelectedDate(value as Date)}
-                value={selectedDate}
-                tileContent={tileContent}
-                tileClassName={tileClassName}
-                className="react-calendar roster-calendar"
-                locale="en-US"
-                calendarType="gregory"
-                minDetail="year"
-                maxDetail="month"
-                showNeighboringMonth={false}
-                formatShortWeekday={(_, date) =>
-                  date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()
-                }
-                navigationLabel={({ date, view }) => {
-                  if (view === 'month') {
-                    return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-                  }
-                  return date.toLocaleDateString('en-GB', { year: 'numeric' });
-                }}
-              />
+            <div className="w-full">
+              <div className="calendar-shell">
+                <div className="calendar-nav">
+                  <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" onClick={openMonthPicker} className="font-semibold text-base px-4">
+                    {currentMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="calendar-weekdays">
+                  {weekDays.map((weekday) => (
+                    <div key={weekday} className="calendar-weekday-cell">
+                      {weekday}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="calendar-grid">
+                  {monthGrid.map((cellDate, idx) => {
+                    if (!cellDate) return <div key={`empty-${idx}`} className="calendar-empty-cell" />
+
+                    const dayShifts = getShiftsForDate(cellDate)
+                    const year = cellDate.getFullYear()
+                    const month = String(cellDate.getMonth() + 1).padStart(2, '0')
+                    const day = String(cellDate.getDate()).padStart(2, '0')
+                    const dateStr = `${year}-${month}-${day}`
+                    const isLeaveDay = leaveDatesSet.has(dateStr)
+                    const primaryShift = dayShifts[0]
+                    const selected = isSameDay(selectedDate, cellDate)
+
+                    return (
+                      <button
+                        type="button"
+                        key={dateStr}
+                        onClick={() => setSelectedDate(cellDate)}
+                        className={`calendar-day-cell ${selected ? 'is-selected' : ''}`}
+                      >
+                        <div className="calendar-tile-content">
+                          {primaryShift ? (
+                            <div
+                              className={`calendar-shift-card ${getShiftColorClass(getShiftTimeOfDay(primaryShift.time), primaryShift.is_swapped, primaryShift.time)}`}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onShiftClick?.(primaryShift)
+                              }}
+                            >
+                              <div className="calendar-day-number">{cellDate.getDate()}</div>
+                              <div className="calendar-shift-label">
+                                {getShiftTimeOfDay(primaryShift.time).toUpperCase()}
+                              </div>
+                              <div className="calendar-shift-time">{primaryShift.time}</div>
+                              {primaryShift.note && (
+                                <div className="calendar-shift-note-indicator">
+                                  <StickyNote className="h-3 w-3" />
+                                  Note
+                                </div>
+                              )}
+                            </div>
+                          ) : isLeaveDay ? (
+                            <div className="calendar-leave-card">
+                              <span className="calendar-day-number">{cellDate.getDate()}</span>
+                              <Plane className="h-3.5 w-3.5" />
+                              <span>Leave</span>
+                            </div>
+                          ) : (
+                            <div className="calendar-off-card">
+                              <span className="calendar-day-number">{cellDate.getDate()}</span>
+                              Off
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
           </div>
           
@@ -305,6 +329,49 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
               </div>
             </div>
           </div>
+
+          {monthPickerOpen && (
+            <div className="month-picker-overlay" role="dialog" aria-modal="true">
+              <div className="month-picker-panel">
+                <div className="month-picker-header">
+                  <Button variant="ghost" size="icon" onClick={() => setMonthPickerYear((prev) => prev - 1)}>
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="font-semibold text-lg">{monthPickerYear}</span>
+                  <Button variant="ghost" size="icon" onClick={() => setMonthPickerYear((prev) => prev + 1)}>
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="month-picker-grid">
+                  {monthNames.map((monthName, monthIndex) => (
+                    <button
+                      type="button"
+                      key={monthName}
+                      className={`month-picker-item ${
+                        currentMonth.getFullYear() === monthPickerYear && currentMonth.getMonth() === monthIndex
+                          ? 'is-active'
+                          : ''
+                      }`}
+                      onClick={() => {
+                        setCurrentMonth(new Date(monthPickerYear, monthIndex, 1))
+                        setMonthPickerOpen(false)
+                      }}
+                    >
+                      {monthName}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="month-picker-footer">
+                  <Button variant="outline" onClick={() => setMonthPickerOpen(false)}>
+                    <X className="h-4 w-4 mr-2" />
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -314,7 +381,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100 rounded-t-2xl">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-white" />
+                <CalendarIcon className="h-5 w-5 text-white" />
               </div>
               <div>
                 <CardTitle className="text-xl text-gray-900">
@@ -447,123 +514,62 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
       )}
 
       <style>{`
-        .calendar-container .react-calendar {
-          width: 100%;
-          border: none;
-          font-family: inherit;
-        }
-        
-        .calendar-container .react-calendar__tile {
-          position: relative;
-          padding: 0.45rem;
-          min-height: 104px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 14px;
-          font-size: 0.875rem;
-          margin: 2px;
-        }
-        
-        .calendar-container .react-calendar__tile:hover {
-          background-color: #f1f5f9;
-        }
-        
-        .calendar-container .react-calendar__tile--active {
-          background: #eff6ff;
-          border-color: #bfdbfe;
-          color: inherit;
-        }
-
-        .calendar-container .react-calendar__month-view__days__day abbr {
-          display: none;
-        }
-
-        .calendar-container .react-calendar__year-view abbr,
-        .calendar-container .react-calendar__decade-view abbr,
-        .calendar-container .react-calendar__century-view abbr {
-          display: inline;
-        }
-
-        .calendar-container .react-calendar__month-view__days__day {
+        .calendar-shell {
           display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
         }
-        
-        .calendar-container .react-calendar__navigation button {
-          font-size: 1rem;
-          background: none;
-          border: none;
-          color: hsl(var(--foreground));
-          cursor: pointer;
-          pointer-events: auto;
-          z-index: 10;
-          position: relative;
+
+        .calendar-nav {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 0.25rem 0;
         }
-        
-        .calendar-container .react-calendar__navigation button:hover {
-          background-color: hsl(var(--accent));
+
+        .calendar-weekdays,
+        .calendar-grid {
+          display: grid;
+          grid-template-columns: repeat(7, minmax(0, 1fr));
+          gap: 0.35rem;
         }
-        
-        .calendar-container .react-calendar__navigation {
-          position: relative;
-          z-index: 10;
+
+        .calendar-weekday-cell {
+          text-align: center;
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #475569;
+          letter-spacing: 0.02em;
+          padding: 0.45rem 0.2rem;
+          text-transform: uppercase;
         }
-        
-        .calendar-container .react-calendar__navigation__label {
-          cursor: pointer;
-          pointer-events: auto;
-          z-index: 10;
-          position: relative;
+
+        .calendar-day-cell,
+        .calendar-empty-cell {
+          min-height: 104px;
+          border-radius: 14px;
         }
-        
-        .calendar-container .react-calendar__navigation__label:hover {
-          background-color: hsl(var(--accent));
+
+        .calendar-day-cell {
+          border: 1px solid #e2e8f0;
+          background: #f8fafc;
+          padding: 0.45rem;
+          text-align: left;
+          transition: background-color 0.15s ease, border-color 0.15s ease;
         }
-        
-        /* Ensure the month/year label is clickable */
-        .calendar-container .react-calendar__navigation__label button {
-          cursor: pointer;
-          pointer-events: auto;
-          z-index: 10;
-          position: relative;
-          background: none;
-          border: none;
-          font-size: 1rem;
-          color: hsl(var(--foreground));
+
+        .calendar-day-cell:hover {
+          background: #f1f5f9;
         }
-        
-        .calendar-container .react-calendar__navigation__label button:hover {
-          background-color: hsl(var(--accent));
+
+        .calendar-day-cell.is-selected {
+          background: #eff6ff;
+          border-color: #93c5fd;
         }
-        
-        /* Remove any potential blocking elements */
-        .calendar-container .react-calendar__navigation * {
-          pointer-events: auto;
-        }
-        
-        /* Style the month/year selection dropdown */
-        .calendar-container .react-calendar__year-view__months__month,
-        .calendar-container .react-calendar__decade-view__years__year {
-          cursor: pointer;
-          padding: 0.5rem;
-          border-radius: 0.375rem;
-          transition: background-color 0.2s;
-        }
-        
-        .calendar-container .react-calendar__year-view__months__month:hover,
-        .calendar-container .react-calendar__decade-view__years__year:hover {
-          background-color: hsl(var(--accent));
-        }
-        
-        .calendar-container .react-calendar__year-view__months__month--active,
-        .calendar-container .react-calendar__decade-view__years__year--active {
-          background-color: hsl(var(--primary));
-          color: hsl(var(--primary-foreground));
-        }
-        
-        /* Ensure dropdown views are properly styled */
-        .calendar-container .react-calendar__year-view,
-        .calendar-container .react-calendar__decade-view {
-          padding: 1rem;
+
+        .calendar-empty-cell {
+          background: transparent;
         }
 
         .calendar-tile-content {
@@ -676,32 +682,99 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
         .shift-day {
           background: #bae6fd;
         }
+
+        .month-picker-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.35);
+          z-index: 50;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 1rem;
+        }
+
+        .month-picker-panel {
+          width: min(720px, 100%);
+          max-height: min(85vh, 760px);
+          background: #fff;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          box-shadow: 0 20px 45px rgba(15, 23, 42, 0.2);
+          display: flex;
+          flex-direction: column;
+          padding: 1rem;
+        }
+
+        .month-picker-header {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+        }
+
+        .month-picker-grid {
+          flex: 1;
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 0.75rem;
+          align-content: center;
+          justify-items: stretch;
+          padding: 0.5rem;
+        }
+
+        .month-picker-item {
+          border: 1px solid #dbe3ef;
+          border-radius: 10px;
+          background: #f8fafc;
+          color: #1e293b;
+          font-weight: 600;
+          padding: 0.75rem 0.5rem;
+          text-align: center;
+          transition: all 0.15s ease;
+        }
+
+        .month-picker-item:hover {
+          background: #e2e8f0;
+        }
+
+        .month-picker-item.is-active {
+          border-color: #3b82f6;
+          background: #dbeafe;
+          color: #1d4ed8;
+        }
+
+        .month-picker-footer {
+          margin-top: 0.75rem;
+          display: flex;
+          justify-content: center;
+        }
         
-        /* Fix mobile layout - prevent navigation from overlapping calendar */
         @media (max-width: 768px) {
-          .calendar-container .react-calendar__navigation {
-            margin-bottom: 1rem;
-            padding: 0.5rem 0;
+          .calendar-weekday-cell {
+            font-size: 0.68rem;
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
           }
-          
-          .calendar-container .react-calendar__navigation__label {
-            font-size: 1.1rem;
-            padding: 0.5rem;
-            margin: 0.25rem 0;
-          }
-          
-          .calendar-container .react-calendar__navigation button {
-            padding: 0.5rem;
-            margin: 0.25rem;
-          }
-          
-          .calendar-container .react-calendar__month-view__weekdays {
-            margin-top: 0.5rem;
-          }
-          
-          .calendar-container .react-calendar__tile {
+
+          .calendar-day-cell,
+          .calendar-empty-cell {
             min-height: 90px;
+          }
+
+          .calendar-day-cell {
             padding: 0.35rem;
+          }
+
+          .month-picker-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .month-picker-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
       `}</style>
