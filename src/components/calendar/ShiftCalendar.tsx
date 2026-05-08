@@ -1,16 +1,15 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { getShiftTimeOfDay, deleteShift, updateShiftTimeAndNote, type Shift } from '@/lib/shifts'
+import { getShiftTimeOfDay, deleteShift, updateShiftNote, updateShiftTimeAndNote, type Shift } from '@/lib/shifts'
 import { useToast } from '@/hooks/use-toast'
 import { useShifts, useInvalidateShifts } from '@/hooks/useShifts'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useLeaveDays } from '@/hooks/useLeaveDays'
 import { profiler } from '@/lib/performance'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Calendar as CalendarIcon, Plus, Clock, Plane, StickyNote, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, Plane, StickyNote, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, Pencil, Trash2 } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,6 +51,12 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   const [editEnd, setEditEnd] = useState('')
   const [editNote, setEditNote] = useState('')
   const [saving, setSaving] = useState(false)
+  const [dayActionsOpen, setDayActionsOpen] = useState(false)
+  const [focusedShiftIndex, setFocusedShiftIndex] = useState(0)
+  const [noteOnlyOpen, setNoteOnlyOpen] = useState(false)
+  const [shiftPendingNote, setShiftPendingNote] = useState<Shift | null>(null)
+  const [noteDraft, setNoteDraft] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
   const { toast } = useToast()
   const weekDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -100,21 +105,6 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
     const dateStr = `${year}-${month}-${day}`
     
     return shifts.filter(shift => shift.date === dateStr)
-  }
-
-  const getShiftBadgeVariant = (timeOfDay: string, isSwapped: boolean) => {
-    if (isSwapped) return 'outline'
-    
-    switch (timeOfDay) {
-      case 'morning':
-        return 'default'
-      case 'afternoon':
-        return 'secondary'
-      case 'evening':
-        return 'destructive'
-      default:
-        return 'outline'
-    }
   }
 
   const isDoubleShift = (timeRange: string): boolean => {
@@ -180,6 +170,16 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   }
 
   const selectedDateShifts = selectedDate ? getShiftsForDate(selectedDate) : []
+  const focusedShift =
+    selectedDateShifts.length > 0
+      ? selectedDateShifts[Math.min(focusedShiftIndex, selectedDateShifts.length - 1)]
+      : null
+
+  const openDayActions = (cellDate: Date) => {
+    setSelectedDate(cellDate)
+    setFocusedShiftIndex(0)
+    setDayActionsOpen(true)
+  }
 
   return (
     <div className="space-y-6">
@@ -212,7 +212,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           <div className="calendar-container">
             <div className="mb-4 sm:mb-6 text-center">
               <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2">Your Shift Schedule</h3>
-              <p className="text-sm sm:text-base text-gray-600">Click on any date to view shift details</p>
+              <p className="text-sm sm:text-base text-gray-600">Tap a date to add a note, edit, or delete a shift</p>
             </div>
             
             <div className="w-full">
@@ -254,17 +254,13 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                       <button
                         type="button"
                         key={dateStr}
-                        onClick={() => setSelectedDate(cellDate)}
+                        onClick={() => openDayActions(cellDate)}
                         className={`calendar-day-cell ${selected ? 'is-selected' : ''}`}
                       >
                         <div className="calendar-tile-content">
                           {primaryShift ? (
                             <div
                               className={`calendar-shift-card ${getShiftColorClass(getShiftTimeOfDay(primaryShift.time), primaryShift.is_swapped, primaryShift.time)}`}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onShiftClick?.(primaryShift)
-                              }}
                             >
                               <div className="calendar-day-number">{cellDate.getDate()}</div>
                               <div className="calendar-shift-label">
@@ -379,121 +375,227 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
         </CardContent>
       </Card>
 
-      {/* Selected Date Details */}
-      {selectedDate && selectedDateShifts.length > 0 && (
-        <Card className="bg-white shadow-xl border border-gray-100">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100 rounded-t-2xl">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <CalendarIcon className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-xl text-gray-900">
-                  {selectedDate.toLocaleDateString('en-GB', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </CardTitle>
-                <p className="text-sm text-gray-600">
-                  {selectedDateShifts.length} shift{selectedDateShifts.length > 1 ? 's' : ''} scheduled
-                </p>
-              </div>
-            </div>
-          </CardHeader>
-          
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {selectedDateShifts.map((shift) => (
-                <div 
-                  key={shift.id} 
-                  className="p-4 border-2 border-gray-100 rounded-xl hover:border-blue-200 transition-all duration-200 hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${getShiftColorClass(getShiftTimeOfDay(shift.time), shift.is_swapped, shift.time)}`}>
-                        <Clock className="h-6 w-6 text-white" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-900 text-lg">
-                          {shift.time} Shift
-                        </h4>
-                        <p className="text-gray-600">
-                          {getShiftTimeOfDay(shift.time).charAt(0).toUpperCase() + getShiftTimeOfDay(shift.time).slice(1)} • {shift.is_swapped ? 'Swapped' : 'Regular'}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      {shift.is_swapped && (
-                        <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
-                          Swapped
-                        </Badge>
-                      )}
-                      <Badge variant="outline" className="border-blue-200 text-blue-700">
-                        {shift.time}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  {/* Action Buttons */}
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                    <div className="flex items-center space-x-2">
-                      {onShiftClick && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => onShiftClick?.(shift)}
-                          className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                        >
-                          View Details
-                        </Button>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setShiftPendingEdit(shift)
-                          const [s, e] = shift.time.split('-')
-                          setEditStart(s)
-                          setEditEnd(e)
-                          setEditNote(shift.note || '')
-                          setEditOpen(true)
-                        }}
-                        className="text-green-600 border-green-200 hover:bg-green-50"
-                      >
-                        Edit Shift
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => {
-                          setShiftPendingDelete(shift)
-                          setDeleteOpen(true)
-                        }}
-                        className="text-white bg-red-600 border-red-600 hover:bg-red-700 hover:text-white"
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
+      <Dialog
+        open={dayActionsOpen}
+        onOpenChange={(open) => {
+          setDayActionsOpen(open)
+          if (!open) setFocusedShiftIndex(0)
+        }}
+      >
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDate
+                ? selectedDate.toLocaleDateString('en-GB', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })
+                : 'Shift'}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedDateShifts.length > 0
+                ? selectedDateShifts.length === 1
+                  ? 'Choose an action for this shift.'
+                  : 'Multiple shifts this day — pick one, then choose an action.'
+                : 'No shift on this date. Add one from the toolbar or upload a roster.'}
+            </DialogDescription>
+          </DialogHeader>
 
-                  {shift.note && (
-                    <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 p-3">
-                      <p className="text-xs font-semibold text-slate-600 mb-1">Note</p>
-                      <p className="text-sm text-slate-800 whitespace-pre-wrap">{shift.note}</p>
-                    </div>
-                  )}
-                </div>
+          {selectedDateShifts.length > 1 && (
+            <div className="flex flex-wrap gap-2">
+              {selectedDateShifts.map((shift, idx) => (
+                <Button
+                  key={shift.id}
+                  type="button"
+                  variant={focusedShiftIndex === idx ? 'default' : 'outline'}
+                  size="sm"
+                  className={
+                    focusedShiftIndex === idx
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                      : ''
+                  }
+                  onClick={() => setFocusedShiftIndex(idx)}
+                >
+                  {shift.time}
+                </Button>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+
+          {focusedShift && (
+            <>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-1">
+                <p className="text-sm font-semibold text-slate-900">{focusedShift.time}</p>
+                <p className="text-xs text-slate-600 capitalize">
+                  {getShiftTimeOfDay(focusedShift.time)} · {focusedShift.is_swapped ? 'Swapped' : 'Regular'}
+                  {focusedShift.note ? ' · Has note' : ''}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-auto min-h-[3rem] py-3 justify-start gap-3 border-slate-200"
+                  onClick={() => {
+                    setShiftPendingNote(focusedShift)
+                    setNoteDraft(focusedShift.note ?? '')
+                    setDayActionsOpen(false)
+                    setNoteOnlyOpen(true)
+                  }}
+                >
+                  <StickyNote className="h-4 w-4 shrink-0 text-amber-600" />
+                  <span className="text-left">
+                    <span className="block font-semibold">{focusedShift.note ? 'Edit note' : 'Add note'}</span>
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      e.g. colleague names covering or swap follow-up
+                    </span>
+                  </span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-auto min-h-[3rem] py-3 justify-start gap-3 border-slate-200"
+                  onClick={() => {
+                    setShiftPendingEdit(focusedShift)
+                    const [s, e] = focusedShift.time.split('-')
+                    setEditStart(s)
+                    setEditEnd(e)
+                    setEditNote(focusedShift.note ?? '')
+                    setDayActionsOpen(false)
+                    setEditOpen(true)
+                  }}
+                >
+                  <Pencil className="h-4 w-4 shrink-0 text-blue-600" />
+                  <span className="text-left">
+                    <span className="block font-semibold">Edit shift</span>
+                    <span className="block text-xs font-normal text-muted-foreground">Change times and note together</span>
+                  </span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="h-auto min-h-[3rem] py-3 justify-start gap-3 bg-red-600 hover:bg-red-700 text-white hover:text-white"
+                  onClick={() => {
+                    setShiftPendingDelete(focusedShift)
+                    setDayActionsOpen(false)
+                    setDeleteOpen(true)
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 shrink-0" />
+                  <span className="text-left">
+                    <span className="block font-semibold">Delete shift</span>
+                    <span className="block text-xs font-normal opacity-90">Remove this shift from your calendar</span>
+                  </span>
+                </Button>
+
+                {onShiftClick && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-blue-700 hover:text-blue-800 hover:bg-blue-50"
+                    onClick={() => {
+                      onShiftClick(focusedShift)
+                      setDayActionsOpen(false)
+                    }}
+                  >
+                    Create swap request for this shift →
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+
+          {selectedDateShifts.length === 0 && onCreateShift && (
+            <div className="pt-2">
+              <Button
+                type="button"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                onClick={() => {
+                  setDayActionsOpen(false)
+                  onCreateShift()
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add shift
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={noteOnlyOpen}
+        onOpenChange={(open) => {
+          setNoteOnlyOpen(open)
+          if (!open) setShiftPendingNote(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Note</DialogTitle>
+            <DialogDescription>
+              {shiftPendingNote
+                ? `For ${shiftPendingNote.date} · ${shiftPendingNote.time}`
+                : 'Saved on this shift'}
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <label htmlFor="shift-note-draft" className="text-sm font-medium">
+              Note
+            </label>
+            <Textarea
+              id="shift-note-draft"
+              className="mt-2 min-h-[120px]"
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              placeholder="Who might cover this shift? Swap conversation notes…"
+              disabled={!shiftPendingNote}
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setNoteOnlyOpen(false)
+                setShiftPendingNote(null)
+              }}
+              disabled={savingNote}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!shiftPendingNote || !user) return
+                setSavingNote(true)
+                try {
+                  await updateShiftNote(shiftPendingNote.id, user.id, noteDraft)
+                  await invalidateShifts.mutateAsync()
+                  toast({ title: 'Note saved', description: 'Your shift note was updated.' })
+                  setNoteOnlyOpen(false)
+                  setShiftPendingNote(null)
+                } catch (error) {
+                  toast({
+                    title: 'Could not save note',
+                    description: error instanceof Error ? error.message : 'Try again.',
+                    variant: 'destructive',
+                  })
+                } finally {
+                  setSavingNote(false)
+                }
+              }}
+              disabled={savingNote || !shiftPendingNote}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+            >
+              {savingNote ? 'Saving…' : 'Save note'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {shifts.length === 0 && !loading && (
         <Card>
