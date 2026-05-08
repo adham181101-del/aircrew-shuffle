@@ -105,7 +105,7 @@
     0 1px 2px rgba(15, 23, 42, 0.12);
 }
 
-.msc-day :where(.msc-date, .msc-shift, .msc-time) {
+.msc-day :where(.msc-date, .msc-shift, .msc-time-line) {
   margin: 0;
   padding: 0;
   writing-mode: horizontal-tb;
@@ -123,7 +123,7 @@
   white-space: nowrap;
 }
 
-/* Primary band: abbreviation alone — separates from subtle start time below */
+/* Primary band: compact abbrev so MORN/AFTN/SWAP read without truncation */
 .msc-day-primary {
   display: flex;
   flex-direction: column;
@@ -131,14 +131,14 @@
   justify-content: center;
   width: 100%;
   flex: 0 0 auto;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .msc-shift {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.4px;
-  line-height: 1.12;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.14;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -148,20 +148,39 @@
 
 .msc-shift--solo {
   margin-top: 2px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
 
-.msc-time {
-  font-size: 10px;
-  line-height: 1.35;
-  opacity: 0.8;
+.msc-time-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0;
+  width: 100%;
+  min-width: 0;
+}
+
+.msc-time-line {
+  font-size: 9px;
+  line-height: 1.12;
+  opacity: 0.85;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-  min-width: 0;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
+}
+
+/* Hyphen glued to start time (“04:15-”) reads as split; stays on upper line */
+.msc-time-dash {
+  font-weight: 600;
+  opacity: 0.55;
+  margin-left: 0.5px;
 }
 
 .msc-note {
@@ -212,8 +231,8 @@
   color: #4c1d95;
 }
 
-.msc-day--off .msc-time,
-.msc-day--leave .msc-time {
+.msc-day--off .msc-time-stack,
+.msc-day--leave .msc-time-stack {
   display: none;
 }
 

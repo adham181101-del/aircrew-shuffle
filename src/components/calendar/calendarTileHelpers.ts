@@ -44,13 +44,22 @@ export function getShiftPaletteClass(timeOfDay: string, isSwapped: boolean, time
   }
 }
 
-/** First segment of roster time — mobile tiles show start only; full span in dialogs. */
-export function getShiftGridStartTime(timeRange: string): string {
+/** Split roster range on ASCII/en/em hyphen for compact mobile stacking. */
+export function splitShiftTimeRange(timeRange: string): { start: string; end: string | null } {
   const t = String(timeRange).trim()
-  if (!t) return ''
+  if (!t) return { start: '', end: null }
   const parts = t.split(/[-–—]/, 2)
   const head = parts[0]?.trim()
-  return parts.length >= 2 && head ? head : t
+  if (parts.length >= 2 && head) {
+    const tail = parts[1]?.trim() ?? ''
+    return { start: head, end: tail || null }
+  }
+  return { start: t, end: null }
+}
+
+/** First segment of roster time — mobile tiles; full span in dialogs. */
+export function getShiftGridStartTime(timeRange: string): string {
+  return splitShiftTimeRange(timeRange).start
 }
 
 /** Mobile abbreviated shift line (NIGHT → NGT per product spec). */

@@ -6,7 +6,7 @@ import {
   WEEKDAY_LABELS,
   formatDateStr,
   getMobileShiftAbbrevLine,
-  getShiftGridStartTime,
+  splitShiftTimeRange,
   getMobileTilePalette,
   type MobileTilePalette,
 } from './calendarTileHelpers'
@@ -94,6 +94,7 @@ export function MobileShiftCalendar({
           const selected = isSameDay(selectedDate, cellDate)
           const paletteKey = getMobileTilePalette(primaryShift, isLeave)
           const modifier = DAY_MODIFIER[paletteKey]
+          const timeParts = primaryShift ? splitShiftTimeRange(primaryShift.time) : null
 
           return (
             <button
@@ -110,12 +111,26 @@ export function MobileShiftCalendar({
               <div className={`msc-day ${modifier}${selected ? ' msc-day--selected' : ''}`}>
                 <p className="msc-date">{cellDate.getDate()}</p>
 
-                {primaryShift && (
+                {primaryShift && timeParts && (
                   <>
                     <div className="msc-day-primary">
                       <p className="msc-shift">{getMobileShiftAbbrevLine(primaryShift)}</p>
                     </div>
-                    <p className="msc-time">{getShiftGridStartTime(primaryShift.time)}</p>
+                    <div className="msc-time-stack">
+                      {timeParts.end ? (
+                        <>
+                          <span className="msc-time-line">
+                            {timeParts.start}
+                            <span className="msc-time-dash" aria-hidden>
+                              -
+                            </span>
+                          </span>
+                          <span className="msc-time-line">{timeParts.end}</span>
+                        </>
+                      ) : (
+                        <span className="msc-time-line">{timeParts.start}</span>
+                      )}
+                    </div>
                     {primaryShift.note ? <span className="msc-note" aria-label="Has note" title="Note" /> : null}
                   </>
                 )}
