@@ -9,7 +9,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useLeaveDays } from '@/hooks/useLeaveDays'
 import { profiler } from '@/lib/performance'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Calendar as CalendarIcon, Plus, Plane, StickyNote, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, Pencil, Trash2 } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, Plane, StickyNote, ChevronLeft, ChevronRight, ChevronDown, ChevronsLeft, ChevronsRight, X, Pencil, Trash2 } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -132,6 +132,30 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
         return 'shift-day'
     }
   }
+
+  /** Short shift type for narrow mobile tiles (reference: iOS roster). */
+  const getShiftAbbrevForTile = (shift: Shift): string => {
+    if (shift.is_swapped) return 'SWAP'
+    if (isDoubleShift(shift.time)) return 'LONG'
+    const tod = getShiftTimeOfDay(shift.time)
+    switch (tod) {
+      case 'morning':
+        return 'MORN'
+      case 'afternoon':
+        return 'AFTN'
+      case 'evening':
+      default:
+        return 'NIGHT'
+    }
+  }
+
+  const getShiftLongLabelForTile = (shift: Shift): string => {
+    if (shift.is_swapped) return 'SWAPPED'
+    if (isDoubleShift(shift.time)) return 'DOUBLE'
+    const tod = getShiftTimeOfDay(shift.time)
+    const cap = tod.charAt(0).toUpperCase() + tod.slice(1)
+    return cap
+  }
   const monthGrid = useMemo(() => {
     const year = currentMonth.getFullYear()
     const month = currentMonth.getMonth()
@@ -208,24 +232,46 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           </div>
         </CardHeader>
         
-        <CardContent className="p-4 sm:p-6">
+        <CardContent className="p-3 px-3 sm:p-6 sm:px-6 w-full max-w-full min-w-0 overflow-x-hidden">
           <div className="calendar-container">
-            <div className="mb-4 sm:mb-6 text-center">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2">Your Shift Schedule</h3>
-              <p className="text-sm sm:text-base text-gray-600">Tap a date to add a note, edit, or delete a shift</p>
+            <div className="mb-3 sm:mb-6 text-center px-1">
+              <h3 className="text-sm sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Your Shift Schedule</h3>
+              <p className="text-xs sm:text-base text-gray-600 leading-snug">Tap a date to add a note, edit, or delete a shift</p>
             </div>
             
             <div className="w-full">
               <div className="calendar-shell">
                 <div className="calendar-nav">
-                  <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}>
-                    <ChevronLeft className="h-4 w-4" />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="calendar-nav-chevron shrink-0 h-10 w-10 sm:h-9 sm:w-9"
+                    onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+                    aria-label="Previous month"
+                  >
+                    <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4" />
                   </Button>
-                  <Button variant="ghost" onClick={openMonthPicker} className="font-semibold text-base px-4">
-                    {currentMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={openMonthPicker}
+                    className="calendar-month-trigger font-semibold text-sm sm:text-base px-2 sm:px-4 min-w-0 flex-1 flex items-center justify-center gap-1 max-w-[min(100%,280px)]"
+                  >
+                    <span className="truncate text-center tracking-tight">
+                      {currentMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                    </span>
+                    <ChevronDown className="h-4 w-4 shrink-0 text-slate-500 opacity-80" aria-hidden />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}>
-                    <ChevronRight className="h-4 w-4" />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="calendar-nav-chevron shrink-0 h-10 w-10 sm:h-9 sm:w-9"
+                    onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+                    aria-label="Next month"
+                  >
+                    <ChevronRight className="h-5 w-5 sm:h-4 sm:w-4" />
                   </Button>
                 </div>
 
@@ -262,28 +308,37 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                             <div
                               className={`calendar-shift-card ${getShiftColorClass(getShiftTimeOfDay(primaryShift.time), primaryShift.is_swapped, primaryShift.time)}`}
                             >
-                              <div className="calendar-day-number">{cellDate.getDate()}</div>
-                              <div className="calendar-shift-label">
-                                {getShiftTimeOfDay(primaryShift.time).toUpperCase()}
+                              <div className="calendar-shift-stack">
+                                <span className="calendar-day-number">{cellDate.getDate()}</span>
+                                <span className="calendar-shift-label">
+                                  <span className="md:hidden">{getShiftAbbrevForTile(primaryShift)}</span>
+                                  <span className="hidden md:inline">{getShiftLongLabelForTile(primaryShift)}</span>
+                                </span>
+                                <span className="calendar-shift-time">{primaryShift.time}</span>
+                                {primaryShift.note && (
+                                  <>
+                                    <span className="calendar-shift-note-pin md:hidden" aria-label="Has note" title="Note" />
+                                    <span className="calendar-shift-note-indicator hidden md:inline-flex">
+                                      <StickyNote className="h-3 w-3" />
+                                      Note
+                                    </span>
+                                  </>
+                                )}
                               </div>
-                              <div className="calendar-shift-time">{primaryShift.time}</div>
-                              {primaryShift.note && (
-                                <div className="calendar-shift-note-indicator">
-                                  <StickyNote className="h-3 w-3" />
-                                  Note
-                                </div>
-                              )}
                             </div>
                           ) : isLeaveDay ? (
                             <div className="calendar-leave-card">
                               <span className="calendar-day-number">{cellDate.getDate()}</span>
-                              <Plane className="h-3.5 w-3.5" />
-                              <span>Leave</span>
+                              <Plane className="calendar-leave-plane" />
+                              <span className="calendar-leave-word">
+                                <span className="md:hidden">LV</span>
+                                <span className="hidden md:inline">Leave</span>
+                              </span>
                             </div>
                           ) : (
                             <div className="calendar-off-card">
                               <span className="calendar-day-number">{cellDate.getDate()}</span>
-                              Off
+                              <span className="calendar-off-word">OFF</span>
                             </div>
                           )}
                         </div>
@@ -295,10 +350,33 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
             </div>
           </div>
           
-          {/* Legend */}
-          <div className="mt-6 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-100">
-            <h4 className="font-semibold text-gray-900 mb-3 text-center text-sm">Shift Types</h4>
-            <div className="flex flex-wrap justify-center gap-3">
+          {/* Legend — compact on mobile (abbrs), full labels from md */}
+          <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gradient-to-r from-slate-50/90 to-blue-50/90 rounded-xl border border-slate-100/90">
+            <h4 className="font-semibold text-gray-900 mb-2 sm:mb-3 text-center text-xs sm:text-sm">Shift types</h4>
+            <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 md:hidden px-1">
+              <span className="inline-flex items-center gap-1.5 shrink-0 text-[11px] font-semibold text-slate-600">
+                <span className="calendar-legend-chip shift-morning" /> MORN
+              </span>
+              <span className="inline-flex items-center gap-1.5 shrink-0 text-[11px] font-semibold text-slate-600">
+                <span className="calendar-legend-chip shift-afternoon" /> AFTN
+              </span>
+              <span className="inline-flex items-center gap-1.5 shrink-0 text-[11px] font-semibold text-slate-600">
+                <span className="calendar-legend-chip shift-evening" /> NIGHT
+              </span>
+              <span className="inline-flex items-center gap-1.5 shrink-0 text-[11px] font-semibold text-slate-600">
+                <span className="calendar-legend-chip legend-off border border-slate-300/80" /> OFF
+              </span>
+              <span className="inline-flex items-center gap-1.5 shrink-0 text-[11px] font-semibold text-slate-600">
+                <span className="calendar-legend-chip shift-double" /> LONG
+              </span>
+              <span className="inline-flex items-center gap-1.5 shrink-0 text-[11px] font-semibold text-slate-600">
+                <span className="calendar-legend-chip shift-swapped" /> SWAP
+              </span>
+              <span className="inline-flex items-center gap-1.5 shrink-0 text-[11px] font-semibold text-slate-600">
+                <span className="calendar-legend-chip legend-leave border border-purple-300/70" /> LV
+              </span>
+            </div>
+            <div className="hidden md:flex flex-wrap justify-center gap-3">
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full shadow-sm shift-morning"></div>
                 <span className="text-xs font-medium text-gray-700">Morning</span>
@@ -623,137 +701,354 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
         .calendar-shell {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: clamp(0.35rem, 1.25vw, 0.625rem);
+        }
+
+        .calendar-container {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          -webkit-overflow-scrolling: touch;
         }
 
         .calendar-nav {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 0.5rem;
-          padding: 0.25rem 0;
+          gap: 0.25rem;
+          padding: 0.15rem 0 0.35rem;
+          min-height: 2.75rem;
         }
 
         .calendar-weekdays,
         .calendar-grid {
           display: grid;
           grid-template-columns: repeat(7, minmax(0, 1fr));
-          gap: 0.35rem;
+          column-gap: clamp(5px, 1.85vw, 8px);
+          row-gap: clamp(5px, 1.85vw, 8px);
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+        }
+
+        /* Mobile: proportional tiles — same column width => equal heights per row */
+        @media (max-width: 767.98px) {
+          .calendar-day-cell {
+            align-self: stretch;
+            justify-self: stretch;
+            aspect-ratio: 8 / 11;
+            min-height: clamp(78px, 27.5vw, 108px);
+            border-radius: 10px;
+            padding: clamp(3px, 1.05vw, 6px);
+            box-sizing: border-box;
+          }
+
+          .calendar-empty-cell {
+            aspect-ratio: 8 / 11;
+            min-height: clamp(78px, 27.5vw, 108px);
+            border-radius: 10px;
+          }
+
+          .calendar-weekday-cell {
+            font-size: clamp(9px, 2.95vw, 11px);
+            padding: 0.28rem 0.05rem;
+            letter-spacing: 0;
+          }
+
+          .calendar-shift-card,
+          .calendar-leave-card,
+          .calendar-off-card {
+            padding: clamp(5px, 2.2vw, 8px);
+            border-radius: 8px;
+            box-sizing: border-box;
+            gap: clamp(3px, 1vw, 5px);
+            min-height: 0;
+          }
+
+          .calendar-shift-stack .calendar-shift-label {
+            line-height: 1.08;
+          }
+
+          .calendar-shift-stack .calendar-shift-time {
+            line-height: 1.18;
+          }
         }
 
         .calendar-weekday-cell {
           text-align: center;
-          font-size: 0.78rem;
+          font-size: clamp(0.71rem, 2.05vw, 0.8125rem);
           font-weight: 700;
-          color: #475569;
-          letter-spacing: 0.02em;
-          padding: 0.45rem 0.2rem;
+          color: #64748b;
+          letter-spacing: 0.025em;
+          padding: 0.45rem 0.12rem;
           text-transform: uppercase;
+          font-variant-numeric: tabular-nums;
+          min-width: 0;
         }
 
-        .calendar-day-cell,
         .calendar-empty-cell {
-          min-height: 104px;
           border-radius: 14px;
         }
 
-        .calendar-day-cell {
-          border: 1px solid #e2e8f0;
-          background: #f8fafc;
-          padding: 0.45rem;
-          text-align: left;
-          transition: background-color 0.15s ease, border-color 0.15s ease;
+        @media (min-width: 768px) {
+          .calendar-day-cell,
+          .calendar-empty-cell {
+            min-height: 104px;
+          }
+
+          .calendar-day-cell {
+            border-radius: 14px;
+          }
         }
 
-        .calendar-day-cell:hover {
-          background: #f1f5f9;
+        .calendar-day-cell {
+          border: 1px solid #e8edf3;
+          background: linear-gradient(180deg, #fbfcfd 0%, #f6f8fa 100%);
+          text-align: center;
+          transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+          -webkit-tap-highlight-color: transparent;
+          min-width: 0;
+          overflow: visible;
+          display: flex;
+          flex-direction: column;
+          box-sizing: border-box;
+          touch-action: manipulation;
+          padding: 0.35rem;
+        }
+
+        .calendar-day-cell:active {
+          transform: scale(0.98);
+          background: #f4f8fc;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+          .calendar-day-cell:hover {
+            background: #eff3f8;
+            border-color: #d1dae4;
+          }
         }
 
         .calendar-day-cell.is-selected {
-          background: #eff6ff;
-          border-color: #93c5fd;
+          background: linear-gradient(180deg, #eff8ff 0%, #e0f2fe 100%);
+          border-color: #7dd3fc;
+          box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.2);
         }
 
         .calendar-empty-cell {
           background: transparent;
+          pointer-events: none;
         }
 
         .calendar-tile-content {
-          height: 100%;
+          flex: 1;
+          min-height: 0;
           width: 100%;
           display: flex;
           align-items: stretch;
+          justify-content: center;
+          overflow: hidden;
+        }
+
+        .calendar-shift-stack {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          gap: clamp(4px, 1.35vw, 6px);
+          width: 100%;
+          height: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          padding: clamp(2px, 0.85vw, 5px);
+          overflow: hidden;
+        }
+
+        .calendar-shift-stack .calendar-day-number,
+        .calendar-shift-stack .calendar-shift-label,
+        .calendar-shift-stack .calendar-shift-time {
+          min-width: 0;
+          max-width: 100%;
         }
 
         .calendar-shift-card,
         .calendar-leave-card,
         .calendar-off-card {
           width: 100%;
+          flex: 1;
           border-radius: 12px;
           padding: 10px;
           display: flex;
           flex-direction: column;
+          align-items: center;
           justify-content: center;
-          gap: 3px;
-          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+          gap: clamp(5px, 1.55vw, 8px);
+          box-shadow:
+            0 1px 2px rgba(15, 23, 42, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.6);
+          min-height: 0;
+          box-sizing: border-box;
         }
 
         .calendar-shift-card {
           color: #0f172a;
-          border: 1px solid rgba(30, 41, 59, 0.08);
-          cursor: pointer;
-          transition: transform 0.15s ease;
+          border: 1px solid rgba(51, 65, 85, 0.12);
+          overflow: hidden;
         }
 
-        .calendar-shift-card:hover {
-          transform: translateY(-1px);
-        }
-
-        .calendar-shift-label {
-          font-size: 0.72rem;
-          font-weight: 800;
-          letter-spacing: 0.02em;
+        @media (hover: hover) and (pointer: fine) {
+          .calendar-shift-card:hover {
+            box-shadow:
+              0 2px 6px rgba(15, 23, 42, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.65);
+          }
         }
 
         .calendar-day-number {
-          font-size: 0.95rem;
+          font-size: clamp(0.7rem, 3.85vw, 1rem);
           font-weight: 800;
           line-height: 1;
-          margin-bottom: 2px;
+          margin: 0;
+          overflow: visible;
+          display: block;
         }
 
-        .calendar-shift-time {
-          font-size: 0.78rem;
-          font-weight: 600;
+        @media (min-width: 768px) {
+          .calendar-day-number {
+            margin-bottom: 2px;
+            font-size: 0.95rem;
+          }
+        }
+
+        .calendar-shift-stack .calendar-shift-label {
+          font-size: clamp(0.58rem, 3vw, 0.8125rem);
+          font-weight: 800;
+          letter-spacing: 0.02em;
+          text-transform: none;
+          line-height: 1.05;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        @media (min-width: 768px) {
+          .calendar-shift-stack .calendar-shift-label {
+            font-size: 0.75rem;
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
+          }
+        }
+
+        .calendar-shift-stack .calendar-shift-time {
+          font-weight: 700;
+          color: rgba(15, 23, 42, 0.88);
+          overflow-wrap: anywhere;
+          word-break: break-all;
+          hyphens: auto;
+          line-height: 1.22;
+          max-width: 100%;
+          display: block;
+          font-size: clamp(0.5rem, 2.62vw, 0.765rem);
+          font-variant-numeric: tabular-nums;
+        }
+
+        @media (min-width: 768px) {
+          .calendar-shift-stack .calendar-shift-time {
+            font-size: 0.78rem;
+          }
+        }
+
+        .calendar-shift-note-pin {
+          width: clamp(6px, 1.8vw, 8px);
+          height: clamp(6px, 1.8vw, 8px);
+          border-radius: 9999px;
+          background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+          box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.25);
+          margin-top: 1px;
+          flex-shrink: 0;
+          align-self: center;
         }
 
         .calendar-shift-note-indicator {
-          margin-top: 2px;
-          display: inline-flex;
           align-items: center;
           gap: 4px;
           font-size: 0.65rem;
           font-weight: 600;
-          opacity: 0.85;
+          opacity: 0.9;
+          margin-top: auto;
+          flex-shrink: 0;
+          justify-content: center;
+          width: auto;
+          max-width: 100%;
+        }
+
+        .calendar-leave-plane {
+          width: clamp(10px, 3.35vw, 14px);
+          height: clamp(10px, 3.35vw, 14px);
+          flex-shrink: 0;
         }
 
         .calendar-leave-card {
           background: #f3e8ff;
-          color: #6b21a8;
-          border: 1px solid #d8b4fe;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.75rem;
-          font-weight: 700;
+          color: #5b2088;
+          border: 1px solid #e9d5ff;
+        }
+
+        .calendar-leave-card .calendar-day-number {
+          font-size: clamp(0.7rem, 3.85vw, 1rem);
+        }
+
+        .calendar-leave-word {
+          font-weight: 800;
+          font-size: clamp(0.55rem, 2.82vw, 0.6875rem);
+          line-height: 1;
+          letter-spacing: 0.06em;
+        }
+
+        .calendar-leave-word span {
+          display: inline-block;
+          max-width: 100%;
+        }
+
+        @media (min-width: 768px) {
+          .calendar-leave-word {
+            font-size: 0.75rem;
+            letter-spacing: 0;
+          }
         }
 
         .calendar-off-card {
-          background: #e2e8f0;
+          background: linear-gradient(180deg, #e8edf3 0%, #dfe5ec 100%);
           color: #475569;
-          border: 1px solid #cbd5e1;
-          align-items: center;
-          font-size: 0.8rem;
-          font-weight: 700;
+          border: 1px solid rgba(148, 163, 184, 0.55);
+        }
+
+        .calendar-off-word {
+          font-weight: 800;
+          font-size: clamp(0.62rem, 3.1vw, 0.6875rem);
+          letter-spacing: 0.12em;
+        }
+
+        @media (min-width: 768px) {
+          .calendar-off-word {
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+          }
+        }
+
+        .calendar-leave-card,
+        .calendar-off-card {
+          overflow: hidden;
+        }
+
+        .calendar-legend-chip {
+          flex-shrink: 0;
+          display: inline-block;
+          width: 10px;
+          height: 10px;
+          border-radius: 4px;
         }
 
         .calendar-container .react-calendar__month-view__days__day.has-shifts {
@@ -865,22 +1160,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           justify-content: center;
         }
         
-        @media (max-width: 768px) {
-          .calendar-weekday-cell {
-            font-size: 0.68rem;
-            padding-top: 0.25rem;
-            padding-bottom: 0.25rem;
-          }
-
-          .calendar-day-cell,
-          .calendar-empty-cell {
-            min-height: 90px;
-          }
-
-          .calendar-day-cell {
-            padding: 0.35rem;
-          }
-
+        @media (max-width: 767.98px) {
           .month-picker-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
