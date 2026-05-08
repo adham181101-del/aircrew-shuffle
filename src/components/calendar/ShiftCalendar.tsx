@@ -304,28 +304,32 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
             <h4 className="font-semibold text-gray-900 mb-3 text-center text-sm">Shift Types</h4>
             <div className="flex flex-wrap justify-center gap-3">
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-cyan-500 shadow-sm"></div>
+                <div className="w-3 h-3 rounded-full shadow-sm shift-morning"></div>
                 <span className="text-xs font-medium text-gray-700">Morning</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-orange-400 to-red-500 shadow-sm"></div>
+                <div className="w-3 h-3 rounded-full shadow-sm shift-afternoon"></div>
                 <span className="text-xs font-medium text-gray-700">Afternoon</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-600 to-indigo-700 shadow-sm"></div>
+                <div className="w-3 h-3 rounded-full shadow-sm shift-evening"></div>
                 <span className="text-xs font-medium text-gray-700">Night</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-red-600 to-red-700 shadow-sm"></div>
+                <div className="w-3 h-3 rounded-full shadow-sm shift-double"></div>
                 <span className="text-xs font-medium text-gray-700">Double</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 shadow-sm"></div>
+                <div className="w-3 h-3 rounded-full shadow-sm shift-swapped"></div>
                 <span className="text-xs font-medium text-gray-700">Swapped</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-400 to-purple-500 shadow-sm border border-purple-300"></div>
+                <div className="w-3 h-3 rounded-full shadow-sm legend-leave border border-purple-300"></div>
                 <span className="text-xs font-medium text-gray-700">Leave</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full shadow-sm legend-off border border-slate-300"></div>
+                <span className="text-xs font-medium text-gray-700">Off</span>
               </div>
             </div>
           </div>
@@ -681,6 +685,14 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
 
         .shift-day {
           background: #bae6fd;
+        }
+
+        .legend-leave {
+          background: #f3e8ff;
+        }
+
+        .legend-off {
+          background: #e2e8f0;
         }
 
         .month-picker-overlay {
