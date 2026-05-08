@@ -9,7 +9,7 @@
   max-width: 100%;
   min-width: 0;
   overflow-x: hidden;
-  padding: 12px;
+  padding: 8px 0;
 }
 
 .msc-calendar-header {
@@ -37,7 +37,7 @@
 .msc-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  gap: 4px;
   margin-bottom: 8px;
   text-align: center;
   font-size: 11px;
@@ -51,7 +51,7 @@
 .msc-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  gap: 4px;
   width: 100%;
   min-width: 0;
   grid-auto-rows: minmax(102px, auto);

@@ -133,8 +133,8 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
 
   if (loading && !shifts.length) {
     return (
-      <Card className="bg-white shadow-lg border border-gray-100">
-        <CardContent className="p-8">
+      <Card className="bg-white shadow-lg border border-gray-100 max-md:rounded-none max-md:border-x-0 max-md:shadow-md">
+        <CardContent className="p-8 max-md:px-3 max-md:py-6">
           <Skeleton className="h-64 w-full" />
         </CardContent>
       </Card>
@@ -155,8 +155,8 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
 
   return (
     <div className="space-y-6">
-      <Card className="bg-white shadow-xl border border-slate-200">
-        <CardHeader className="bg-white border-b border-slate-200 rounded-t-2xl">
+      <Card className="bg-white shadow-xl border border-slate-200 max-md:rounded-none max-md:border-x-0 max-md:shadow-md">
+        <CardHeader className="bg-white border-b border-slate-200 rounded-t-2xl max-md:rounded-none max-md:px-3 max-md:pt-4 max-md:pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
@@ -180,7 +180,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           </div>
         </CardHeader>
         
-        <CardContent className="p-3 px-3 sm:p-6 sm:px-6 w-full max-w-full min-w-0 overflow-x-hidden">
+        <CardContent className="p-2 px-0 max-md:pt-2 max-md:pb-3 sm:p-6 sm:px-6 w-full max-w-full min-w-0 overflow-x-hidden">
           <div className={showMobileCalendar ? 'w-full max-w-full min-w-0 overflow-x-hidden' : 'calendar-container'}>
             {!showMobileCalendar && (
               <div className="mb-6 text-center px-1">

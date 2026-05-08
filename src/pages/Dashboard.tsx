@@ -246,7 +246,7 @@ const Dashboard = () => {
   if (loading && !shiftsData && !incomingRequests.length) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 max-md:px-0 py-8 max-md:py-4">
           <Skeleton className="h-16 w-full mb-8" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <Skeleton className="h-24" />
@@ -263,7 +263,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Professional Header */}
       <header className="bg-blue-900 shadow-lg">
-        <div className="container mx-auto px-4 md:px-6 py-4">
+        <div className="container mx-auto px-4 max-md:px-0 md:px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Left Side - Logo and Company Name */}
             <div className="flex items-center space-x-2 md:space-x-4">
@@ -351,12 +351,12 @@ const Dashboard = () => {
 
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 max-md:px-0 py-8 max-md:py-4">
 
 
 
         {/* Professional Navigation Tabs */}
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-8 bg-white p-1 rounded-lg shadow-sm border border-gray-200 w-full max-w-xl">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-8 bg-white p-1 rounded-lg shadow-sm border border-gray-200 w-full max-w-full sm:max-w-xl">
           <Button
             variant={activeTab === 'calendar' ? 'default' : 'ghost'}
             size="sm"
