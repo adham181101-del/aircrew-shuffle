@@ -26,14 +26,7 @@ import {
   loadPeriodOvertimeHours,
   savePeriodBaseSalary,
 } from '@/lib/payrollStorage'
-
-interface PayPeriod {
-  id: string
-  label: string
-  start: Date // Sunday start
-  end: Date   // Saturday end (inclusive)
-  weeks: 4 | 5 // Period length in weeks
-}
+import { PREMIUM_PERIODS_2026, getDefaultPayPeriod, getPayMonthLabel, type PayPeriod } from '@/lib/payPeriods'
 
 export interface PremiumTotalsSummary {
   periodId: string
@@ -51,41 +44,6 @@ interface PremiumCalculatorProps {
   onTotalsChange?: (totals: PremiumTotalsSummary) => void
   /** Bump when overtime tab saves hours/rates so Expected Salary re-reads storage. */
   overtimeRefresh?: number
-}
-
-// Fixed 2026 premium periods (Overtime work periods → Paid month)
-// Updated to match the latest BA table (as per our reference screenshot)
-const PREMIUM_PERIODS_2026: PayPeriod[] = [
-  { id: '2026-01', label: '7 Dec 2025 - 10 Jan 2026', start: new Date('2025-12-07'), end: new Date('2026-01-10'), weeks: 5 },
-  { id: '2026-02', label: '11 Jan - 7 Feb 2026', start: new Date('2026-01-11'), end: new Date('2026-02-07'), weeks: 4 },
-  { id: '2026-03', label: '8 Feb - 14 Mar 2026', start: new Date('2026-02-08'), end: new Date('2026-03-14'), weeks: 5 },
-  { id: '2026-04', label: '15 Mar - 11 Apr 2026', start: new Date('2026-03-15'), end: new Date('2026-04-11'), weeks: 4 },
-  { id: '2026-05', label: '12 Apr - 9 May 2026', start: new Date('2026-04-12'), end: new Date('2026-05-09'), weeks: 4 },
-  { id: '2026-06', label: '10 May - 13 Jun 2026', start: new Date('2026-05-10'), end: new Date('2026-06-13'), weeks: 5 },
-  { id: '2026-07', label: '14 Jun - 11 Jul 2026', start: new Date('2026-06-14'), end: new Date('2026-07-11'), weeks: 4 },
-  { id: '2026-08', label: '12 Jul - 8 Aug 2026', start: new Date('2026-07-12'), end: new Date('2026-08-08'), weeks: 4 },
-  { id: '2026-09', label: '9 Aug - 12 Sep 2026', start: new Date('2026-08-09'), end: new Date('2026-09-12'), weeks: 5 },
-  { id: '2026-10', label: '13 Sep - 10 Oct 2026', start: new Date('2026-09-13'), end: new Date('2026-10-10'), weeks: 4 },
-  { id: '2026-11', label: '11 Oct - 7 Nov 2026', start: new Date('2026-10-11'), end: new Date('2026-11-07'), weeks: 4 },
-  { id: '2026-12', label: '8 Nov - 5 Dec 2026', start: new Date('2026-11-08'), end: new Date('2026-12-05'), weeks: 4 },
-]
-
-// Helper function to find which period a shift date falls into
-const findPeriodForDate = (date: Date): PayPeriod | null => {
-  const shiftDate = new Date(date)
-  shiftDate.setHours(0, 0, 0, 0)
-  
-  for (const period of PREMIUM_PERIODS_2026) {
-    const periodStart = new Date(period.start)
-    periodStart.setHours(0, 0, 0, 0)
-    const periodEnd = new Date(period.end)
-    periodEnd.setHours(23, 59, 59, 999)
-    
-    if (shiftDate >= periodStart && shiftDate <= periodEnd) {
-      return period
-    }
-  }
-  return null
 }
 
 // Aviation shift fixed allowances (£) based on provided table
@@ -146,11 +104,7 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
 
   useEffect(() => {
     if (!selectedPeriodId) {
-      const today = new Date()
-      const current = findPeriodForDate(today) || PREMIUM_PERIODS_2026[PREMIUM_PERIODS_2026.length - 1]
-      if (current) {
-        setSelectedPeriodId(current.id)
-      }
+      setSelectedPeriodId(getDefaultPayPeriod().id)
     }
   }, [selectedPeriodId])
 
@@ -581,14 +535,13 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-center gap-2 text-sm text-blue-900">
                 <Calendar className="h-4 w-4" />
-                <span className="font-semibold">Pay Period Range:</span>
-                <span>
-                  {format(periodDateRange.start, 'd MMM yyyy')} - {format(periodDateRange.end, 'd MMM yyyy')}
-                </span>
-                <span className="text-blue-600">
-                  ({selectedPeriod.weeks} weeks)
-                </span>
+                <span className="font-semibold">Paid in:</span>
+                <span>{getPayMonthLabel(selectedPeriod.id)}</span>
               </div>
+              <p className="text-sm text-blue-800 mt-2">
+                Work period {format(periodDateRange.start, 'd MMM yyyy')} –{' '}
+                {format(periodDateRange.end, 'd MMM yyyy')} ({selectedPeriod.weeks} weeks)
+              </p>
             </div>
           )}
         </CardContent>

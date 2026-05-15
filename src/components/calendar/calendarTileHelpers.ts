@@ -1,13 +1,15 @@
 import { getShiftTimeOfDay, type Shift } from '@/lib/shifts'
 
-export const WEEKDAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const
+/** Monday-first week header (ISO-style roster grid). */
+export const WEEKDAY_LABELS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const
 
 export const buildMonthGrid = (currentMonth: Date): Array<Date | null> => {
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0).getDate()
-  const leadingEmptyCount = firstDay.getDay()
+  // getDay(): Sun=0 … Sat=6 → Mon-first padding
+  const leadingEmptyCount = (firstDay.getDay() + 6) % 7
   const cells: Array<Date | null> = []
 
   for (let i = 0; i < leadingEmptyCount; i++) cells.push(null)
