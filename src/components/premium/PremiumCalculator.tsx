@@ -19,6 +19,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { format } from 'date-fns'
+import {
+  computeOvertimeBreakdown,
+  loadOvertimeRates,
+  loadPeriodBaseSalary,
+  loadPeriodOvertimeHours,
+  savePeriodBaseSalary,
+} from '@/lib/payrollStorage'
 
 interface PayPeriod {
   id: string
@@ -29,15 +36,21 @@ interface PayPeriod {
 }
 
 export interface PremiumTotalsSummary {
+  periodId: string
+  periodLabel: string
   baseSalary: number
   premiumAmount: number
   leavePremium: number
+  overtimePay: number
   totalWithoutOvertime: number
+  totalWithOvertime: number
   totalHours: number
 }
 
 interface PremiumCalculatorProps {
   onTotalsChange?: (totals: PremiumTotalsSummary) => void
+  /** Bump when overtime tab saves hours/rates so Expected Salary re-reads storage. */
+  overtimeRefresh?: number
 }
 
 // Fixed 2026 premium periods (Overtime work periods → Paid month)
@@ -107,7 +120,7 @@ interface PremiumTally {
   }>
 }
 
-export const PremiumCalculator = memo(({ onTotalsChange }: PremiumCalculatorProps) => {
+export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: PremiumCalculatorProps) => {
   const { toast } = useToast()
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('')
   const [selectedPremium, setSelectedPremium] = useState<PremiumTally | null>(null)
@@ -140,6 +153,16 @@ export const PremiumCalculator = memo(({ onTotalsChange }: PremiumCalculatorProp
       }
     }
   }, [selectedPeriodId])
+
+  useEffect(() => {
+    if (!selectedPeriodId) return
+    setBaseSalary(loadPeriodBaseSalary(selectedPeriodId))
+  }, [selectedPeriodId])
+
+  useEffect(() => {
+    if (!selectedPeriodId) return
+    savePeriodBaseSalary(selectedPeriodId, baseSalary)
+  }, [selectedPeriodId, baseSalary])
 
   const calculateShiftHours = (timeRange: string): number => {
     const [start, end] = timeRange.split('-')
@@ -410,18 +433,48 @@ export const PremiumCalculator = memo(({ onTotalsChange }: PremiumCalculatorProp
     return baseSalaryNum + totals.totalPremiumAmount + leavePremium
   }, [baseSalaryNum, totals.totalPremiumAmount, leavePremium])
 
+  const overtimePay = useMemo(() => {
+    if (!selectedPeriodId) return 0
+    const hours = loadPeriodOvertimeHours(selectedPeriodId)
+    const rates = loadOvertimeRates()
+    return computeOvertimeBreakdown(
+      hours.normalHours,
+      hours.sundayBankHolidayHours,
+      rates.normalRate,
+      rates.sundayBankHolidayRate
+    ).overtimePay
+  }, [selectedPeriodId, overtimeRefresh])
+
+  const totalWithOvertime = useMemo(() => {
+    return totalWithoutOvertime + overtimePay
+  }, [totalWithoutOvertime, overtimePay])
+
   // Expose totals to parent (for overtime calculator tab)
   useEffect(() => {
     if (!onTotalsChange || !selectedPeriod) return
 
     onTotalsChange({
+      periodId: selectedPeriod.id,
+      periodLabel: selectedPeriod.label,
       baseSalary: baseSalaryNum,
       premiumAmount: totals.totalPremiumAmount,
       leavePremium,
+      overtimePay,
       totalWithoutOvertime,
+      totalWithOvertime,
       totalHours: totals.totalHours,
     })
-  }, [onTotalsChange, selectedPeriod, baseSalaryNum, totals.totalPremiumAmount, totals.totalHours, leavePremium, totalWithoutOvertime])
+  }, [
+    onTotalsChange,
+    selectedPeriod,
+    baseSalaryNum,
+    totals.totalPremiumAmount,
+    totals.totalHours,
+    leavePremium,
+    totalWithoutOvertime,
+    overtimePay,
+    totalWithOvertime,
+  ])
 
   const getPremiumLabelColor = (label: string) => {
     switch (label) {
@@ -566,9 +619,11 @@ export const PremiumCalculator = memo(({ onTotalsChange }: PremiumCalculatorProp
             </CardHeader>
             <CardContent>
               <>
-                <div className="text-3xl font-bold text-emerald-900">£{totalWithoutOvertime.toFixed(2)}</div>
+                <div className="text-3xl font-bold text-emerald-900">£{totalWithOvertime.toFixed(2)}</div>
                 <p className="text-xs text-emerald-700 mt-1">
-                  Base £{baseSalaryNum.toFixed(2)} + Premiums £{totals.totalPremiumAmount.toFixed(2)} + Leave £{leavePremium.toFixed(2)}
+                  Base £{baseSalaryNum.toFixed(2)} + Premiums £{totals.totalPremiumAmount.toFixed(2)} + Leave £
+                  {leavePremium.toFixed(2)}
+                  {overtimePay > 0 ? ` + Overtime £${overtimePay.toFixed(2)}` : ''}
                 </p>
               </>
             </CardContent>

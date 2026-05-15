@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -79,6 +79,11 @@ const Dashboard = () => {
   const invalidateShifts = useInvalidateShifts()
 
   const [premiumSummary, setPremiumSummary] = useState<PremiumTotalsSummary | null>(null)
+  const [overtimeRefresh, setOvertimeRefresh] = useState(0)
+
+  const handleOvertimeChange = useCallback((_periodId: string, _overtimePay: number) => {
+    setOvertimeRefresh((n) => n + 1)
+  }, [])
 
   // Extract shifts from query result
   const shifts = useMemo(() => shiftsData?.shifts || [], [shiftsData])
@@ -427,19 +432,18 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        {/* Content based on active tab - Use hidden/display to prevent remounts */}
         <div className="relative">
-          <div className={activeTab === 'calendar' ? 'block' : 'hidden'}>
-            <ShiftCalendar 
+          {activeTab === 'calendar' && (
+            <ShiftCalendar
               onShiftClick={handleShiftClick}
               onCreateShift={() => navigate('/shifts/create')}
             />
-          </div>
+          )}
           <div className={activeTab === 'premiums' ? 'block' : 'hidden'}>
-            <PremiumCalculator onTotalsChange={setPremiumSummary} />
+            <PremiumCalculator onTotalsChange={setPremiumSummary} overtimeRefresh={overtimeRefresh} />
           </div>
           <div className={activeTab === 'overtime' ? 'block' : 'hidden'}>
-            <OvertimeCalculator summary={premiumSummary} />
+            <OvertimeCalculator summary={premiumSummary} onOvertimeChange={handleOvertimeChange} />
           </div>
         </div>
 

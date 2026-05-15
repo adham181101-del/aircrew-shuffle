@@ -35,6 +35,7 @@ import {
   formatDateStr,
   getDesktopShiftTileLabel,
   getShiftPaletteClass,
+  splitShiftTimeRange,
   WEEKDAY_LABELS,
 } from './calendarTileHelpers'
 
@@ -397,7 +398,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           if (!open) setFocusedShiftIndex(0)
         }}
       >
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="z-[100] sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedDate
@@ -476,9 +477,9 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                   className="h-auto min-h-[3rem] py-3 justify-start gap-3 border-slate-200"
                   onClick={() => {
                     setShiftPendingEdit(focusedShift)
-                    const [s, e] = focusedShift.time.split('-')
-                    setEditStart(s)
-                    setEditEnd(e)
+                    const { start, end } = splitShiftTimeRange(focusedShift.time)
+                    setEditStart(start)
+                    setEditEnd(end ?? '')
                     setEditNote(focusedShift.note ?? '')
                     setDayActionsOpen(false)
                     setEditOpen(true)
@@ -550,7 +551,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           if (!open) setShiftPendingNote(null)
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="z-[100] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Note</DialogTitle>
             <DialogDescription>
@@ -957,7 +958,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
 
       {/* Edit Shift Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
+        <DialogContent className="z-[100] sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit shift time</DialogTitle>
             <DialogDescription>
