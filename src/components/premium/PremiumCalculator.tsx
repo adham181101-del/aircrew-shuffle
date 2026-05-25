@@ -8,6 +8,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
 import { useShifts } from '@/hooks/useShifts'
 import { useLeaveDays } from '@/hooks/useLeaveDays'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { LEAVE_DAY_PREMIUM_GBP } from '@/lib/payrollConstants'
 import { profiler } from '@/lib/performance'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Calendar, DollarSign, TrendingUp, Clock, ChevronRight } from 'lucide-react'
@@ -24,6 +26,7 @@ import {
   loadOvertimeRates,
   loadPeriodBaseSalary,
   loadPeriodOvertimeHours,
+  loadPensionDeductionPercent,
   savePeriodBaseSalary,
 } from '@/lib/payrollStorage'
 import { PREMIUM_PERIODS_2026, getDefaultPayPeriod, getPayMonthLabel, type PayPeriod } from '@/lib/payPeriods'
@@ -34,6 +37,8 @@ export interface PremiumTotalsSummary {
   baseSalary: number
   premiumAmount: number
   leavePremium: number
+  pensionDeduction: number
+  netBaseSalary: number
   overtimePay: number
   totalWithoutOvertime: number
   totalWithOvertime: number
@@ -95,7 +100,13 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
 
   // Use React Query for shifts
   const { data: shiftsData, isLoading: loading } = useShifts()
+  const { data: currentUser } = useCurrentUser()
   const shifts = useMemo(() => shiftsData?.shifts || [], [shiftsData])
+
+  const pensionPercent = useMemo(() => {
+    const raw = parseFloat(loadPensionDeductionPercent(currentUser?.id ?? ''))
+    return Number.isFinite(raw) && raw >= 0 && raw <= 100 ? raw : 2
+  }, [currentUser?.id])
 
   const selectedPeriod = useMemo(
     () => PREMIUM_PERIODS_2026.find(period => period.id === selectedPeriodId) || null,
@@ -380,12 +391,20 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
   }, [baseSalary])
 
   const leavePremium = useMemo(() => {
-    return leaveDaysInPeriod * 17.24
+    return leaveDaysInPeriod * LEAVE_DAY_PREMIUM_GBP
   }, [leaveDaysInPeriod])
 
+  const pensionDeduction = useMemo(() => {
+    return baseSalaryNum * (pensionPercent / 100)
+  }, [baseSalaryNum, pensionPercent])
+
+  const netBaseSalary = useMemo(() => {
+    return Math.max(0, baseSalaryNum - pensionDeduction)
+  }, [baseSalaryNum, pensionDeduction])
+
   const totalWithoutOvertime = useMemo(() => {
-    return baseSalaryNum + totals.totalPremiumAmount + leavePremium
-  }, [baseSalaryNum, totals.totalPremiumAmount, leavePremium])
+    return netBaseSalary + totals.totalPremiumAmount + leavePremium
+  }, [netBaseSalary, totals.totalPremiumAmount, leavePremium])
 
   const overtimePay = useMemo(() => {
     if (!selectedPeriodId) return 0
@@ -413,6 +432,8 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
       baseSalary: baseSalaryNum,
       premiumAmount: totals.totalPremiumAmount,
       leavePremium,
+      pensionDeduction,
+      netBaseSalary,
       overtimePay,
       totalWithoutOvertime,
       totalWithOvertime,
@@ -425,6 +446,8 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
     totals.totalPremiumAmount,
     totals.totalHours,
     leavePremium,
+    pensionDeduction,
+    netBaseSalary,
     totalWithoutOvertime,
     overtimePay,
     totalWithOvertime,
@@ -522,7 +545,7 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Automatically counted from your marked leave days. Adds £17.24 per leave day.
+                Automatically counted from your marked leave days. Adds £{LEAVE_DAY_PREMIUM_GBP.toFixed(2)} per leave day.
               </p>
               {selectedPeriod && leaveDaysInPeriod === 0 && (
                 <p className="text-xs text-blue-600 mt-1">
@@ -574,8 +597,9 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
               <>
                 <div className="text-3xl font-bold text-emerald-900">£{totalWithOvertime.toFixed(2)}</div>
                 <p className="text-xs text-emerald-700 mt-1">
-                  Base £{baseSalaryNum.toFixed(2)} + Premiums £{totals.totalPremiumAmount.toFixed(2)} + Leave £
-                  {leavePremium.toFixed(2)}
+                  Base £{baseSalaryNum.toFixed(2)}
+                  {pensionDeduction > 0 ? ` − Pension (${pensionPercent}%) £${pensionDeduction.toFixed(2)}` : ''} + Premiums £
+                  {totals.totalPremiumAmount.toFixed(2)} + Leave £{leavePremium.toFixed(2)}
                   {overtimePay > 0 ? ` + Overtime £${overtimePay.toFixed(2)}` : ''}
                 </p>
               </>

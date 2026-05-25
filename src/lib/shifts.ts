@@ -22,13 +22,48 @@ export type SwapRequest = {
   created_at: string
 }
 
+const padTimePart = (part: string): string | null => {
+  const m = part.trim().match(/^(\d{1,2}):(\d{2})$/)
+  if (!m) return null
+  const hours = parseInt(m[1], 10)
+  const minutes = parseInt(m[2], 10)
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
+/** Normalize roster strings to `HH:MM-HH:MM` (accepts `-`, `–`, `—`, optional spaces). */
+export const normalizeTimeRange = (timeRange: string): string | null => {
+  const t = String(timeRange).trim()
+  if (!t) return null
+  const parts = t.split(/\s*[-–—]\s*/)
+  if (parts.length < 2) return null
+  const start = padTimePart(parts[0])
+  const end = padTimePart(parts[1])
+  if (!start || !end) return null
+  return `${start}-${end}`
+}
+
 export const isValidTimeRange = (timeRange: string): boolean => {
-  const pattern = /^\d{2}:\d{2}-\d{2}:\d{2}$/
-  return pattern.test(timeRange)
+  return normalizeTimeRange(timeRange) !== null
+}
+
+/** Hours worked for a single shift time range (handles overnight). */
+export const getShiftDurationHours = (timeRange: string): number => {
+  const normalized = normalizeTimeRange(timeRange)
+  const range = normalized ?? timeRange
+  const parts = range.split(/[-–—]/)
+  if (parts.length < 2) return 0
+  const startTime = new Date(`2000-01-01 ${parts[0].trim()}:00`)
+  const endTime = new Date(`2000-01-01 ${parts[1].trim()}:00`)
+  if (endTime < startTime) {
+    endTime.setDate(endTime.getDate() + 1)
+  }
+  return (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)
 }
 
 const getStartMinutesFromRange = (timeRange: string): number | null => {
-  const start = timeRange.split('-')[0]
+  const normalized = normalizeTimeRange(timeRange)
+  const start = (normalized ?? timeRange).split(/[-–—]/)[0]
   const match = start.match(/^(\d{2}):(\d{2})$/)
   if (!match) return null
   const hours = parseInt(match[1], 10)
@@ -119,7 +154,8 @@ export const isEligibleRepayForRequester = async (
 }
 
 export const createShift = async (date: string, time: string, staffId: string, note?: string): Promise<Shift> => {
-  if (!isValidTimeRange(time)) {
+  const normalizedTime = normalizeTimeRange(time)
+  if (!normalizedTime) {
     throw new Error('Invalid time format. Use HH:MM-HH:MM')
   }
 
@@ -129,7 +165,7 @@ export const createShift = async (date: string, time: string, staffId: string, n
     .from('shifts')
     .insert({
       date,
-      time,
+      time: normalizedTime,
       note: normalizedNote,
       staff_id: staffId
     })
@@ -141,9 +177,11 @@ export const createShift = async (date: string, time: string, staffId: string, n
 }
 
 export const upsertShift = async (date: string, time: string, staffId: string): Promise<{ action: 'created' | 'updated' | 'skipped'; shift?: Shift }> => {
-  if (!isValidTimeRange(time)) {
+  const normalizedTime = normalizeTimeRange(time)
+  if (!normalizedTime) {
     throw new Error('Invalid time format. Use HH:MM-HH:MM')
   }
+  time = normalizedTime
 
   // Check if a shift already exists for this date
   const { data: existingShift, error: fetchError } = await supabase
@@ -222,13 +260,14 @@ export const updateShiftTime = async (
   staffId: string,
   time: string
 ): Promise<Shift> => {
-  if (!isValidTimeRange(time)) {
+  const normalizedTime = normalizeTimeRange(time)
+  if (!normalizedTime) {
     throw new Error('Invalid time format. Use HH:MM-HH:MM')
   }
 
   const { data, error } = await supabase
     .from('shifts')
-    .update({ time })
+    .update({ time: normalizedTime })
     .eq('id', shiftId)
     .eq('staff_id', staffId)
     .select()
@@ -253,7 +292,12 @@ export const updateShiftNote = async (
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    if (error.code === 'PGRST204' && /note/.test(error.message ?? '')) {
+      throw new Error('Notes are not enabled on the server yet. Run the latest database migration.')
+    }
+    throw error
+  }
   return data
 }
 
@@ -263,7 +307,8 @@ export const updateShiftTimeAndNote = async (
   time: string,
   note: string | null
 ): Promise<Shift> => {
-  if (!isValidTimeRange(time)) {
+  const normalizedTime = normalizeTimeRange(time)
+  if (!normalizedTime) {
     throw new Error('Invalid time format. Use HH:MM-HH:MM')
   }
 
@@ -271,13 +316,18 @@ export const updateShiftTimeAndNote = async (
 
   const { data, error } = await supabase
     .from('shifts')
-    .update({ time, note: normalizedNote })
+    .update({ time: normalizedTime, note: normalizedNote })
     .eq('id', shiftId)
     .eq('staff_id', staffId)
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    if (error.code === 'PGRST204' && /note/.test(error.message ?? '')) {
+      throw new Error('Notes are not enabled on the server yet. Run the latest database migration.')
+    }
+    throw error
+  }
   return data
 }
 

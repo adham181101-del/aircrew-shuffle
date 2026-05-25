@@ -1,4 +1,5 @@
-import { getShiftTimeOfDay, type Shift } from '@/lib/shifts'
+import { getShiftTimeOfDay, getShiftDurationHours, type Shift } from '@/lib/shifts'
+import { LONG_SHIFT_HOURS_THRESHOLD } from '@/lib/payrollConstants'
 
 /** Monday-first week header (ISO-style roster grid). */
 export const WEEKDAY_LABELS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const
@@ -26,14 +27,20 @@ export const formatDateStr = (d: Date): string => {
   return `${y}-${m}-${day}`
 }
 
+/** Long day = single shift over 16 hours (not only the legacy double-shift band). */
+export function isLongShift(timeRange: string): boolean {
+  return getShiftDurationHours(timeRange) > LONG_SHIFT_HOURS_THRESHOLD
+}
+
+/** @deprecated Use isLongShift — kept for imports during transition */
 export function isDoubleShift(timeRange: string): boolean {
-  return timeRange === '04:15-22:15'
+  return isLongShift(timeRange)
 }
 
 /** Desktop palette class names (paired with ShiftCalendar injected styles). */
 export function getShiftPaletteClass(timeOfDay: string, isSwapped: boolean, timeRange: string): string {
   if (isSwapped) return 'shift-swapped'
-  if (isDoubleShift(timeRange)) return 'shift-double'
+  if (isLongShift(timeRange)) return 'shift-double'
   switch (timeOfDay) {
     case 'morning':
       return 'shift-morning'
@@ -67,7 +74,7 @@ export function getShiftGridStartTime(timeRange: string): string {
 /** Mobile abbreviated shift line (NIGHT → NGT per product spec). */
 export function getMobileShiftAbbrevLine(shift: Shift): string {
   if (shift.is_swapped) return 'SWAP'
-  if (isDoubleShift(shift.time)) return 'LONG'
+  if (isLongShift(shift.time)) return 'LONG'
   const tod = getShiftTimeOfDay(shift.time)
   switch (tod) {
     case 'morning':
@@ -83,7 +90,7 @@ export function getMobileShiftAbbrevLine(shift: Shift): string {
 /** Desktop legend / tile title wording. */
 export function getDesktopShiftTileLabel(shift: Shift): string {
   if (shift.is_swapped) return 'SWAPPED'
-  if (isDoubleShift(shift.time)) return 'DOUBLE'
+  if (isLongShift(shift.time)) return 'LONG'
   const tod = getShiftTimeOfDay(shift.time)
   return tod.charAt(0).toUpperCase() + tod.slice(1)
 }
@@ -101,7 +108,7 @@ export function getMobileTilePalette(shift: Shift | null, isLeave: boolean): Mob
   if (isLeave) return 'leave'
   if (!shift) return 'off'
   if (shift.is_swapped) return 'swapped'
-  if (isDoubleShift(shift.time)) return 'double'
+  if (isLongShift(shift.time)) return 'double'
   const tod = getShiftTimeOfDay(shift.time)
   switch (tod) {
     case 'morning':

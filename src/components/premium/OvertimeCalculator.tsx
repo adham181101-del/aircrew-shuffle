@@ -152,7 +152,7 @@ export const OvertimeCalculator = ({ summary, onOvertimeChange }: OvertimeCalcul
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Normal overtime hours (1.5×)
+                Normal overtime hours
               </label>
               <Input
                 type="number"
@@ -169,7 +169,7 @@ export const OvertimeCalculator = ({ summary, onOvertimeChange }: OvertimeCalcul
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Sunday / bank holiday hours (1⅔×)
+                Sunday / bank holiday hours
               </label>
               <Input
                 type="number"
@@ -191,7 +191,7 @@ export const OvertimeCalculator = ({ summary, onOvertimeChange }: OvertimeCalcul
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between gap-4">
                 <span className="text-slate-700">
-                  Normal ({breakdown.normalHours.toFixed(2)}h × £{breakdown.normalRate.toFixed(2)} × 1.5)
+                  Normal ({breakdown.normalHours.toFixed(2)}h × £{breakdown.normalRate.toFixed(2)})
                 </span>
                 <span className="font-semibold text-slate-900">
                   £{breakdown.normalOvertimePay.toFixed(2)}
@@ -200,7 +200,7 @@ export const OvertimeCalculator = ({ summary, onOvertimeChange }: OvertimeCalcul
               <div className="flex items-center justify-between gap-4">
                 <span className="text-slate-700">
                   Sunday / bank holiday ({breakdown.sundayBhHours.toFixed(2)}h × £
-                  {breakdown.sundayBankHolidayRate.toFixed(2)} × 1.667)
+                  {breakdown.sundayBankHolidayRate.toFixed(2)})
                 </span>
                 <span className="font-semibold text-slate-900">
                   £{breakdown.sundayBankHolidayPay.toFixed(2)}

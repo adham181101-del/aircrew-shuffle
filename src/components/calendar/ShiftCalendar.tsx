@@ -2,7 +2,14 @@ import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { getShiftTimeOfDay, deleteShift, updateShiftNote, updateShiftTimeAndNote, type Shift } from '@/lib/shifts'
+import {
+  getShiftTimeOfDay,
+  deleteShift,
+  normalizeTimeRange,
+  updateShiftNote,
+  updateShiftTimeAndNote,
+  type Shift,
+} from '@/lib/shifts'
 import { useMatchMedia } from '@/hooks/useMatchMedia'
 import { useToast } from '@/hooks/use-toast'
 import { useShifts, useInvalidateShifts } from '@/hooks/useShifts'
@@ -328,7 +335,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full shadow-sm shift-double"></div>
-                <span className="text-xs font-medium text-gray-700">Double</span>
+                <span className="text-xs font-medium text-gray-700">Long (&gt;16h)</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full shadow-sm shift-swapped"></div>
@@ -1005,7 +1012,15 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
             <Button
               onClick={async () => {
                 if (!shiftPendingEdit || !user) return
-                const time = `${editStart}-${editEnd}`
+                const time = normalizeTimeRange(`${editStart}-${editEnd}`)
+                if (!time) {
+                  toast({
+                    title: 'Invalid time format',
+                    description: 'Use HH:MM for start and end (e.g. 05:30 and 14:30).',
+                    variant: 'destructive',
+                  })
+                  return
+                }
                 setSaving(true)
                 try {
                   await updateShiftTimeAndNote(shiftPendingEdit.id, user!.id, time, editNote)

@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { User, Lock, MapPin, Building, Hash, Mail } from 'lucide-react';
 import { getCurrentUser, type Staff } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { loadPensionDeductionPercent, savePensionDeductionPercent } from '@/lib/payrollStorage';
+import { DEFAULT_PENSION_DEDUCTION_PERCENT } from '@/lib/payrollConstants';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -25,7 +27,8 @@ const Profile = () => {
     staff_number: '',
     base_location: '',
     can_work_doubles: false,
-    email: ''
+    email: '',
+    pension_deduction_percent: String(DEFAULT_PENSION_DEDUCTION_PERCENT),
   });
   
   // Password change state
@@ -52,7 +55,8 @@ const Profile = () => {
         staff_number: currentUser.staff_number || '',
         base_location: currentUser.base_location || '',
         can_work_doubles: currentUser.can_work_doubles || false,
-        email: currentUser.email || ''
+        email: currentUser.email || '',
+        pension_deduction_percent: loadPensionDeductionPercent(currentUser.id),
       });
     } catch (error) {
       toast({
@@ -84,6 +88,15 @@ const Profile = () => {
       if (staffError) {
         console.error('Error updating staff profile:', staffError);
         throw staffError;
+      }
+
+      savePensionDeductionPercent(user.id, formData.pension_deduction_percent)
+
+      const { error: metaError } = await supabase.auth.updateUser({
+        data: { pension_deduction_percent: formData.pension_deduction_percent },
+      })
+      if (metaError) {
+        console.warn('Could not sync pension % to account metadata:', metaError)
       }
 
       // Update auth email if changed
@@ -284,6 +297,25 @@ const Profile = () => {
                     <Label htmlFor="can_work_doubles">Can work double shifts</Label>
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="pension_deduction_percent">Pension deduction (% of base salary)</Label>
+                    <Input
+                      id="pension_deduction_percent"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={formData.pension_deduction_percent}
+                      onChange={(e) =>
+                        setFormData({ ...formData, pension_deduction_percent: e.target.value })
+                      }
+                      placeholder="e.g. 2"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Deducted from base salary only on the Premiums calculator (typically 2%).
+                    </p>
+                  </div>
+
                   <div className="flex gap-2">
                     <Button onClick={handleSaveProfile} disabled={saving}>
                       {saving ? 'Saving...' : 'Save Changes'}
@@ -317,6 +349,14 @@ const Profile = () => {
                     <p className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                       {user?.base_location || 'Not set'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-muted-foreground">Pension deduction</Label>
+                    <p className="text-sm">
+                      {formData.pension_deduction_percent || String(DEFAULT_PENSION_DEDUCTION_PERCENT)}% of base
+                      salary (Premiums tab)
                     </p>
                   </div>
 

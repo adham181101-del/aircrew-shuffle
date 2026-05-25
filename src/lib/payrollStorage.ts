@@ -62,12 +62,24 @@ export function savePeriodBaseSalary(periodId: string, value: string): void {
   writeJson(`${PERIOD_PREFIX}${periodId}_salary`, { value })
 }
 
+const PENSION_PREFIX = 'aircrew_pension_pct_v1_'
+
+export function loadPensionDeductionPercent(staffId: string): string {
+  if (!staffId) return '2'
+  return readJson(`${PENSION_PREFIX}${staffId}`, { percent: '2' }).percent ?? '2'
+}
+
+export function savePensionDeductionPercent(staffId: string, percent: string): void {
+  if (!staffId) return
+  writeJson(`${PENSION_PREFIX}${staffId}`, { percent })
+}
+
 export function parsePositive(value: string): number {
   const n = parseFloat(value)
   return Number.isFinite(n) && n > 0 ? n : 0
 }
 
-/** Normal OT at 1.5×; Sunday / bank holiday OT at 1⅔× (5/3). */
+/** OT pay = hours × rate entered (rates already include any uplift). */
 export function computeOvertimeBreakdown(
   normalHours: string,
   sundayBankHolidayHours: string,
@@ -79,8 +91,8 @@ export function computeOvertimeBreakdown(
   const nr = parsePositive(normalRate)
   const sbr = parsePositive(sundayBankHolidayRate)
 
-  const normalOvertimePay = nh * nr * 1.5
-  const sundayBankHolidayPay = sbh * sbr * (5 / 3)
+  const normalOvertimePay = nh * nr
+  const sundayBankHolidayPay = sbh * sbr
   const overtimePay = normalOvertimePay + sundayBankHolidayPay
 
   return {
