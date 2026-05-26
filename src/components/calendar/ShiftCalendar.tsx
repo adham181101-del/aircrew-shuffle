@@ -1023,9 +1023,19 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 }
                 setSaving(true)
                 try {
-                  await updateShiftTimeAndNote(shiftPendingEdit.id, user!.id, time, editNote)
+                  const result = await updateShiftTimeAndNote(shiftPendingEdit.id, user!.id, time, editNote)
                   await invalidateShifts.mutateAsync()
-                  toast({ title: 'Shift updated', description: 'The shift details were saved.' })
+                  if (result.noteSaved) {
+                    toast({ title: 'Shift updated', description: 'The shift details were saved.' })
+                  } else {
+                    toast({
+                      title: 'Shift time saved',
+                      description:
+                        result.noteSkippedReason ??
+                        'Your note could not be saved until the database is updated.',
+                      variant: 'destructive',
+                    })
+                  }
                   setEditOpen(false)
                   setShiftPendingEdit(null)
                 } catch (error) {

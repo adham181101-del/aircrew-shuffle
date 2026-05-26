@@ -47,6 +47,18 @@ export const isValidTimeRange = (timeRange: string): boolean => {
   return normalizeTimeRange(timeRange) !== null
 }
 
+const NOTE_COLUMN_SETUP_HINT =
+  'Shift notes need a one-time database update. In Supabase → SQL Editor, run: ALTER TABLE public.shifts ADD COLUMN IF NOT EXISTS note TEXT;'
+
+function isNoteColumnMissingError(error: { code?: string; message?: string }): boolean {
+  const msg = (error.message ?? '').toLowerCase()
+  return (
+    error.code === 'PGRST204' ||
+    msg.includes('note') &&
+      (msg.includes('column') || msg.includes('schema cache') || msg.includes('could not find'))
+  )
+}
+
 /** Hours worked for a single shift time range (handles overnight). */
 export const getShiftDurationHours = (timeRange: string): number => {
   const normalized = normalizeTimeRange(timeRange)
@@ -293,12 +305,18 @@ export const updateShiftNote = async (
     .single()
 
   if (error) {
-    if (error.code === 'PGRST204' && /note/.test(error.message ?? '')) {
-      throw new Error('Notes are not enabled on the server yet. Run the latest database migration.')
+    if (isNoteColumnMissingError(error)) {
+      throw new Error(NOTE_COLUMN_SETUP_HINT)
     }
     throw error
   }
   return data
+}
+
+export type UpdateShiftTimeAndNoteResult = {
+  shift: Shift
+  noteSaved: boolean
+  noteSkippedReason?: string
 }
 
 export const updateShiftTimeAndNote = async (
@@ -306,7 +324,7 @@ export const updateShiftTimeAndNote = async (
   staffId: string,
   time: string,
   note: string | null
-): Promise<Shift> => {
+): Promise<UpdateShiftTimeAndNoteResult> => {
   const normalizedTime = normalizeTimeRange(time)
   if (!normalizedTime) {
     throw new Error('Invalid time format. Use HH:MM-HH:MM')
@@ -322,13 +340,28 @@ export const updateShiftTimeAndNote = async (
     .select()
     .single()
 
-  if (error) {
-    if (error.code === 'PGRST204' && /note/.test(error.message ?? '')) {
-      throw new Error('Notes are not enabled on the server yet. Run the latest database migration.')
-    }
-    throw error
+  if (!error) {
+    return { shift: data, noteSaved: true }
   }
-  return data
+
+  if (isNoteColumnMissingError(error)) {
+    const { data: timeOnly, error: timeError } = await supabase
+      .from('shifts')
+      .update({ time: normalizedTime })
+      .eq('id', shiftId)
+      .eq('staff_id', staffId)
+      .select()
+      .single()
+
+    if (timeError) throw timeError
+    return {
+      shift: timeOnly,
+      noteSaved: false,
+      noteSkippedReason: NOTE_COLUMN_SETUP_HINT,
+    }
+  }
+
+  throw error
 }
 
 export const deleteAllShifts = async (staffId: string): Promise<void> => {
@@ -619,6 +652,18 @@ export const validateWHL = async (
   return {
     isValid: violations.length === 0,
     violations
+  }
+}
+
+/** Throws if adding/working the shift would breach WHL rules. */
+export const assertWHLCompliance = async (
+  staffId: string,
+  shiftDate: string,
+  shiftTime: string
+): Promise<void> => {
+  const result = await validateWHL(staffId, shiftDate, shiftTime)
+  if (!result.isValid) {
+    throw new Error(result.violations.join('; '))
   }
 }
 

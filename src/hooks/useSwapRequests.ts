@@ -43,6 +43,7 @@ const loadIncomingRequests = async (userId: string): Promise<SwapRequestWithDeta
       requester_shift:shifts!swap_requests_requester_shift_id_fkey(*)
     `)
     .eq('accepter_id', userId)
+    .eq('status', 'pending')
     .order('created_at', { ascending: false })
 
   if (error) {

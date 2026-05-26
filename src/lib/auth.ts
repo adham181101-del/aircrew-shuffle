@@ -265,52 +265,52 @@ export const getCurrentUser = async (): Promise<(Staff & { company: Company }) |
       // Try to fetch staff profile with timeout
       let staff = null;
       
-      try {
-        const { data, error } = await supabase
-          .from('staff')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
-        
-        if (!error && data) {
-          staff = data;
-        }
-      } catch (fetchError) {
-        // Continue with fallback if staff fetch fails
-        console.log('Staff fetch failed, using fallback data');
+      const { data, error: staffError } = await supabase
+        .from('staff')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (staffError) {
+        console.error('Staff profile fetch failed:', staffError);
+        throw new Error('Unable to load your staff profile. Please try again.');
       }
 
-      // Create working user object
-      const workingUser = staff || {
-        id: user.id,
-        email: user.email || '',
-        staff_number: user.user_metadata?.staff_number || '254575',
-        base_location: user.user_metadata?.base_location || 'Iberia CER',
-        can_work_doubles: user.user_metadata?.can_work_doubles || true,
-        company_id: user.user_metadata?.company_id || '',
-        created_at: user.created_at || new Date().toISOString()
-      };
+      if (!data) {
+        console.error('No staff profile for user:', user.id);
+        return null;
+      }
 
-      // Create working company object
-      const workingCompany: Company = {
-        id: workingUser.company_id || 'ba-company-id',
-        name: 'British Airways',
-        industry: 'Aviation',
-        email_domain: 'ba.com',
-        config: {
-          bases: ['Iberia CER', 'British Airways CER', 'Iberia IOL', 'British Airways CEL', 'Baggage Handlers', 'Drivers', 'Crew', 'Allocation', 'Resourcing'],
-          features: {
-            premium_calculator: true,
-            shift_swapping: true
-          }
-        },
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      staff = data;
+
+      let company: Company | null = null;
+      if (staff.company_id) {
+        const { data: companyData, error: companyError } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', staff.company_id)
+          .maybeSingle();
+
+        if (!companyError && companyData) {
+          company = companyData as Company;
+        }
+      }
+
+      if (!company && user.email?.includes('@')) {
+        const domain = user.email.split('@')[1]?.toLowerCase();
+        if (domain) {
+          company = await getCompanyByDomain(domain);
+        }
+      }
+
+      if (!company) {
+        console.error('Company not found for staff:', staff.id);
+        return null;
+      }
 
       return {
-        ...workingUser,
-        company: workingCompany
+        ...staff,
+        company
       };
     })();
 

@@ -8,7 +8,13 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { enGB } from "date-fns/locale";
 import { getCurrentUser, type Staff } from "@/lib/auth";
-import { validateWHL, executeShiftSwap } from '@/lib/shifts';
+import { assertWHLCompliance } from '@/lib/shifts';
+import {
+  completeSwapAcceptance,
+  revokeAllPendingSwapRequestsForShift,
+  verifyRequesterShiftExists,
+  resolveCounterOfferShiftTime,
+} from '@/lib/swapRequests';
 import { supabase } from "@/integrations/supabase/client";
 import { useIncomingSwapRequests, useMySwapRequests, useInvalidateSwapRequests, type SwapRequestWithDetails } from "@/hooks/useSwapRequests";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -54,6 +60,11 @@ const ManageSwaps = () => {
   const invalidateSwapRequests = useInvalidateSwapRequests()
   
   const loading = incomingLoading || myRequestsLoading
+
+  const pendingIncomingRequests = useMemo(
+    () => incomingRequests.filter((r) => r.status === 'pending'),
+    [incomingRequests]
+  )
 
   // Deep-link: open a specific swap request from notifications
   useEffect(() => {
@@ -522,8 +533,42 @@ const ManageSwaps = () => {
         return;
       }
 
-      // Extract the date from the selected shift ID (format: "counter-offer-YYYY-MM-DD")
-      // or find the shift in availableShifts to get the date
+      const swapRequest = incomingRequests.find((req) => req.id === swapId);
+      if (!swapRequest?.requester_shift) {
+        toast({
+          title: "Error",
+          description: "Swap request not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (swapRequest.status !== 'pending') {
+        toast({
+          title: "Request no longer active",
+          description: "This swap was already accepted, declined, or cancelled.",
+          variant: "destructive"
+        });
+        await invalidateSwapRequests.mutateAsync();
+        return;
+      }
+
+      if (!(await verifyRequesterShiftExists(swapRequest.requester_shift_id))) {
+        toast({
+          title: "Shift already covered",
+          description: "This shift is no longer available to swap.",
+          variant: "destructive"
+        });
+        await invalidateSwapRequests.mutateAsync();
+        return;
+      }
+
+      await assertWHLCompliance(
+        user.id,
+        swapRequest.requester_shift.date,
+        swapRequest.requester_shift.time
+      );
+
       const selectedShift = availableShifts.find(s => s.id === selectedShiftId);
       if (!selectedShift) {
         toast({
@@ -534,9 +579,8 @@ const ManageSwaps = () => {
         return;
       }
 
-      const counterOfferDate = selectedShift.date; // This is now in YYYY-MM-DD format
+      const counterOfferDate = selectedShift.date;
 
-      // Update the swap request with the counter-offer date
       const { error } = await supabase
         .from('swap_requests')
         .update({ 
@@ -560,17 +604,20 @@ const ManageSwaps = () => {
       });
 
       // Reload the requests
-      await loadIncomingRequests(user.id);
-      
-      // Reset the counter-offer UI
+      if (user) {
+        await invalidateSwapRequests.mutateAsync();
+      }
+
       setShowCounterOffer(null);
       setSelectedCounterShift("");
       setAvailableShifts([]);
     } catch (error) {
       console.error('Error sending counter-offer:', error);
+      const message =
+        error instanceof Error ? error.message : 'Failed to send counter-offer';
       toast({
         title: "Error",
-        description: "Failed to send counter-offer",
+        description: message,
         variant: "destructive"
       });
     }
@@ -604,13 +651,17 @@ const ManageSwaps = () => {
 
   const handleAcceptDirectSwap = async (swapId: string) => {
     try {
-      console.log('=== ACCEPTING DIRECT SWAP ===');
-      console.log('Swap ID:', swapId);
-      
-      // Find the swap request to get all the details
-      const swapRequest = incomingRequests.find(req => req.id === swapId);
-      if (!swapRequest) {
-        console.error('Swap request not found');
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "User not authenticated",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const swapRequest = incomingRequests.find((req) => req.id === swapId);
+      if (!swapRequest?.requester_shift) {
         toast({
           title: "Error",
           description: "Swap request not found",
@@ -619,51 +670,54 @@ const ManageSwaps = () => {
         return;
       }
 
-      console.log('Found swap request:', swapRequest);
-      
-      // Update the swap request status to accepted
-      const { error } = await supabase
-        .from('swap_requests')
-        .update({ 
-          status: 'accepted'
-        })
-        .eq('id', swapId);
-
-      if (error) {
-        console.error('Error accepting direct swap:', error);
-        throw error;
+      if (swapRequest.status !== 'pending') {
+        toast({
+          title: "Request no longer active",
+          description: "This swap was already accepted, declined, or cancelled.",
+          variant: "destructive"
+        });
+        await invalidateSwapRequests.mutateAsync();
+        return;
       }
 
-      console.log('Direct swap accepted, now executing shift swap...');
+      if (!(await verifyRequesterShiftExists(swapRequest.requester_shift_id))) {
+        toast({
+          title: "Shift already covered",
+          description: "This shift is no longer available to swap.",
+          variant: "destructive"
+        });
+        await invalidateSwapRequests.mutateAsync();
+        return;
+      }
 
-      // Execute the actual shift swap
-      await executeShiftSwap(swapRequest);
+      await assertWHLCompliance(
+        user.id,
+        swapRequest.requester_shift.date,
+        swapRequest.requester_shift.time
+      );
 
-      console.log('Direct swap accepted and shift swap executed successfully');
+      await completeSwapAcceptance(swapRequest);
 
       toast({
         title: "Swap Accepted",
         description: "You have accepted the swap and the shifts have been exchanged",
       });
 
-      // Refresh the calendar to show the new shifts
-      if (typeof window !== 'undefined' && (window as any).refreshCalendarShifts) {
-        (window as any).refreshCalendarShifts();
+      if (typeof window !== 'undefined' && (window as Window & { refreshCalendarShifts?: () => void }).refreshCalendarShifts) {
+        (window as Window & { refreshCalendarShifts?: () => void }).refreshCalendarShifts?.();
       }
 
-      // Force a page reload to ensure all calendars are updated
       setTimeout(() => {
         window.location.reload();
       }, 1000);
 
-      if (user) {
-        await invalidateSwapRequests.mutateAsync();
-      }
+      await invalidateSwapRequests.mutateAsync();
     } catch (error) {
       console.error('Error in handleAcceptDirectSwap:', error);
+      const message = error instanceof Error ? error.message : 'Failed to accept swap';
       toast({
         title: "Error",
-        description: "Failed to accept swap",
+        description: message,
         variant: "destructive"
       });
     }
@@ -671,13 +725,17 @@ const ManageSwaps = () => {
 
   const handleAcceptCounterOffer = async (swapId: string) => {
     try {
-      console.log('=== ACCEPTING COUNTER-OFFER ===');
-      console.log('Swap ID:', swapId);
-      
-      // Find the swap request to get all the details
-      const swapRequest = myRequests.find(req => req.id === swapId);
-      if (!swapRequest) {
-        console.error('Swap request not found');
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "User not authenticated",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const swapRequest = myRequests.find((req) => req.id === swapId);
+      if (!swapRequest?.requester_shift || !swapRequest.counter_offer_date || !swapRequest.accepter_id) {
         toast({
           title: "Error",
           description: "Swap request not found",
@@ -686,51 +744,60 @@ const ManageSwaps = () => {
         return;
       }
 
-      console.log('Found swap request:', swapRequest);
-      
-      // Update the swap request status to accepted
-      const { error } = await supabase
-        .from('swap_requests')
-        .update({ 
-          status: 'accepted'
-        })
-        .eq('id', swapId);
-
-      if (error) {
-        console.error('Error accepting counter-offer:', error);
-        throw error;
+      if (swapRequest.status !== 'pending') {
+        toast({
+          title: "Request no longer active",
+          description: "This counter-offer was already handled.",
+          variant: "destructive"
+        });
+        await invalidateSwapRequests.mutateAsync();
+        return;
       }
 
-      console.log('Counter-offer accepted, now executing shift swap...');
+      if (!(await verifyRequesterShiftExists(swapRequest.requester_shift_id))) {
+        toast({
+          title: "Shift already covered",
+          description: "This shift is no longer available to swap.",
+          variant: "destructive"
+        });
+        await invalidateSwapRequests.mutateAsync();
+        return;
+      }
 
-      // Execute the actual shift swap
-      await executeShiftSwap(swapRequest);
+      const counterShiftTime = await resolveCounterOfferShiftTime(
+        swapRequest.accepter_id,
+        swapRequest.counter_offer_date,
+        swapRequest.requester_shift.time
+      );
 
-      console.log('Counter-offer accepted and shift swap executed successfully');
+      await assertWHLCompliance(
+        user.id,
+        swapRequest.counter_offer_date,
+        counterShiftTime
+      );
+
+      await completeSwapAcceptance(swapRequest);
 
       toast({
         title: "Counter-Offer Accepted",
         description: "You have accepted the counter-offer and the shifts have been swapped",
       });
 
-      // Refresh the calendar to show the new shifts
-      if (typeof window !== 'undefined' && (window as any).refreshCalendarShifts) {
-        (window as any).refreshCalendarShifts();
+      if (typeof window !== 'undefined' && (window as Window & { refreshCalendarShifts?: () => void }).refreshCalendarShifts) {
+        (window as Window & { refreshCalendarShifts?: () => void }).refreshCalendarShifts?.();
       }
 
-      // Force a page reload to ensure all calendars are updated
       setTimeout(() => {
         window.location.reload();
       }, 1000);
 
-      if (user) {
-        await invalidateSwapRequests.mutateAsync();
-      }
+      await invalidateSwapRequests.mutateAsync();
     } catch (error) {
       console.error('Error in handleAcceptCounterOffer:', error);
+      const message = error instanceof Error ? error.message : 'Failed to accept counter-offer';
       toast({
         title: "Error",
-        description: "Failed to accept counter-offer",
+        description: message,
         variant: "destructive"
       });
     }
@@ -815,22 +882,17 @@ const ManageSwaps = () => {
         return;
       }
 
-      // Delete the swap request completely
-      const { error: deleteError } = await supabase
-        .from('swap_requests')
-        .delete()
-        .eq('id', swapId);
-
-      if (deleteError) {
-        console.error('Error revoking swap request:', deleteError);
-        throw deleteError;
-      }
-
-      console.log('Swap request revoked successfully');
+      const revokedCount = await revokeAllPendingSwapRequestsForShift(
+        user.id,
+        swapRequest.requester_shift_id
+      );
 
       toast({
         title: "Request Revoked",
-        description: "Your swap request has been cancelled and removed from all recipients",
+        description:
+          revokedCount > 1
+            ? `Cancelled ${revokedCount} pending requests to all recipients.`
+            : 'Your swap request has been cancelled.',
       });
 
       // Refresh the requests
@@ -1018,7 +1080,7 @@ const ManageSwaps = () => {
                   <div className="flex items-center justify-between w-full gap-3">
                     <span className="font-medium text-sm sm:text-base">Incoming</span>
                     <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200 shrink-0">
-                      {incomingRequests.length}
+                      {pendingIncomingRequests.length}
                     </Badge>
                   </div>
                 </Button>
@@ -1097,7 +1159,7 @@ const ManageSwaps = () => {
                     <p className="text-gray-600">Review and respond to swap requests from other crew members.</p>
                 </div>
 
-                {incomingRequests.length === 0 ? (
+                {pendingIncomingRequests.length === 0 ? (
                     <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 shadow-lg">
                       <CardHeader className="text-center pb-4">
                         <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -1119,7 +1181,7 @@ const ManageSwaps = () => {
                   </Card>
                 ) : (
                   <div className="space-y-4">
-                    {incomingRequests.map((request) => (
+                    {pendingIncomingRequests.map((request) => (
                         <Card key={request.id} className="bg-gradient-to-br from-white to-blue-50 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300">
                           <CardHeader className="pb-4">
                             <div className="flex items-start justify-between">
