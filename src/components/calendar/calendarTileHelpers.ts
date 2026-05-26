@@ -20,6 +20,15 @@ export const buildMonthGrid = (currentMonth: Date): Array<Date | null> => {
   return cells
 }
 
+export function isToday(date: Date): boolean {
+  const today = new Date()
+  return (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  )
+}
+
 export const formatDateStr = (d: Date): string => {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')

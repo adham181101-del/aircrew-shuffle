@@ -433,12 +433,12 @@ const Dashboard = () => {
         </div>
 
         <div className="relative">
-          {activeTab === 'calendar' && (
+          <div className={activeTab === 'calendar' ? 'block' : 'hidden'}>
             <ShiftCalendar
               onShiftClick={handleShiftClick}
               onCreateShift={() => navigate('/shifts/create')}
             />
-          )}
+          </div>
           <div className={activeTab === 'premiums' ? 'block' : 'hidden'}>
             <PremiumCalculator onTotalsChange={setPremiumSummary} overtimeRefresh={overtimeRefresh} />
           </div>

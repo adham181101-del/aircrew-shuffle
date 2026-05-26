@@ -15,6 +15,8 @@ import {
   verifyRequesterShiftExists,
   resolveCounterOfferShiftTime,
 } from '@/lib/swapRequests';
+import { groupSwapRequestsByShift } from '@/lib/swapBroadcastSummary';
+import { SwapBroadcastHubCard } from '@/components/swaps/SwapBroadcastHubCard';
 import { supabase } from "@/integrations/supabase/client";
 import { useIncomingSwapRequests, useMySwapRequests, useInvalidateSwapRequests, type SwapRequestWithDetails } from "@/hooks/useSwapRequests";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -64,6 +66,11 @@ const ManageSwaps = () => {
   const pendingIncomingRequests = useMemo(
     () => incomingRequests.filter((r) => r.status === 'pending'),
     [incomingRequests]
+  )
+
+  const swapBroadcasts = useMemo(
+    () => groupSwapRequestsByShift(myRequests),
+    [myRequests]
   )
 
   // Deep-link: open a specific swap request from notifications
@@ -1112,7 +1119,7 @@ const ManageSwaps = () => {
                   <div className="flex items-center justify-between w-full gap-3">
                     <span className="font-medium text-sm sm:text-base">My Requests</span>
                     <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200 shrink-0">
-                      {myRequests.length}
+                      {swapBroadcasts.length}
                     </Badge>
                   </div>
                 </Button>
@@ -1511,7 +1518,7 @@ const ManageSwaps = () => {
                     <p className="text-gray-600">Track swap requests you've sent to other crew members.</p>
                 </div>
 
-                {myRequests.length === 0 ? (
+                {swapBroadcasts.length === 0 ? (
                     <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 shadow-lg">
                     <CardContent className="pt-6 text-center">
                       <ArrowLeftRight className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -1526,109 +1533,13 @@ const ManageSwaps = () => {
                   </Card>
                 ) : (
                   <div className="space-y-4">
-                    {myRequests.map((request) => (
-                      <Card key={request.id}>
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <CardTitle>Request to {request.accepter_staff?.staff_number || 'Staff Member'}</CardTitle>
-                            <Badge variant={getStatusBadge(request.status)}>
-                              {request.status}
-                            </Badge>
-                          </div>
-                          <CardDescription>
-                            Sent {format(new Date(request.created_at), 'd MMM yyyy', { locale: enGB })}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
-                            <h4 className="font-medium text-sm mb-2">YOUR SHIFT TO SWAP</h4>
-                            <div className="flex items-center gap-4">
-                              <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4" />
-                                <span>{request.requester_shift?.date}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4" />
-                                <span>{request.requester_shift?.time}</span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {request.status === 'accepted' && request.accepter_shift && (
-                            <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg mt-3">
-                              <h4 className="font-medium text-sm mb-2">SWAP ACCEPTED</h4>
-                              <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="h-4 w-4" />
-                                  <span>{request.accepter_shift?.date}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Clock className="h-4 w-4" />
-                                  <span>{request.accepter_shift?.time}</span>
-                                </div>
-                              </div>
-                              <p className="text-xs text-green-700 dark:text-green-300 mt-2">
-                                {request.accepter_staff?.staff_number} will cover your shift on {request.requester_shift?.date}
-                              </p>
-                            </div>
-                          )}
-                          
-                          {request.status === 'pending' && request.counter_offer_date && (
-                            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg mt-3">
-                              <h4 className="font-medium text-sm mb-2">COUNTER-OFFER PENDING</h4>
-                              <p className="text-xs text-blue-700 dark:text-blue-300">
-                                A counter-offer has been made. Check the "Counter Offers" tab to review it.
-                              </p>
-                            </div>
-                          )}
-
-                            {/* Action Buttons */}
-                            <div className="mt-4 flex flex-wrap gap-2">
-                              {request.status === 'pending' && (
-                                <>
-                                  <Button
-                                    onClick={() => openRevokeDialog(request.id)}
-                                    variant="destructive"
-                                    size="sm"
-                                    className="bg-red-600 hover:bg-red-700 text-white"
-                                  >
-                                    Revoke Request
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                                    onClick={() => navigate('/swaps')}
-                                  >
-                                    View Details
-                                  </Button>
-                                </>
-                              )}
-                              
-                              {request.status === 'accepted' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="border-green-300 text-green-700 hover:bg-green-50"
-                                  onClick={() => navigate('/swaps')}
-                                >
-                                  View Swap Details
-                                </Button>
-                              )}
-                              
-              {request.status === 'declined' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-red-300 text-red-700 hover:bg-red-50"
-                  onClick={() => navigate('/swaps')}
-                >
-                  View Details
-                </Button>
-              )}
-            </div>
-                        </CardContent>
-                      </Card>
+                    {swapBroadcasts.map((summary) => (
+                      <SwapBroadcastHubCard
+                        key={summary.requesterShiftId}
+                        summary={summary}
+                        onRevoke={openRevokeDialog}
+                        onReviewCounterOffers={() => setActiveTab('counter-offers')}
+                      />
                     ))}
                   </div>
                 )}

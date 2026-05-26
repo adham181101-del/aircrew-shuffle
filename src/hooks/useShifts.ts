@@ -28,10 +28,10 @@ export const useShifts = () => {
       profiler.mark('fetch shifts end', 'fetch')
       return { shifts, userId: user.id }
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes - shifts don't change often
-    gcTime: 10 * 60 * 1000, // 10 minutes cache
-    refetchOnWindowFocus: false, // Don't refetch on tab focus
-    refetchOnMount: false, // Use cache if available
+    staleTime: 30 * 1000, // Short stale window so edits show quickly after refetch
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 }
 
@@ -48,10 +48,10 @@ export const useUserShifts = (userId: string | null) => {
       return shifts
     },
     enabled: !!userId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 30 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 }
 
@@ -64,7 +64,8 @@ export const useInvalidateShifts = () => {
   return useMutation({
     mutationFn: async () => {
       await queryClient.invalidateQueries({ queryKey: shiftKeys.all })
-      profiler.mark('shifts cache invalidated', 'fetch')
+      await queryClient.refetchQueries({ queryKey: shiftKeys.all, type: 'active' })
+      profiler.mark('shifts cache invalidated and refetched', 'fetch')
     },
   })
 }

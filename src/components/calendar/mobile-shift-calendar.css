@@ -105,6 +105,16 @@
     0 4px 14px rgba(37, 99, 235, 0.28);
 }
 
+.msc-day--today {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
+.msc-day--today.msc-day--selected {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 0;
+}
+
 .msc-day :where(.msc-date, .msc-shift, .msc-time-line) {
   margin: 0;
   padding: 0;

@@ -5,6 +5,7 @@ import type { Shift } from '@/lib/shifts'
 import {
   WEEKDAY_LABELS,
   formatDateStr,
+  isToday,
   getMobileShiftAbbrevLine,
   splitShiftTimeRange,
   getMobileTilePalette,
@@ -92,6 +93,7 @@ export function MobileShiftCalendar({
           const dayShifts = getShiftsForDate(cellDate)
           const primaryShift = dayShifts[0] ?? null
           const selected = isSameDay(selectedDate, cellDate)
+          const todayCell = isToday(cellDate)
           const paletteKey = getMobileTilePalette(primaryShift, isLeave)
           const modifier = DAY_MODIFIER[paletteKey]
           const timeParts = primaryShift ? splitShiftTimeRange(primaryShift.time) : null
@@ -108,7 +110,9 @@ export function MobileShiftCalendar({
                   : `${dateStr}, ${isLeave ? 'leave' : 'off'}`
               }
             >
-              <div className={`msc-day ${modifier}${selected ? ' msc-day--selected' : ''}`}>
+              <div
+                className={`msc-day ${modifier}${selected ? ' msc-day--selected' : ''}${todayCell ? ' msc-day--today' : ''}`}
+              >
                 <p className="msc-date">{cellDate.getDate()}</p>
 
                 {primaryShift && timeParts && (

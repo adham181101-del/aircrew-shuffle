@@ -40,6 +40,7 @@ import { MobileShiftCalendar } from './MobileShiftCalendar'
 import {
   buildMonthGrid,
   formatDateStr,
+  isToday,
   getDesktopShiftTileLabel,
   getShiftPaletteClass,
   splitShiftTimeRange,
@@ -269,13 +270,14 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                     const isLeaveDay = leaveDatesSet.has(dateStr)
                     const primaryShift = dayShifts[0]
                     const selected = isSameDay(selectedDate, cellDate)
+                    const todayCell = isToday(cellDate)
 
                     return (
                       <button
                         type="button"
                         key={dateStr}
                         onClick={() => openDayActions(cellDate)}
-                        className={`calendar-day-cell ${selected ? 'is-selected' : ''}`}
+                        className={`calendar-day-cell ${selected ? 'is-selected' : ''} ${todayCell ? 'is-today' : ''}`}
                       >
                         <div className="calendar-tile-content">
                           {primaryShift ? (
@@ -718,6 +720,17 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           background: linear-gradient(180deg, #eff8ff 0%, #e0f2fe 100%);
           border-color: #7dd3fc;
           box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.2);
+        }
+
+        .calendar-day-cell.is-today {
+          outline: 2px solid #2563eb;
+          outline-offset: 2px;
+          border-color: #3b82f6;
+        }
+
+        .calendar-day-cell.is-today.is-selected {
+          outline: 2px solid #1d4ed8;
+          outline-offset: 1px;
         }
 
         .calendar-tile-content {

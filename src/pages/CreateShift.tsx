@@ -8,11 +8,13 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { createShift } from "@/lib/shifts";
 import { getCurrentUser } from "@/lib/auth";
+import { useInvalidateShifts } from "@/hooks/useShifts";
 import { Calendar, Clock, ArrowLeft } from "lucide-react";
 
 const CreateShift = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const invalidateShifts = useInvalidateShifts();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     date: "",
@@ -50,12 +52,13 @@ const CreateShift = () => {
       const timeRange = `${formData.startTime}-${formData.endTime}`;
       
       await createShift(formData.date, timeRange, user.id, formData.note);
-      
+      await invalidateShifts.mutateAsync();
+
       toast({
         title: "Shift Created",
         description: "Your shift has been added successfully",
       });
-      
+
       navigate('/dashboard');
     } catch (error) {
       toast({

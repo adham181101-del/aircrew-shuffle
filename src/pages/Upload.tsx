@@ -1,23 +1,47 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, AlertCircle, CheckCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Upload, FileText, AlertCircle, CheckCircle, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useInvalidateShifts } from "@/hooks/useShifts";
+import { CircularProgress } from "@/components/ui/circular-progress";
 import { upsertShift, parseShiftsFromText, clearAllShiftsForUser, getUserShifts } from "@/lib/shifts";
-import { parseLeaveDaysFromText, replaceAllLeaveDaysForUser } from "@/lib/leave";
+import { parseLeaveDaysFromText, replaceAllLeaveDaysForUser, getMyLeaveDays } from "@/lib/leave";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  computeRosterDiff,
+  dedupeShiftsByDate,
+  formatRosterDiffSummary,
+  formatShiftDate,
+  rosterDiffHasChanges,
+  type RosterDiff,
+} from "@/lib/rosterDiff";
+
+type ProcessingStep = 'upload' | 'extract' | 'preview' | 'save' | 'complete';
 
 const UploadPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const invalidateShifts = useInvalidateShifts();
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [extractedShifts, setExtractedShifts] = useState<Array<{date: string, time: string}>>([]);
-  const [processingStep, setProcessingStep] = useState<'upload' | 'extract' | 'save' | 'complete'>('upload');
+  const [processingStep, setProcessingStep] = useState<ProcessingStep>('upload');
+  const [rosterDiff, setRosterDiff] = useState<RosterDiff | null>(null);
+  const [pendingPdfShifts, setPendingPdfShifts] = useState<Array<{ date: string; time: string }>>([]);
+  const [pendingLeaveDates, setPendingLeaveDates] = useState<string[]>([]);
 
-  console.log('🚀 UPLOAD PAGE LOADED - CONSOLE IS WORKING!');
+  const resetPreview = () => {
+    setRosterDiff(null);
+    setPendingPdfShifts([]);
+    setPendingLeaveDates([]);
+    setProcessingStep('upload');
+    setExtractedShifts([]);
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -34,6 +58,7 @@ const UploadPage = () => {
     const files = e.dataTransfer.files;
     if (files[0]?.type === 'application/pdf') {
       setSelectedFile(files[0]);
+      resetPreview();
     }
   };
 
@@ -41,6 +66,7 @@ const UploadPage = () => {
     const file = e.target.files?.[0];
     if (file?.type === 'application/pdf') {
       setSelectedFile(file);
+      resetPreview();
     }
   };
 
@@ -48,36 +74,33 @@ const UploadPage = () => {
     return new Promise(async (resolve, reject) => {
       try {
         const arrayBuffer = await file.arrayBuffer();
-        
-        // Use pdf.js to extract text properly
-        const pdfjsLib: any = await import('pdfjs-dist');
+        const pdfjsLib: {
+          GlobalWorkerOptions: { workerSrc: string };
+          getDocument: (opts: object) => { promise: Promise<{ numPages: number }> };
+        } = await import('pdfjs-dist');
 
-        // Prefer a same-origin worker URL resolved by Vite to avoid CORS/mixed-content issues
         try {
-          const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default
-          pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl
+          const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
+          pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
         } catch {
-          // Fallback to CDN if bundler URL resolution fails
-          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.54/pdf.worker.min.js'
+          pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.54/pdf.worker.min.js';
         }
 
-        let pdf
+        let pdf;
         try {
-          pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-        } catch (e) {
-          // Final fallback: disable worker usage
-          console.warn('pdf.js worker failed to initialize, retrying without worker...')
-          pdf = await pdfjsLib.getDocument({ data: arrayBuffer, useWorkerFetch: false }).promise
+          pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        } catch {
+          pdf = await pdfjsLib.getDocument({ data: arrayBuffer, useWorkerFetch: false }).promise;
         }
+
         let fullText = '';
-        
-        // Extract text from all pages, preserving line breaks when available
         for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent: any = await page.getTextContent();
-          const items: any[] = textContent.items || [];
+          const page = await (pdf as { getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: Array<{ str?: string; hasEOL?: boolean }> }> }> }).getPage(i);
+          const textContent = await page.getTextContent();
+          const items = textContent.items || [];
           const pageText = items
-            .map((item: any) => {
+            .map((item) => {
               const str = item?.str ?? '';
               const suffix = item?.hasEOL ? '\n' : ' ';
               return str + suffix;
@@ -86,7 +109,7 @@ const UploadPage = () => {
             .replace(/[ \t]+\n/g, '\n');
           fullText += pageText + '\n';
         }
-        
+
         resolve(fullText);
       } catch (error) {
         console.error('PDF processing error:', error);
@@ -95,147 +118,141 @@ const UploadPage = () => {
     });
   };
 
-  const handleUpload = async () => {
+  const handleAnalyze = async () => {
     if (!selectedFile) return;
-    
+
     setUploading(true);
     setProcessingStep('extract');
-    
+    setUploadProgress(5);
+    setProgressLabel('Reading PDF…');
+    resetPreview();
+
     try {
       const user = await getCurrentUser();
       if (!user) {
         toast({
           title: "Authentication Error",
           description: "Please log in to upload rosters",
-          variant: "destructive"
+          variant: "destructive",
         });
         navigate('/login');
         return;
       }
 
-      // Extract text from PDF
-      toast({
-        title: "Processing...",
-        description: "Extracting text from PDF",
-      });
-      
+      setUploadProgress(35);
+      setProgressLabel('Extracting text…');
       const pdfText = await processPDFFile(selectedFile);
-      
-      // Parse shifts from text
-      setProcessingStep('save');
-      toast({
-        title: "Processing...",
-        description: "Parsing shifts from roster",
-      });
-      
+      setUploadProgress(55);
+      setProgressLabel('Parsing shifts…');
       const shifts = parseShiftsFromText(pdfText);
       const leaveDates = parseLeaveDaysFromText(pdfText);
-      setExtractedShifts(shifts);
-      
-      if (shifts.length === 0 && leaveDates.length === 0) {
+      const uniquePdfShifts = dedupeShiftsByDate(shifts);
+
+      if (uniquePdfShifts.length === 0 && leaveDates.length === 0) {
         toast({
           title: "No Roster Data Found",
-          description: "Could not extract shifts or leave days from the PDF. Please check the roster format.",
-          variant: "destructive"
+          description: "Could not extract shifts or leave days from the PDF.",
+          variant: "destructive",
         });
         return;
       }
 
-      // Keep only one shift per date from the uploaded roster (last occurrence wins).
-      // This makes the latest uploaded PDF the source of truth for the full roster.
-      const latestShiftByDate = new Map<string, string>();
-      for (const shift of shifts) {
-        latestShiftByDate.set(shift.date, shift.time);
-      }
-      const uniquePdfShifts = Array.from(latestShiftByDate.entries()).map(([date, time]) => ({ date, time }));
+      setUploadProgress(75);
+      setProgressLabel('Comparing with your roster…');
+      const existingShifts = await getUserShifts(user.id);
+      const existingLeave = await getMyLeaveDays();
 
-      // Replace existing app shifts so only the uploaded PDF roster remains.
-      toast({
-        title: "Refreshing roster...",
-        description: "Removing previous shifts before applying latest PDF",
-      });
+      const diff = computeRosterDiff(
+        existingShifts.map((s) => ({ date: s.date, time: s.time })),
+        uniquePdfShifts,
+        existingLeave.map((l) => l.date),
+        leaveDates
+      );
 
-      const { deletedCount } = await clearAllShiftsForUser(user.id);
-      console.log(`Cleared ${deletedCount} existing shifts`);
-
-      // Replace leave days with the latest PDF leave markers (LV LEAVE).
-      const { deletedCount: deletedLeaveCount, insertedCount: insertedLeaveCount } =
-        await replaceAllLeaveDaysForUser(user.id, leaveDates);
-      console.log(`Synced leave days. Removed: ${deletedLeaveCount}, Added: ${insertedLeaveCount}`);
-
-      // Save shifts to database
-      toast({
-        title: "Processing...",
-        description: `Syncing ${uniquePdfShifts.length} PDF shifts with your roster`,
-      });
-
-      let createdCount = 0;
-      let updatedCount = 0;
-      let skippedCount = 0;
-      let errorCount = 0;
-
-      console.log('Processing shifts:', uniquePdfShifts.length, 'unique shifts');
-      console.log('User ID:', user.id);
-
-      for (const shift of uniquePdfShifts) {
-        try {
-          console.log('Processing shift:', shift);
-          const result = await upsertShift(shift.date, shift.time, user.id);
-          console.log('Upsert result:', result);
-          if (result.action === 'created') {
-            createdCount++;
-          } else if (result.action === 'updated') {
-            updatedCount++;
-          } else if (result.action === 'skipped') {
-            skippedCount++;
-          }
-        } catch (error) {
-          console.error('Failed to process shift:', shift, error);
-          errorCount++;
-        }
-      }
-
-      console.log('Upload summary - Created:', createdCount, 'Updated:', updatedCount, 'Skipped:', skippedCount, 'Errors:', errorCount);
-      console.log('All processed shifts:', uniquePdfShifts);
-
-      setProcessingStep('complete');
-      
-      const syncedCount = createdCount + updatedCount;
-      let description = `Synced ${syncedCount} shifts from PDF (${createdCount} new, ${updatedCount} updated, ${skippedCount} unchanged)`;
-      description += `. Leave synced: ${insertedLeaveCount} day(s).`;
-      if (errorCount > 0) {
-        description += ` (${errorCount} failed to process)`;
-      }
-      
-      toast({
-        title: "Success!",
-        description: description,
-      });
-
-      // Test: Try to fetch shifts immediately after upload to verify they're saved
-      setTimeout(async () => {
-        try {
-          console.log('Testing: Fetching shifts immediately after upload...');
-          const testShifts = await getUserShifts(user.id);
-          console.log('Immediate fetch result:', testShifts.length, 'shifts found');
-          console.log('Immediate fetch data:', testShifts);
-        } catch (error) {
-          console.error('Error fetching shifts immediately:', error);
-        }
-      }, 1000);
-      
-      // Force a complete page reload to ensure calendar refreshes
-      setTimeout(() => {
-        console.log('Redirecting to dashboard with full reload...');
-        window.location.href = '/dashboard';
-      }, 3000);
-      
+      setExtractedShifts(uniquePdfShifts);
+      setPendingPdfShifts(uniquePdfShifts);
+      setPendingLeaveDates(leaveDates);
+      setRosterDiff(diff);
+      setProcessingStep('preview');
+      setUploadProgress(100);
+      setProgressLabel('');
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to process PDF",
-        variant: "destructive"
+        variant: "destructive",
       });
+      setProcessingStep('upload');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleConfirmApply = async () => {
+    if (!pendingPdfShifts.length && !pendingLeaveDates.length) return;
+
+    setUploading(true);
+    setProcessingStep('save');
+    setUploadProgress(10);
+    setProgressLabel('Clearing old roster…');
+
+    try {
+      const user = await getCurrentUser();
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+
+      await clearAllShiftsForUser(user.id);
+      setUploadProgress(25);
+      setProgressLabel('Syncing leave days…');
+      const { insertedCount: insertedLeaveCount } = await replaceAllLeaveDaysForUser(
+        user.id,
+        pendingLeaveDates
+      );
+
+      let createdCount = 0;
+      let errorCount = 0;
+      const total = pendingPdfShifts.length;
+
+      for (let i = 0; i < pendingPdfShifts.length; i++) {
+        const shift = pendingPdfShifts[i];
+        setProgressLabel(`Saving shifts (${i + 1}/${total})…`);
+        setUploadProgress(25 + Math.round(((i + 1) / Math.max(total, 1)) * 70));
+        try {
+          const result = await upsertShift(shift.date, shift.time, user.id);
+          if (result.action === 'created' || result.action === 'updated') {
+            createdCount++;
+          }
+        } catch {
+          errorCount++;
+        }
+      }
+
+      setUploadProgress(98);
+      setProgressLabel('Refreshing calendar…');
+      await invalidateShifts.mutateAsync();
+
+      setProcessingStep('complete');
+      setUploadProgress(100);
+      setProgressLabel('Done');
+
+      const summary = rosterDiff ? formatRosterDiffSummary(rosterDiff) : 'Roster updated';
+      toast({
+        title: "Roster updated",
+        description: `${summary}. ${createdCount} shift(s) saved, ${insertedLeaveCount} leave day(s).`,
+      });
+
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1200);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save roster",
+        variant: "destructive",
+      });
+      setProcessingStep('preview');
     } finally {
       setUploading(false);
     }
@@ -263,7 +280,7 @@ const UploadPage = () => {
                 Upload Your Roster
               </CardTitle>
               <CardDescription>
-                Upload a PDF file containing your flight roster. The system will automatically extract and parse your shifts.
+                Upload a PDF roster. You will see what changed before anything is overwritten.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -280,9 +297,7 @@ const UploadPage = () => {
                   <p className="text-lg font-medium">
                     Drop your PDF file here, or click to browse
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    Only PDF files are supported
-                  </p>
+                  <p className="text-sm text-muted-foreground">Only PDF files are supported</p>
                 </div>
                 <input
                   type="file"
@@ -298,78 +313,128 @@ const UploadPage = () => {
                 </label>
               </div>
 
-              {selectedFile && (
+              {selectedFile && processingStep !== 'preview' && (
                 <Card>
                   <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-8 w-8 text-red-500" />
-                        <div>
-                          <p className="font-medium">{selectedFile.name}</p>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <FileText className="h-8 w-8 text-red-500 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{selectedFile.name}</p>
                           <p className="text-sm text-muted-foreground">
                             {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                           </p>
                         </div>
                       </div>
-                      <Button 
-                        onClick={handleUpload} 
+                      <Button
+                        onClick={handleAnalyze}
                         disabled={uploading}
-                        className="ml-4"
+                        className="shrink-0"
                       >
-                        {uploading ? 'Processing...' : 'Upload & Process'}
+                        {uploading ? 'Analysing…' : 'Analyse roster'}
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Processing Status */}
-              {uploading && (
+              {uploading && processingStep !== 'preview' && (
                 <Card>
-                  <CardContent className="pt-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                        <div>
-                          <p className="font-medium">Processing PDF...</p>
-                          <p className="text-sm text-muted-foreground">
-                            {processingStep === 'extract' && 'Extracting text from PDF'}
-                            {processingStep === 'save' && 'Parsing and saving shifts'}
-                            {processingStep === 'complete' && 'Finalizing...'}
-                          </p>
-                        </div>
+                  <CardContent className="pt-6 flex flex-col items-center gap-4">
+                    <CircularProgress
+                      value={uploadProgress}
+                      label={progressLabel || (processingStep === 'save' ? 'Applying changes…' : 'Processing PDF…')}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {rosterDiff && processingStep === 'preview' && (
+                <Card className="border-amber-200 bg-amber-50/50">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Review changes</CardTitle>
+                    <CardDescription className="text-base font-medium text-foreground">
+                      {formatRosterDiffSummary(rosterDiff)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {(rosterDiff.changed.length > 0 ||
+                      rosterDiff.added.length > 0 ||
+                      rosterDiff.removed.length > 0) && (
+                      <div className="space-y-2 max-h-48 overflow-y-auto rounded-md border bg-white p-3 text-sm">
+                        {rosterDiff.changed.map((c) => (
+                          <div key={c.date} className="flex justify-between gap-2">
+                            <span className="font-medium">{formatShiftDate(c.date)}</span>
+                            <span className="text-muted-foreground text-right">
+                              {c.fromTime} → {c.toTime}
+                            </span>
+                          </div>
+                        ))}
+                        {rosterDiff.added.map((a) => (
+                          <div key={a.date} className="flex justify-between gap-2 text-green-800">
+                            <span className="font-medium">+ {formatShiftDate(a.date)}</span>
+                            <span>{a.time}</span>
+                          </div>
+                        ))}
+                        {rosterDiff.removed.map((r) => (
+                          <div key={r.date} className="flex justify-between gap-2 text-red-800">
+                            <span className="font-medium">− {formatShiftDate(r.date)}</span>
+                            <span>{r.time}</span>
+                          </div>
+                        ))}
                       </div>
+                    )}
+
+                    {!rosterDiffHasChanges(rosterDiff) && (
+                      <p className="text-sm text-muted-foreground">
+                        Your uploaded roster matches what is already saved. You can still apply to
+                        refresh leave markers and sync from the PDF.
+                      </p>
+                    )}
+
+                    <p className="text-sm text-amber-900">
+                      Applying will replace your saved shifts with this PDF ({pendingPdfShifts.length}{' '}
+                      days). This cannot be undone automatically.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        disabled={uploading}
+                        onClick={() => {
+                          resetPreview();
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        disabled={uploading}
+                        onClick={handleConfirmApply}
+                      >
+                        {uploading ? 'Applying…' : (
+                          <>
+                            Apply changes
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Extracted Shifts Preview */}
               {extractedShifts.length > 0 && processingStep === 'complete' && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <CheckCircle className="h-5 w-5 text-green-600" />
-                      Extracted Shifts
+                      Roster saved
                     </CardTitle>
-                    <CardDescription>
-                      Found {extractedShifts.length} shifts in your roster
-                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                      {extractedShifts.slice(0, 10).map((shift, index) => (
-                        <div key={index} className="flex justify-between items-center p-2 bg-muted rounded">
-                          <span className="font-medium">{new Date(shift.date).toLocaleDateString()}</span>
-                          <span className="text-sm">{shift.time}</span>
-                        </div>
-                      ))}
-                      {extractedShifts.length > 10 && (
-                        <p className="text-sm text-muted-foreground text-center">
-                          ... and {extractedShifts.length - 10} more shifts
-                        </p>
-                      )}
-                    </div>
+                    <p className="text-sm text-muted-foreground">Redirecting to dashboard…</p>
                   </CardContent>
                 </Card>
               )}
@@ -379,10 +444,11 @@ const UploadPage = () => {
                   <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                      Processing Information
+                      How it works
                     </p>
                     <p className="text-sm text-blue-700 dark:text-blue-200">
-                      The system will automatically extract shift information including dates, times, and locations from your PDF roster.
+                      We compare the PDF to your current roster first, then you confirm before
+                      anything is overwritten.
                     </p>
                   </div>
                 </div>
