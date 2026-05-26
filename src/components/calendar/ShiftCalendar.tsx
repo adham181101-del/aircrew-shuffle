@@ -192,7 +192,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
         <CardContent className="p-2 px-0 max-md:pt-2 max-md:pb-3 sm:p-6 sm:px-6 w-full max-w-full min-w-0 overflow-x-hidden">
           <div className={showMobileCalendar ? 'w-full max-w-full min-w-0 overflow-x-hidden' : 'calendar-container'}>
             {!showMobileCalendar && (
-              <div className="mb-6 text-center px-1">
+              <div className="mb-6 text-center px-1 calendar-schedule-intro">
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">Your Shift Schedule</h3>
                 <p className="text-base text-gray-600 leading-snug">
                   Tap a date to add a note, edit, or delete a shift
@@ -289,7 +289,17 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                                 <span className="calendar-shift-label">
                                   {getDesktopShiftTileLabel(primaryShift)}
                                 </span>
-                                <span className="calendar-shift-time">{primaryShift.time}</span>
+                                {(() => {
+                                  const { start, end } = splitShiftTimeRange(primaryShift.time)
+                                  return (
+                                    <span className="calendar-shift-time-row" aria-label={primaryShift.time}>
+                                      <span className="calendar-shift-time-start">{start}</span>
+                                      {end ? (
+                                        <span className="calendar-shift-time-end">{end}</span>
+                                      ) : null}
+                                    </span>
+                                  )
+                                })()}
                                 {primaryShift.note && (
                                   <span className="calendar-shift-note-indicator">
                                     <StickyNote className="h-3 w-3" />
@@ -783,6 +793,25 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           max-width: 100%;
         }
 
+        .calendar-shift-time-row {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+          width: 100%;
+          min-width: 0;
+        }
+
+        .calendar-shift-time-start,
+        .calendar-shift-time-end {
+          font-size: 0.72rem;
+          font-weight: 700;
+          line-height: 1.2;
+          color: rgba(15, 23, 42, 0.9);
+          white-space: nowrap;
+          font-variant-numeric: tabular-nums;
+        }
+
         .calendar-shift-stack .calendar-shift-time {
           font-size: 0.8rem;
           font-weight: 700;
@@ -862,6 +891,52 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
         .shift-day { background: #bae6fd; }
         .legend-leave { background: #f3e8ff; }
         .legend-off { background: #e2e8f0; }
+
+        @media (min-width: 1024px) {
+          .calendar-schedule-intro {
+            display: none;
+          }
+
+          .calendar-weekdays,
+          .calendar-grid {
+            gap: 10px;
+          }
+
+          .calendar-day-cell,
+          .calendar-empty-cell {
+            min-height: 118px;
+          }
+
+          .calendar-day-cell {
+            padding: 8px;
+          }
+
+          .calendar-shift-stack .calendar-shift-label {
+            font-size: 0.82rem;
+            line-height: 1.2;
+          }
+
+          .calendar-shift-time-start,
+          .calendar-shift-time-end {
+            font-size: 0.78rem;
+          }
+
+          .calendar-shift-stack .calendar-day-number {
+            font-size: 1.2rem;
+          }
+        }
+
+        @media (min-width: 1280px) {
+          .calendar-day-cell,
+          .calendar-empty-cell {
+            min-height: 124px;
+          }
+
+          .calendar-shift-time-start,
+          .calendar-shift-time-end {
+            font-size: 0.82rem;
+          }
+        }
 
         .month-picker-overlay {
           position: fixed;

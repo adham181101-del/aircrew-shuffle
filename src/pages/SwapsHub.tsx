@@ -12,8 +12,8 @@ export default function SwapsHub() {
   const pendingCount = incoming.length
 
   return (
-    <div className="max-w-lg mx-auto w-full space-y-4">
-      <div className="text-center">
+    <div className="max-w-lg mx-auto lg:max-w-3xl w-full space-y-4">
+      <div className="text-center lg:text-left">
         <h2 className="text-xl font-bold text-slate-900">Swaps</h2>
         <p className="text-sm text-slate-500">Request coverage or manage responses</p>
       </div>

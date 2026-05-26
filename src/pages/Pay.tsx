@@ -13,7 +13,7 @@ export default function Pay() {
   }, [])
 
   return (
-    <div className="max-w-3xl mx-auto w-full space-y-4">
+    <div className="max-w-3xl mx-auto lg:max-w-5xl xl:max-w-6xl w-full space-y-4">
       <div className="text-center md:text-left">
         <h2 className="text-xl font-bold text-slate-900">Pay</h2>
         <p className="text-sm text-slate-500">Premiums &amp; overtime in one place</p>

@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { AppHeader } from '@/components/layout/AppHeader'
-import { BottomTabBar } from '@/components/layout/BottomTabBar'
+import { AppBottomNav, AppSideNav } from '@/components/layout/AppNavigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { useInvalidateShifts } from '@/hooks/useShifts'
@@ -64,12 +64,15 @@ export function AppLayout() {
   }, [location.search, location.pathname, toast])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-slate-100 flex flex-col">
       <AppHeader />
-      <main className="flex-1 w-full container mx-auto px-4 max-md:px-3 py-4 app-main-with-tabs">
-        <Outlet />
-      </main>
-      <BottomTabBar />
+      <div className="app-shell-body">
+        <AppSideNav />
+        <main className="app-shell-main container mx-auto px-4 max-md:px-3 py-4 lg:max-w-none lg:w-full app-main-with-tabs">
+          <Outlet />
+        </main>
+      </div>
+      <AppBottomNav />
     </div>
   )
 }

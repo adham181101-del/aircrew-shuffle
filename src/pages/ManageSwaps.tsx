@@ -1002,7 +1002,7 @@ const ManageSwaps = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto w-full space-y-4">
+    <div className="max-w-3xl mx-auto lg:max-w-5xl xl:max-w-6xl w-full space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Manage Swaps</h2>
