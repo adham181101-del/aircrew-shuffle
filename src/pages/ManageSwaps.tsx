@@ -1002,38 +1002,22 @@ const ManageSwaps = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <header className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-xl">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full">
-            <div className="flex-1">
-              <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-                Manage Swaps
-              </h1>
-              <p className="text-blue-100 text-lg">
-                Review and respond to shift swap requests.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <Button 
-                onClick={() => navigate('/swaps/create')}
-                className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-              >
-                Create Swap Request
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/dashboard')}
-                className="w-full sm:w-auto bg-white text-blue-600 border-blue-300 hover:bg-blue-50 px-6 py-2 rounded-xl transition-all duration-300"
-              >
-                Back to Dashboard
-              </Button>
-            </div>
-          </div>
+    <div className="max-w-3xl mx-auto w-full space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Manage Swaps</h2>
+          <p className="text-sm text-slate-500">Review and respond to swap requests</p>
         </div>
-      </header>
+        <Button
+          size="sm"
+          onClick={() => navigate('/swaps/create')}
+          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shrink-0"
+        >
+          New request
+        </Button>
+      </div>
 
-      <main className="container mx-auto px-4 py-8">
+      <div>
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <Card className="bg-white border border-gray-200 shadow-sm rounded-lg">
@@ -1808,7 +1792,7 @@ const ManageSwaps = () => {
               )}
             </div>
           )}
-      </main>
+      </div>
 
         {/* Revoke Confirmation Dialog */}
         <AlertDialog open={revokeDialogOpen} onOpenChange={setRevokeDialogOpen}>

@@ -10,6 +10,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { InactivityManager } from "./components/InactivityManager";
 import CookieConsent from "./components/gdpr/CookieConsent";
 import { lazy, Suspense } from "react";
+import { AppLayout } from "./layouts/AppLayout";
 
 // Force Vercel cache refresh - v2.0.0
 // Lazy load pages for better performance
@@ -17,7 +18,9 @@ const Index = lazy(() => import("./pages/Index"));
 const Login = lazy(() => import("./pages/Login"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const Register = lazy(() => import("./pages/Register"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Home = lazy(() => import("./pages/Home"));
+const Pay = lazy(() => import("./pages/Pay"));
+const SwapsHub = lazy(() => import("./pages/SwapsHub"));
 const Upload = lazy(() => import("./pages/Upload"));
 const ManageSwaps = lazy(() => import("./pages/ManageSwaps"));
 const CreateShift = lazy(() => import("./pages/CreateShift"));
@@ -115,15 +118,19 @@ const AppRoutes = () => (
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
-      <Route path="/swaps" element={<ProtectedRoute><ManageSwaps /></ProtectedRoute>} />
-      <Route path="/swaps/create" element={<ProtectedRoute><CreateSwapRequest /></ProtectedRoute>} />
-      <Route path="/shifts/create" element={<ProtectedRoute><CreateShift /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
+      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+        <Route path="/dashboard" element={<Home />} />
+        <Route path="/pay" element={<Pay />} />
+        <Route path="/swaps" element={<SwapsHub />} />
+        <Route path="/swaps/manage" element={<ManageSwaps />} />
+        <Route path="/swaps/create" element={<CreateSwapRequest />} />
+        <Route path="/upload" element={<Upload />} />
+        <Route path="/shifts/create" element={<CreateShift />} />
+        <Route path="/profile" element={<Profile embedded />} />
+        <Route path="/subscription" element={<Subscription />} />
+        <Route path="/leave" element={<Leave />} />
+      </Route>
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
-      <Route path="/leave" element={<ProtectedRoute><Leave /></ProtectedRoute>} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/data-rights" element={<ProtectedRoute><DataSubjectRights /></ProtectedRoute>} />
       <Route path="/security" element={<ProtectedRoute><SecurityDashboard /></ProtectedRoute>} />

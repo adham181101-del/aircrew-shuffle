@@ -246,7 +246,7 @@ const CreateSwapRequest = () => {
         description: `Your swap request has been sent to ${eligibleStaff.length} staff members who are off duty on ${selectedShiftData?.date}`,
       });
       
-      navigate('/swaps');
+      navigate('/swaps/manage');
     } catch (error) {
       toast({
         title: "Error",
@@ -330,7 +330,7 @@ const CreateSwapRequest = () => {
         description: `Your dummy swap request has been created. You'll work the colleague's shift on ${accepterShiftData.date} and get a temporary repayment on ${dummyRepayDate}, with final repayment on ${finalRepayDate}.`,
       });
       
-      navigate('/swaps');
+      navigate('/swaps/manage');
     } catch (error) {
       toast({
         title: "Error",
@@ -397,7 +397,7 @@ const CreateSwapRequest = () => {
         description: `Your time change request has been sent to ${timeChangeEligibleStaff.length} staff members who have ${desiredTime} shifts on ${selectedTimeChangeShiftData.date}`,
       });
       
-      navigate('/swaps');
+      navigate('/swaps/manage');
     } catch (error) {
       toast({
         title: "Error",

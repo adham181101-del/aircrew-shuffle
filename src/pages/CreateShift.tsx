@@ -72,21 +72,11 @@ const CreateShift = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Add Manual Shift</h1>
-            <Button variant="outline" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto w-full">
+      <div className="mb-4">
+        <h2 className="text-xl font-bold text-slate-900">Add Shift</h2>
+        <p className="text-sm text-slate-500">Manually add a shift to your calendar</p>
+      </div>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -177,8 +167,6 @@ const CreateShift = () => {
               </form>
             </CardContent>
           </Card>
-        </div>
-      </main>
     </div>
   );
 };

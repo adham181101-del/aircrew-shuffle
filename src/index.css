@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+.app-main-with-tabs {
+  padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+}
+
 /* BA/Iberia Airline Design System - Professional, clean, modern */
 
 @layer base {

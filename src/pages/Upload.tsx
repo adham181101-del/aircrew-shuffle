@@ -259,20 +259,11 @@ const UploadPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Upload Roster PDF</h1>
-            <Button variant="outline" onClick={() => navigate('/dashboard')}>
-              Back to Dashboard
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto w-full">
+      <div className="mb-4">
+        <h2 className="text-xl font-bold text-slate-900">Upload Roster</h2>
+        <p className="text-sm text-slate-500">PDF import with change preview</p>
+      </div>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -455,8 +446,6 @@ const UploadPage = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
-      </main>
     </div>
   );
 };

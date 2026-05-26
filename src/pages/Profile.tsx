@@ -14,7 +14,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { loadPensionDeductionPercent, savePensionDeductionPercent } from '@/lib/payrollStorage';
 import { DEFAULT_PENSION_DEDUCTION_PERCENT } from '@/lib/payrollConstants';
 
-const Profile = () => {
+type ProfileProps = {
+  embedded?: boolean
+}
+
+const Profile = ({ embedded = false }: ProfileProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<Staff | null>(null);
@@ -185,42 +189,47 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className={embedded ? 'py-12 flex justify-center' : 'min-h-screen bg-background flex items-center justify-center'}>
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-xl">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
-                <User className="h-7 w-7 text-white" />
+    <div className={embedded ? 'max-w-3xl mx-auto w-full' : 'min-h-screen bg-gradient-to-br from-slate-50 to-blue-50'}>
+      {!embedded && (
+        <header className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-xl">
+          <div className="container mx-auto px-4 py-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
+                  <User className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-white">Profile Settings</h1>
+                  <p className="text-white/80">Manage your account and preferences</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">Profile Settings</h1>
-                <p className="text-white/80">Manage your account and preferences</p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => navigate('/dashboard')}
-                className="w-full sm:w-auto bg-white text-blue-600 border-blue-300 hover:bg-blue-50 px-6 py-2 rounded-xl transition-all duration-300"
+                className="w-full sm:w-auto bg-white text-blue-600 border-blue-300 hover:bg-blue-50 px-6 py-2 rounded-xl"
               >
                 Back to Dashboard
               </Button>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      {embedded && (
+        <div className="mb-4">
+          <h2 className="text-xl font-bold text-slate-900">Profile</h2>
+          <p className="text-sm text-slate-500">Account and preferences</p>
+        </div>
+      )}
+
+      <div className={embedded ? 'space-y-6' : 'container mx-auto px-4 py-8'}>
         <div className="max-w-3xl mx-auto space-y-6">
           {/* Profile Information */}
           <Card className="bg-white shadow-xl border border-gray-100">
@@ -428,7 +437,7 @@ const Profile = () => {
             </CardContent>
           </Card>
         </div>
-      </main>
+      </div>
     </div>
   );
 };
