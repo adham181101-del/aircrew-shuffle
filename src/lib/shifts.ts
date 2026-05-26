@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client'
+import { normalizeToDatabaseDate, parseLocalDate, toDatabaseDate } from '@/lib/dates'
 
 export type Shift = {
   id: string
@@ -433,164 +434,138 @@ export interface WHLValidationResult {
   violations: string[]
 }
 
+const parseShiftDate = (dateStr: string): Date =>
+  parseLocalDate(normalizeToDatabaseDate(dateStr))
+
 // Calculate shift hours from time range
 const calculateShiftHours = (timeRange: string): number => {
-  const [start, end] = timeRange.split('-')
+  const normalized = normalizeTimeRange(timeRange)
+  if (!normalized) return 0
+  const [start, end] = normalized.split('-')
   const startTime = new Date(`2000-01-01 ${start}:00`)
   const endTime = new Date(`2000-01-01 ${end}:00`)
-  
+  if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) return 0
+
   // Handle overnight shifts
   if (endTime < startTime) {
     endTime.setDate(endTime.getDate() + 1)
   }
-  
+
   return (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)
 }
 
-// Get shifts within a date range
+// Get shifts within a date range (inclusive, YYYY-MM-DD or DD/MM/YYYY)
 const getShiftsInRange = (shifts: Shift[], startDate: string, endDate: string): Shift[] => {
-  return shifts.filter(shift => {
-    // Convert UK format (DD/MM/YYYY) to Date object
-    const parseUKDate = (dateStr: string) => {
-      const [day, month, year] = dateStr.split('/')
-      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-    }
-    
-    const shiftDate = parseUKDate(shift.date)
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    return shiftDate >= start && shiftDate <= end
+  const start = normalizeToDatabaseDate(startDate)
+  const end = normalizeToDatabaseDate(endDate)
+  return shifts.filter((shift) => {
+    const d = normalizeToDatabaseDate(shift.date)
+    return d >= start && d <= end
   })
 }
 
 // Check 28-day period (256 hours max)
 const check28DayLimit = (shifts: Shift[], targetDate: string): { isValid: boolean; hours: number } => {
-  // Convert UK format (DD/MM/YYYY) to Date object
-  const parseUKDate = (dateStr: string) => {
-    const [day, month, year] = dateStr.split('/')
-    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-  }
-  
-  const target = parseUKDate(targetDate)
+  const target = parseShiftDate(targetDate)
   const startDate = new Date(target)
   startDate.setDate(target.getDate() - 27) // 28-day period
-  
-  const periodShifts = getShiftsInRange(shifts, startDate.toISOString().split('T')[0], targetDate)
+
+  const periodShifts = getShiftsInRange(
+    shifts,
+    toDatabaseDate(startDate),
+    normalizeToDatabaseDate(targetDate)
+  )
   const totalHours = periodShifts.reduce((sum, shift) => sum + calculateShiftHours(shift.time), 0)
-  
+
   return { isValid: totalHours <= 256, hours: totalHours }
 }
 
 // Check 24-hour period (16 hours max)
 const check24HourLimit = (shifts: Shift[], targetDate: string): { isValid: boolean; hours: number } => {
-  // Convert UK format (DD/MM/YYYY) to Date object
-  const parseUKDate = (dateStr: string) => {
-    const [day, month, year] = dateStr.split('/')
-    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-  }
-  
-  const target = parseUKDate(targetDate)
+  const target = parseShiftDate(targetDate)
   const startDate = new Date(target)
   startDate.setDate(target.getDate() - 1) // 24-hour period
-  
-  const periodShifts = getShiftsInRange(shifts, startDate.toISOString().split('T')[0], targetDate)
+
+  const periodShifts = getShiftsInRange(
+    shifts,
+    toDatabaseDate(startDate),
+    normalizeToDatabaseDate(targetDate)
+  )
   const totalHours = periodShifts.reduce((sum, shift) => sum + calculateShiftHours(shift.time), 0)
-  
+
   return { isValid: totalHours <= 16, hours: totalHours }
 }
 
 // Check consecutive days (max 9 days)
 const checkConsecutiveDays = (shifts: Shift[], targetDate: string): { isValid: boolean; days: number } => {
-  // Convert UK format (DD/MM/YYYY) to Date object
-  const parseUKDate = (dateStr: string) => {
-    const [day, month, year] = dateStr.split('/')
-    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-  }
-  
-  const target = parseUKDate(targetDate)
+  const workingDates = new Set(shifts.map((s) => normalizeToDatabaseDate(s.date)))
+  const target = parseShiftDate(targetDate)
   let consecutiveDays = 0
   const currentDate = new Date(target)
-  
-  // Count backwards to find consecutive working days
+
   while (true) {
-    // Convert to UK format for comparison
-    const dateStr = `${currentDate.getDate().toString().padStart(2, '0')}/${(currentDate.getMonth() + 1).toString().padStart(2, '0')}/${currentDate.getFullYear()}`
-    const hasShift = shifts.some(shift => shift.date === dateStr)
-    
-    if (hasShift) {
+    const dateKey = toDatabaseDate(currentDate)
+    if (workingDates.has(dateKey)) {
       consecutiveDays++
       currentDate.setDate(currentDate.getDate() - 1)
     } else {
       break
     }
   }
-  
+
   return { isValid: consecutiveDays <= 9, days: consecutiveDays }
 }
 
 // Check 14-day period (at least 2 consecutive days off)
 const check14DayBreak = (shifts: Shift[], targetDate: string): { isValid: boolean; hasBreak: boolean } => {
-  // Convert UK format (DD/MM/YYYY) to Date object
-  const parseUKDate = (dateStr: string) => {
-    const [day, month, year] = dateStr.split('/')
-    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-  }
-  
-  const target = parseUKDate(targetDate)
+  const target = parseShiftDate(targetDate)
   const startDate = new Date(target)
   startDate.setDate(target.getDate() - 13) // 14-day period
-  
-  const periodShifts = getShiftsInRange(shifts, startDate.toISOString().split('T')[0], targetDate)
-  const workingDates = new Set(periodShifts.map(shift => shift.date))
-  
-  // Check for at least 2 consecutive days off
+
+  const periodShifts = getShiftsInRange(
+    shifts,
+    toDatabaseDate(startDate),
+    normalizeToDatabaseDate(targetDate)
+  )
+  const workingDates = new Set(periodShifts.map((shift) => normalizeToDatabaseDate(shift.date)))
+
   let hasConsecutiveBreak = false
   for (let i = 0; i < 13; i++) {
     const checkDate = new Date(startDate)
     checkDate.setDate(startDate.getDate() + i)
-    // Convert to UK format for comparison
-    const dateStr = `${checkDate.getDate().toString().padStart(2, '0')}/${(checkDate.getMonth() + 1).toString().padStart(2, '0')}/${checkDate.getFullYear()}`
-    
+    const dateKey = toDatabaseDate(checkDate)
+
     const nextDate = new Date(checkDate)
     nextDate.setDate(checkDate.getDate() + 1)
-    // Convert to UK format for comparison
-    const nextDateStr = `${nextDate.getDate().toString().padStart(2, '0')}/${(nextDate.getMonth() + 1).toString().padStart(2, '0')}/${nextDate.getFullYear()}`
-    
-    if (!workingDates.has(dateStr) && !workingDates.has(nextDateStr)) {
+    const nextDateKey = toDatabaseDate(nextDate)
+
+    if (!workingDates.has(dateKey) && !workingDates.has(nextDateKey)) {
       hasConsecutiveBreak = true
       break
     }
   }
-  
+
   return { isValid: hasConsecutiveBreak, hasBreak: hasConsecutiveBreak }
 }
 
 // Check pay week (Sunday to Saturday, 72 hours max)
 const checkPayWeek = (shifts: Shift[], targetDate: string): { isValid: boolean; hours: number } => {
-  // Convert UK format (DD/MM/YYYY) to Date object
-  const parseUKDate = (dateStr: string) => {
-    const [day, month, year] = dateStr.split('/')
-    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-  }
-  
-  const target = parseUKDate(targetDate)
+  const target = parseShiftDate(targetDate)
   const dayOfWeek = target.getDay() // 0 = Sunday, 6 = Saturday
-  
-  // Find the start of the pay week (Sunday)
+
   const payWeekStart = new Date(target)
   payWeekStart.setDate(target.getDate() - dayOfWeek)
-  
-  // Find the end of the pay week (Saturday)
+
   const payWeekEnd = new Date(payWeekStart)
   payWeekEnd.setDate(payWeekStart.getDate() + 6)
-  
+
   const periodShifts = getShiftsInRange(
-    shifts, 
-    payWeekStart.toISOString().split('T')[0], 
-    payWeekEnd.toISOString().split('T')[0]
+    shifts,
+    toDatabaseDate(payWeekStart),
+    toDatabaseDate(payWeekEnd)
   )
   const totalHours = periodShifts.reduce((sum, shift) => sum + calculateShiftHours(shift.time), 0)
-  
+
   return { isValid: totalHours <= 72, hours: totalHours }
 }
 
@@ -605,10 +580,12 @@ export const validateWHL = async (
   // Get all user shifts
   const allShifts = await getUserShifts(staffId)
   
+  const normalizedDate = normalizeToDatabaseDate(newShiftDate)
+
   // Create a hypothetical shift for validation
   const hypotheticalShift: Shift = {
     id: 'temp',
-    date: newShiftDate,
+    date: normalizedDate,
     time: newShiftTime,
     note: null,
     staff_id: staffId,
@@ -620,31 +597,31 @@ export const validateWHL = async (
   const shiftsWithNew = [...allShifts, hypotheticalShift]
   
   // Check 28-day limit
-  const day28Check = check28DayLimit(shiftsWithNew, newShiftDate)
+  const day28Check = check28DayLimit(shiftsWithNew, normalizedDate)
   if (!day28Check.isValid) {
     violations.push(`28-day limit exceeded: ${day28Check.hours.toFixed(1)} hours (max 256)`)
   }
   
   // Check 24-hour limit
-  const day24Check = check24HourLimit(shiftsWithNew, newShiftDate)
+  const day24Check = check24HourLimit(shiftsWithNew, normalizedDate)
   if (!day24Check.isValid) {
     violations.push(`24-hour limit exceeded: ${day24Check.hours.toFixed(1)} hours (max 16)`)
   }
   
   // Check consecutive days
-  const consecutiveCheck = checkConsecutiveDays(shiftsWithNew, newShiftDate)
+  const consecutiveCheck = checkConsecutiveDays(shiftsWithNew, normalizedDate)
   if (!consecutiveCheck.isValid) {
     violations.push(`Consecutive days limit exceeded: ${consecutiveCheck.days} days (max 9)`)
   }
   
   // Check 14-day break
-  const breakCheck = check14DayBreak(shiftsWithNew, newShiftDate)
+  const breakCheck = check14DayBreak(shiftsWithNew, normalizedDate)
   if (!breakCheck.isValid) {
     violations.push(`No 2 consecutive days off in 14-day period`)
   }
   
   // Check pay week limit
-  const payWeekCheck = checkPayWeek(shiftsWithNew, newShiftDate)
+  const payWeekCheck = checkPayWeek(shiftsWithNew, normalizedDate)
   if (!payWeekCheck.isValid) {
     violations.push(`Pay week limit exceeded: ${payWeekCheck.hours.toFixed(1)} hours (max 72)`)
   }

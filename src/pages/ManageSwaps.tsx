@@ -328,12 +328,6 @@ const ManageSwaps = () => {
         return;
       }
 
-      await assertWHLCompliance(
-        user.id,
-        swapRequest.requester_shift.date,
-        swapRequest.requester_shift.time
-      );
-
       const selectedShift = availableShifts.find(s => s.id === selectedShiftId);
       if (!selectedShift) {
         toast({
@@ -354,24 +348,42 @@ const ManageSwaps = () => {
         return;
       }
 
-      const counterOfferDate = selectedShift.date;
+      const counterOfferDate = normalizeToDatabaseDate(selectedShift.date);
+      const requesterShiftDate = normalizeToDatabaseDate(swapRequest.requester_shift.date);
+
+      try {
+        await assertWHLCompliance(
+          user.id,
+          requesterShiftDate,
+          swapRequest.requester_shift.time
+        );
+      } catch (whlError) {
+        const whlMessage =
+          whlError instanceof Error ? whlError.message : 'Working hours limits would be exceeded';
+        toast({
+          title: 'Working hours limit',
+          description: whlMessage,
+          variant: 'destructive',
+        });
+        return;
+      }
 
       const { error } = await supabase
         .from('swap_requests')
-        .update({ 
+        .update({
           status: 'pending',
-          counter_offer_date: counterOfferDate
+          counter_offer_date: counterOfferDate,
+          accepter_id: user.id,
         })
         .eq('id', swapId);
 
       if (error) throw error;
 
-      // Format date for display
-      const displayDate = (() => {
-        const [y, m, d] = counterOfferDate.split('-').map(Number);
-        const dateObj = new Date(y, m - 1, d);
-        return dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-      })();
+      const displayDate = formatDateGB(counterOfferDate, {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
 
       toast({
         title: "Counter-Offer Sent",
@@ -388,8 +400,12 @@ const ManageSwaps = () => {
       setAvailableShifts([]);
     } catch (error) {
       console.error('Error sending counter-offer:', error);
-      const message =
+      const raw =
         error instanceof Error ? error.message : 'Failed to send counter-offer';
+      const message =
+        raw === 'Invalid Date' || raw === 'Invalid time value'
+          ? 'Could not validate shift dates. Please try again or contact support.'
+          : raw;
       toast({
         title: "Error",
         description: message,
