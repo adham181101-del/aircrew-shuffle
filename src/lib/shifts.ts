@@ -437,8 +437,8 @@ export interface WHLValidationResult {
 const parseShiftDate = (dateStr: string): Date =>
   parseLocalDate(normalizeToDatabaseDate(dateStr))
 
-// Calculate shift hours from time range
-const calculateShiftHours = (timeRange: string): number => {
+/** Duty span in hours (report time to finish — includes unpaid breaks). */
+const getShiftDutyHours = (timeRange: string): number => {
   const normalized = normalizeTimeRange(timeRange)
   if (!normalized) return 0
   const [start, end] = normalized.split('-')
@@ -446,13 +446,54 @@ const calculateShiftHours = (timeRange: string): number => {
   const endTime = new Date(`2000-01-01 ${end}:00`)
   if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) return 0
 
-  // Handle overnight shifts
   if (endTime < startTime) {
     endTime.setDate(endTime.getDate() + 1)
   }
 
   return (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)
 }
+
+/**
+ * Worked hours for BA GSS WHL — duty time minus unpaid meal breaks.
+ * Standard ~9h duties include 1h unpaid break; long/double (~16h+ duty) include 2h.
+ */
+export const getWHLWorkedHours = (timeRange: string): number => {
+  const dutyHours = getShiftDutyHours(timeRange)
+  if (dutyHours <= 0) return 0
+
+  if (dutyHours >= 16) {
+    return Math.max(0, dutyHours - 2)
+  }
+  if (dutyHours >= 7.5) {
+    return Math.max(0, dutyHours - 1)
+  }
+  return dutyHours
+}
+
+const shiftInterval = (
+  dateStr: string,
+  timeRange: string
+): { start: Date; end: Date } | null => {
+  const normalized = normalizeTimeRange(timeRange)
+  if (!normalized) return null
+  const [startT, endT] = normalized.split('-')
+  const base = parseShiftDate(dateStr)
+  const start = new Date(base)
+  const [sh, sm] = startT.split(':').map(Number)
+  start.setHours(sh, sm, 0, 0)
+  const end = new Date(base)
+  const [eh, em] = endT.split(':').map(Number)
+  end.setHours(eh, em, 0, 0)
+  if (end <= start) {
+    end.setDate(end.getDate() + 1)
+  }
+  return { start, end }
+}
+
+const intervalsOverlap = (
+  a: { start: Date; end: Date },
+  b: { start: Date; end: Date }
+): boolean => a.start < b.end && b.start < a.end
 
 // Get shifts within a date range (inclusive, YYYY-MM-DD or DD/MM/YYYY)
 const getShiftsInRange = (shifts: Shift[], startDate: string, endDate: string): Shift[] => {
@@ -475,23 +516,31 @@ const check28DayLimit = (shifts: Shift[], targetDate: string): { isValid: boolea
     toDatabaseDate(startDate),
     normalizeToDatabaseDate(targetDate)
   )
-  const totalHours = periodShifts.reduce((sum, shift) => sum + calculateShiftHours(shift.time), 0)
+  const totalHours = periodShifts.reduce((sum, shift) => sum + getWHLWorkedHours(shift.time), 0)
 
   return { isValid: totalHours <= 256, hours: totalHours }
 }
 
-// Check 24-hour period (16 hours max)
-const check24HourLimit = (shifts: Shift[], targetDate: string): { isValid: boolean; hours: number } => {
-  const target = parseShiftDate(targetDate)
-  const startDate = new Date(target)
-  startDate.setDate(target.getDate() - 1) // 24-hour period
+// Check 24-hour period (16 worked hours max) using a rolling window ending at the new shift
+const check24HourLimit = (
+  shifts: Shift[],
+  targetDate: string,
+  targetTime: string
+): { isValid: boolean; hours: number } => {
+  const targetInterval = shiftInterval(targetDate, targetTime)
+  if (!targetInterval) {
+    return { isValid: true, hours: 0 }
+  }
 
-  const periodShifts = getShiftsInRange(
-    shifts,
-    toDatabaseDate(startDate),
-    normalizeToDatabaseDate(targetDate)
-  )
-  const totalHours = periodShifts.reduce((sum, shift) => sum + calculateShiftHours(shift.time), 0)
+  const windowEnd = targetInterval.end
+  const windowStart = new Date(windowEnd.getTime() - 24 * 60 * 60 * 1000)
+  const window = { start: windowStart, end: windowEnd }
+
+  const totalHours = shifts.reduce((sum, shift) => {
+    const interval = shiftInterval(shift.date, shift.time)
+    if (!interval || !intervalsOverlap(interval, window)) return sum
+    return sum + getWHLWorkedHours(shift.time)
+  }, 0)
 
   return { isValid: totalHours <= 16, hours: totalHours }
 }
@@ -564,7 +613,7 @@ const checkPayWeek = (shifts: Shift[], targetDate: string): { isValid: boolean; 
     toDatabaseDate(payWeekStart),
     toDatabaseDate(payWeekEnd)
   )
-  const totalHours = periodShifts.reduce((sum, shift) => sum + calculateShiftHours(shift.time), 0)
+  const totalHours = periodShifts.reduce((sum, shift) => sum + getWHLWorkedHours(shift.time), 0)
 
   return { isValid: totalHours <= 72, hours: totalHours }
 }
@@ -581,20 +630,27 @@ export const validateWHL = async (
   const allShifts = await getUserShifts(staffId)
   
   const normalizedDate = normalizeToDatabaseDate(newShiftDate)
+  const normalizedTime = normalizeTimeRange(newShiftTime) ?? newShiftTime
 
   // Create a hypothetical shift for validation
   const hypotheticalShift: Shift = {
     id: 'temp',
     date: normalizedDate,
-    time: newShiftTime,
+    time: normalizedTime,
     note: null,
     staff_id: staffId,
     is_swapped: false,
     created_at: new Date().toISOString()
   }
-  
-  // Add the new shift to the list for validation
-  const shiftsWithNew = [...allShifts, hypotheticalShift]
+
+  // Avoid counting the same rostered shift twice when re-validating
+  const shiftsBase = allShifts.filter((s) => {
+    if (normalizeToDatabaseDate(s.date) !== normalizedDate) return true
+    const existing = normalizeTimeRange(s.time) ?? s.time
+    return existing !== normalizedTime
+  })
+
+  const shiftsWithNew = [...shiftsBase, hypotheticalShift]
   
   // Check 28-day limit
   const day28Check = check28DayLimit(shiftsWithNew, normalizedDate)
@@ -603,9 +659,11 @@ export const validateWHL = async (
   }
   
   // Check 24-hour limit
-  const day24Check = check24HourLimit(shiftsWithNew, normalizedDate)
+  const day24Check = check24HourLimit(shiftsWithNew, normalizedDate, normalizedTime)
   if (!day24Check.isValid) {
-    violations.push(`24-hour limit exceeded: ${day24Check.hours.toFixed(1)} hours (max 16)`)
+    violations.push(
+      `24-hour worked hours exceeded: ${day24Check.hours.toFixed(1)} hours (max 16, breaks excluded)`
+    )
   }
   
   // Check consecutive days
