@@ -10,6 +10,13 @@ import { enGB } from "date-fns/locale";
 import { getCurrentUser, type Staff } from "@/lib/auth";
 import { assertWHLCompliance } from '@/lib/shifts';
 import {
+  buildCounterOfferOptions,
+  counterOfferCardClass,
+  formatShiftTimeLabel,
+  type CounterOfferOption,
+} from '@/lib/counterOfferEligibility';
+import { formatDateGB, normalizeToDatabaseDate } from '@/lib/dates';
+import {
   completeSwapAcceptance,
   revokeAllPendingSwapRequestsForShift,
   verifyRequesterShiftExists,
@@ -37,7 +44,8 @@ const ManageSwaps = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("incoming");
-  const [availableShifts, setAvailableShifts] = useState<any[]>([]);
+  const [availableShifts, setAvailableShifts] = useState<CounterOfferOption[]>([]);
+  const [counterOfferTimes, setCounterOfferTimes] = useState<Record<string, string>>({});
   const [selectedCounterShift, setSelectedCounterShift] = useState<string>("");
   const [showCounterOffer, setShowCounterOffer] = useState<string | null>(null);
   const [loadingCounterShifts, setLoadingCounterShifts] = useState(false);
@@ -80,10 +88,53 @@ const ManageSwaps = () => {
     if (openId) {
       setShowCounterOffer(openId);
       setCurrentSwapId(openId);
-      // Ensure month is reset to current when opening from link
       setCurrentMonth(new Date());
     }
   }, []);
+
+  // Load accepter shift times for counter-offers the requester is reviewing
+  useEffect(() => {
+    const pending = myRequests.filter(
+      (r) => r.status === 'pending' && r.counter_offer_date && r.accepter_id
+    );
+    if (pending.length === 0) {
+      setCounterOfferTimes({});
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const entries = await Promise.all(
+        pending.map(async (r) => {
+          const time = await resolveCounterOfferShiftTime(
+            r.accepter_id!,
+            r.counter_offer_date!,
+            ''
+          );
+          return [r.id, time] as const;
+        })
+      );
+      if (!cancelled) {
+        setCounterOfferTimes(Object.fromEntries(entries));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [myRequests]);
+
+  // Load counter-offer dates when opened via deep link
+  useEffect(() => {
+    if (!showCounterOffer || !user) return;
+    const swapRequest = incomingRequests.find((req) => req.id === showCounterOffer);
+    if (!swapRequest?.requester_shift?.date) return;
+    void fetchAvailableShifts(
+      user.id,
+      swapRequest.requester_shift.date,
+      showCounterOffer,
+      currentMonth
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch when panel opens
+  }, [showCounterOffer, user?.id]);
 
   // Redirect if no user
   useEffect(() => {
@@ -102,52 +153,15 @@ const ManageSwaps = () => {
     return variants[status] || "secondary";
   };
 
-  const fetchAvailableShifts = async (userId: string, requesterShiftDate: string, swapId: string, targetMonth?: Date) => {
+  const fetchAvailableShifts = async (
+    userId: string,
+    requesterShiftDate: string,
+    swapId: string,
+    targetMonth?: Date
+  ) => {
     try {
       setLoadingCounterShifts(true);
-      
-      console.log('=== FETCHING AVAILABLE SHIFTS FOR COUNTER-OFFER ===');
-      console.log('User ID:', userId);
-      console.log('Requester shift date:', requesterShiftDate);
-      console.log('Swap ID:', swapId);
-      console.log('Target month:', targetMonth);
-      console.log('Requester shift date type:', typeof requesterShiftDate);
 
-      // Helper: parse a date string (either DD/MM/YYYY or YYYY-MM-DD) into a Date at midnight local time
-      const parseDate = (dateStr: string) => {
-        // Check if it's YYYY-MM-DD format (database format)
-        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          const [yearStr, monthStr, dayStr] = dateStr.split('-');
-          return new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr));
-        }
-        // Otherwise assume DD/MM/YYYY format
-        const [dayStr, monthStr, yearStr] = dateStr.split('/');
-        const day = Number(dayStr);
-        const monthIndex = Number(monthStr) - 1; // zero-based
-        const year = Number(yearStr);
-        return new Date(year, monthIndex, day);
-      };
-
-      // Helper: convert Date to YYYY-MM-DD format (database format)
-      const toDatabaseDate = (date: Date): string => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      };
-
-      // Helper: normalize date string to database format (YYYY-MM-DD)
-      const normalizeToDatabaseFormat = (dateStr: string): string => {
-        // If already in YYYY-MM-DD format, return as is
-        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          return dateStr;
-        }
-        // Convert from DD/MM/YYYY to YYYY-MM-DD
-        const [dayStr, monthStr, yearStr] = dateStr.split('/');
-        return `${yearStr}-${monthStr.padStart(2, '0')}-${dayStr.padStart(2, '0')}`;
-      };
-      
-      // Get all shifts for the current user
       const { data: userShifts, error: shiftsError } = await supabase
         .from('shifts')
         .select('*')
@@ -159,11 +173,6 @@ const ManageSwaps = () => {
         return [];
       }
 
-      console.log('User shifts from database:', userShifts);
-      console.log('Sample user shift date:', userShifts?.[0]?.date);
-      console.log('Sample user shift date type:', typeof userShifts?.[0]?.date);
-
-      // Get user's staff profile to check if they can work doubles
       const { data: userStaff, error: staffError } = await supabase
         .from('staff')
         .select('can_work_doubles')
@@ -175,28 +184,27 @@ const ManageSwaps = () => {
         return [];
       }
 
-      const canWorkDoubles = userStaff?.can_work_doubles || false;
-      console.log('User can work doubles:', canWorkDoubles);
+      const canWorkDoubles = userStaff?.can_work_doubles ?? false;
 
-      // Get the requester's staff ID to find their shifts
-      const { data: requesterStaff, error: requesterStaffError } = await supabase
+      const { data: requesterRow, error: requesterStaffError } = await supabase
         .from('swap_requests')
-        .select('requester_id')
+        .select('requester_id, requester_shift:shifts!swap_requests_requester_shift_id_fkey(date, time)')
         .eq('id', swapId)
         .single();
 
-      if (requesterStaffError) {
-        console.error('Error fetching requester staff ID:', requesterStaffError);
+      if (requesterStaffError || !requesterRow) {
+        console.error('Error fetching swap request:', requesterStaffError);
         return [];
       }
 
-      console.log('Requester staff ID:', requesterStaff.requester_id);
+      const swapShift = requesterRow.requester_shift as { date: string; time: string } | null;
+      const swapShiftDate = swapShift?.date ?? requesterShiftDate;
+      const swapShiftTime = swapShift?.time ?? '';
 
-      // Get all shifts for the requester
       const { data: requesterShifts, error: requesterShiftsError } = await supabase
         .from('shifts')
         .select('*')
-        .eq('staff_id', requesterStaff.requester_id)
+        .eq('staff_id', requesterRow.requester_id)
         .order('date', { ascending: true });
 
       if (requesterShiftsError) {
@@ -204,222 +212,37 @@ const ManageSwaps = () => {
         return [];
       }
 
-      console.log('Requester shifts:', requesterShifts);
-
-      // Get leave days for the user (accepter)
-      const { data: userLeaveDays, error: userLeaveError } = await supabase
+      const { data: userLeaveDays } = await supabase
         .from('leave_days')
         .select('date')
         .eq('staff_id', userId);
 
-      if (userLeaveError) {
-        console.error('Error fetching user leave days:', userLeaveError);
-      }
-
-      // Get leave days for the requester
-      const { data: requesterLeaveDays, error: requesterLeaveError } = await supabase
+      const { data: requesterLeaveDays } = await supabase
         .from('leave_days')
         .select('date')
-        .eq('staff_id', requesterStaff.requester_id);
+        .eq('staff_id', requesterRow.requester_id);
 
-      if (requesterLeaveError) {
-        console.error('Error fetching requester leave days:', requesterLeaveError);
-      }
-
-      // Create sets of leave dates in database format for quick lookup
       const userLeaveDates = new Set(
-        (userLeaveDays || []).map(ld => normalizeToDatabaseFormat(ld.date))
+        (userLeaveDays || []).map((ld) => normalizeToDatabaseDate(ld.date))
       );
       const requesterLeaveDates = new Set(
-        (requesterLeaveDays || []).map(ld => normalizeToDatabaseFormat(ld.date))
+        (requesterLeaveDays || []).map((ld) => normalizeToDatabaseDate(ld.date))
       );
 
-      console.log('User leave dates:', Array.from(userLeaveDates));
-      console.log('Requester leave dates:', Array.from(requesterLeaveDates));
-
-      // Normalize requester shift date to database format for comparison
-      const normalizedRequesterShiftDate = normalizeToDatabaseFormat(requesterShiftDate);
-      
-      // Check if user is working on the requester's date
-      const userWorkingOnRequesterDate = (userShifts || []).some(
-        shift => normalizeToDatabaseFormat(shift.date) === normalizedRequesterShiftDate
-      );
-      
-      console.log('User working on requester date:', userWorkingOnRequesterDate);
-      console.log('All user shifts:', userShifts);
-      console.log('Checking for requester date:', requesterShiftDate);
-      console.log('User shift dates:', (userShifts || []).map(s => s.date));
-
-      // Get all future dates where the user is OFF (no shifts)
-      const futureDates = [];
-      const today = new Date();
-      // Normalize to midnight to avoid time drift in comparisons
-      today.setHours(0, 0, 0, 0);
-      
-      // Use target month if provided, otherwise use current month
-      let startDate, endDate;
-      if (targetMonth) {
-        // For target month, start from the 1st of that month
-        startDate = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1);
-        // End on the last day of that month
-        endDate = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0);
-      } else {
-        // For current month, start from today
-        startDate = today;
-        endDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
-      }
-      
-      // Generate dates for the specified month or next 30 days
-      const daysInMonth = targetMonth ? 
-        new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0).getDate() : 
-        Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
-      
-      // Generate dates in database format (YYYY-MM-DD) for proper comparison
-      const nextDays = Array.from({ length: daysInMonth }, (_, i) => {
-        const date = new Date(startDate);
-        date.setDate(startDate.getDate() + i);
-        return toDatabaseDate(date);
+      const options = buildCounterOfferOptions({
+        userId,
+        userShifts: userShifts || [],
+        requesterShifts: requesterShifts || [],
+        userLeaveDates,
+        requesterLeaveDates,
+        canWorkDoubles,
+        swapShiftDate,
+        swapShiftTime,
+        targetMonth,
       });
 
-      console.log('Target month:', targetMonth ? `${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}` : 'Current month');
-      console.log('Date range:', { startDate: startDate.toISOString().split('T')[0], endDate: endDate.toISOString().split('T')[0] });
-      console.log('Days in month:', daysInMonth);
-      console.log('Generated dates:', nextDays);
-      if (targetMonth) {
-        console.log(`Filtering for month: ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}`);
-        console.log('Target month object:', targetMonth);
-        console.log('Target month getMonth():', targetMonth.getMonth());
-        console.log('Target month getFullYear():', targetMonth.getFullYear());
-      }
-
-      // Find dates where user is OFF and can work the requester's shift
-      const availableDates = nextDays.filter(dateStr => {
-        // dateStr is now in YYYY-MM-DD format (database format)
-        // Skip past dates
-        const dateObj = parseDate(dateStr);
-        if (dateObj < today) {
-          console.log(`❌ ${dateStr} - Past date, skipping`);
-          return false;
-        }
-        
-        // If we have a target month, ensure the date is from that month
-        if (targetMonth) {
-          const isFromTargetMonth = dateObj.getMonth() === targetMonth.getMonth() && 
-                                    dateObj.getFullYear() === targetMonth.getFullYear();
-          if (!isFromTargetMonth) {
-            console.log(`❌ ${dateStr} - Not from target month ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}, skipping`);
-            return false;
-          }
-          console.log(`✅ ${dateStr} - From target month ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}`);
-        }
-        
-        // Skip if user is on leave on this date
-        if (userLeaveDates.has(dateStr)) {
-          console.log(`❌ ${dateStr} - User is on leave, skipping`);
-          return false;
-        }
-
-        // Skip if requester is on leave on this date (they can't work their shift)
-        if (requesterLeaveDates.has(dateStr)) {
-          console.log(`❌ ${dateStr} - Requester is on leave, skipping`);
-          return false;
-        }
-
-        // Check if user has any shifts on this date (normalize both to database format for comparison)
-        const userShiftsOnThisDate = (userShifts || []).filter(shift => 
-          normalizeToDatabaseFormat(shift.date) === dateStr
-        );
-        const userIsOffOnThisDate = userShiftsOnThisDate.length === 0;
-        
-        // Check if requester has any shifts on this date (normalize both to database format for comparison)
-        const requesterShiftsOnThisDate = (requesterShifts || []).filter(shift => 
-          normalizeToDatabaseFormat(shift.date) === dateStr
-        );
-        const requesterIsWorkingOnThisDate = requesterShiftsOnThisDate.length > 0;
-        
-        console.log(`Date ${dateStr}: User ${userIsOffOnThisDate ? 'OFF' : 'WORKING'} (${userShiftsOnThisDate.length} shifts), Requester ${requesterIsWorkingOnThisDate ? 'WORKING' : 'OFF'} (${requesterShiftsOnThisDate.length} shifts)`);
-        console.log(`User shifts on ${dateStr}:`, userShiftsOnThisDate);
-        console.log(`Requester shifts on ${dateStr}:`, requesterShiftsOnThisDate);
-        
-        // CASE 1: Standard swap - User is OFF and requester is working
-        if (userIsOffOnThisDate && requesterIsWorkingOnThisDate) {
-          console.log(`✅ ${dateStr} - Standard swap: User is OFF and requester is working`);
-          return true;
-        }
-        
-        // CASE 2: Time swap - Both are working but with different shift times
-        if (!userIsOffOnThisDate && requesterIsWorkingOnThisDate) {
-          const userShiftTime = userShiftsOnThisDate[0]?.time;
-          const requesterShiftTime = requesterShiftsOnThisDate[0]?.time;
-          
-          console.log(`Time swap check: User shift ${userShiftTime}, Requester shift ${requesterShiftTime}`);
-          
-          // Check for 4:15 ↔ 13:15 swap
-          const isTimeSwap = (
-            (userShiftTime === '04:15' && requesterShiftTime === '13:15') ||
-            (userShiftTime === '13:15' && requesterShiftTime === '04:15')
-          );
-          
-          if (isTimeSwap) {
-            console.log(`✅ ${dateStr} - Time swap: ${userShiftTime} ↔ ${requesterShiftTime}`);
-            return true;
-          } else {
-            console.log(`❌ ${dateStr} - Both working but not compatible times: ${userShiftTime} vs ${requesterShiftTime}`);
-            return false;
-          }
-        }
-        
-        // CASE 3: Double shift - User is working but can work doubles for requester
-        if (!userIsOffOnThisDate && userWorkingOnRequesterDate && canWorkDoubles) {
-          console.log(`✅ ${dateStr} - Double shift: User is working but can work doubles for requester`);
-          return true;
-        }
-        
-        // CASE 4: No swap opportunity
-        console.log(`❌ ${dateStr} - No swap opportunity`);
-        return false;
-      });
-
-      console.log('Available dates for counter-offer:', availableDates);
-
-      // Final filter: ensure all dates are from the target month if specified
-      // (This is already done in the filter above, but keeping for safety)
-      let finalAvailableDates = availableDates;
-      if (targetMonth) {
-        console.log('=== FINAL MONTH FILTERING ===');
-        console.log('Available dates before final filter:', availableDates);
-        console.log('Target month for filtering:', targetMonth);
-        
-        finalAvailableDates = availableDates.filter(date => {
-          const dateObj = parseDate(date); // date is in YYYY-MM-DD format
-          const dateMonth = dateObj.getMonth();
-          const dateYear = dateObj.getFullYear();
-          const targetMonthNum = targetMonth.getMonth();
-          const targetYear = targetMonth.getFullYear();
-          
-          console.log(`Checking date ${date}: month=${dateMonth}, year=${dateYear} vs target month=${targetMonthNum}, year=${targetYear}`);
-          
-          const isFromTargetMonth = dateMonth === targetMonthNum && dateYear === targetYear;
-          console.log(`Date ${date} is from target month: ${isFromTargetMonth}`);
-          
-          return isFromTargetMonth;
-        });
-        
-        console.log(`Final filtered dates for ${targetMonth.getMonth() + 1}/${targetMonth.getFullYear()}:`, finalAvailableDates);
-      }
-
-      // Create mock shift objects for the available dates
-      const availableShiftsForCounterOffer = finalAvailableDates.map(date => ({
-        id: `counter-offer-${date}`,
-        date: date,
-        time: 'Available for swap',
-        staff_id: userId,
-        is_counter_offer: true
-      }));
-
-      console.log('Available shifts for counter-offer:', availableShiftsForCounterOffer);
-      setAvailableShifts(availableShiftsForCounterOffer);
-      return availableShiftsForCounterOffer;
+      setAvailableShifts(options);
+      return options;
     } catch (error) {
       console.error('Error in fetchAvailableShifts:', error);
       return [];
@@ -461,72 +284,7 @@ const ManageSwaps = () => {
   };
 
   const handleAcceptSwap = async (swapId: string) => {
-    try {
-      // First, get the swap request details to see what dates the requester is off
-      const { data: swapRequest, error: fetchError } = await supabase
-        .from('swap_requests')
-        .select(`
-          *,
-          requester_staff:staff!swap_requests_requester_id_fkey(*),
-          requester_shift:shifts!swap_requests_requester_shift_id_fkey(*)
-        `)
-        .eq('id', swapId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Get the requester's shifts to see what dates they're working
-      const { data: requesterShifts, error: shiftsError } = await supabase
-        .from('shifts')
-        .select('*')
-        .eq('staff_id', swapRequest.requester_id)
-        .gte('date', new Date().toISOString().split('T')[0]); // From today onwards
-
-      if (shiftsError) throw shiftsError;
-
-      // Find dates where the requester is NOT working (they're off)
-      const requesterWorkingDates = requesterShifts.map(shift => shift.date);
-      const today = new Date();
-      const futureDates = [];
-      
-      // Generate dates for the next 30 days
-      for (let i = 1; i <= 30; i++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + i);
-        const dateStr = date.toISOString().split('T')[0];
-        
-        // If the requester is not working on this date, it's available for swap
-        if (!requesterWorkingDates.includes(dateStr)) {
-          futureDates.push(dateStr);
-        }
-      }
-
-      // Show available dates for counter-offer
-      if (futureDates.length > 0) {
-        // Store the available dates and swap request for counter-offer selection
-        setAvailableShifts(futureDates.map(date => ({ id: date, date, is_counter_offer: true })));
-        setShowCounterOffer(swapId);
-        setSelectedCounterShift("");
-        
-        toast({
-          title: "Select Counter-Offer Date",
-          description: `Please select a date when ${swapRequest.requester_staff?.staff_number || 'the requester'} is off to send as a counter-offer.`,
-        });
-      } else {
-        toast({
-          title: "No Available Dates",
-          description: "The requester is working on all available dates. Cannot accept this swap.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error accepting swap:', error);
-        toast({
-          title: "Error",
-        description: "Failed to accept swap request",
-          variant: "destructive"
-        });
-    }
+    await handleShowCounterOffer(swapId);
   };
 
   const handleAcceptSwapWithCounterOffer = async (swapId: string, selectedShiftId: string) => {
@@ -581,6 +339,16 @@ const ManageSwaps = () => {
         toast({
           title: "Error",
           description: "Selected date not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!selectedShift.canSelect) {
+        toast({
+          title: "Date not compatible",
+          description:
+            'This date does not line up for a swap (orange). Pick a green date — day off for them or a valid 04:15 ↔ 13:15 double.',
           variant: "destructive"
         });
         return;
@@ -1192,11 +960,15 @@ const ManageSwaps = () => {
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-3">
-                                <h4 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">YOUR SHIFT TO SWAP</h4>
+                                <h4 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">THEIR SHIFT (you cover)</h4>
                                 <div className="bg-white rounded-lg p-3 border border-gray-200">
                                   <div className="flex items-center space-x-2 text-gray-700 mb-2">
                                     <Calendar className="h-4 w-4 text-blue-600" />
-                                    <span className="font-medium">{request.requester_shift?.date}</span>
+                                    <span className="font-medium">
+                                      {request.requester_shift?.date
+                                        ? formatDateGB(request.requester_shift.date)
+                                        : '—'}
+                                    </span>
                               </div>
                                   <div className="flex items-center space-x-2 text-gray-700">
                                     <Clock className="h-4 w-4 text-green-600" />
@@ -1233,9 +1005,26 @@ const ManageSwaps = () => {
                               <div className="space-y-4">
                                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                                   <h4 className="font-semibold text-blue-900 mb-3">SELECT A DATE FOR COUNTER-OFFER</h4>
-                                  <p className="text-blue-700 text-sm mb-4">
-                                    Choose a date when {request.requester_staff?.staff_number || 'the requester'} is off to work their shift in exchange.
+                                  <p className="text-blue-700 text-sm mb-2">
+                                    Choose a repay day: you work their shift on the date below, and they work your shift on the day you pick (they must be off, or a valid 04:15 ↔ 13:15 double).
                                   </p>
+                                  <p className="text-xs text-slate-600 mb-4">
+                                    You&apos;ll cover their shift on{' '}
+                                    <span className="font-semibold">
+                                      {formatDateGB(request.requester_shift?.date ?? '')}{' '}
+                                      {formatShiftTimeLabel(request.requester_shift?.time ?? null)}
+                                    </span>
+                                  </p>
+                                  <div className="flex flex-wrap gap-3 text-xs mb-4">
+                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 border border-green-300 px-2 py-1 text-green-900">
+                                      <span className="h-2 w-2 rounded-full bg-green-600" />
+                                      Green — day off swap or valid double
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 border border-orange-300 px-2 py-1 text-orange-900">
+                                      <span className="h-2 w-2 rounded-full bg-orange-500" />
+                                      Orange — days don&apos;t line up
+                                    </span>
+                                  </div>
                                   
                                   {/* Month Navigation */}
                                   <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-lg border border-blue-200">
@@ -1282,63 +1071,55 @@ const ManageSwaps = () => {
                                       </div>
                                     ) : availableShifts.length > 0 ? (
                                       <div className="space-y-2">
-                                      <p className="text-sm text-green-700 font-medium">
-                                          ✅ Available dates for counter-offer:
+                                      <p className="text-sm text-slate-700 font-medium">
+                                          Dates this month ({availableShifts.filter((s) => s.canSelect).length} selectable)
                                         </p>
-                                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        {availableShifts.map((shift) => (
-                                          <div
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[min(420px,50vh)] overflow-y-auto pr-1">
+                                        {availableShifts.map((shift) => {
+                                          const selected = selectedCounterShift === shift.id
+                                          const kindLabel =
+                                            shift.matchKind === 'double'
+                                              ? 'Valid double'
+                                              : shift.matchKind === 'standard'
+                                                ? 'Day off swap'
+                                                : 'No match'
+                                          return (
+                                          <button
+                                            type="button"
                                             key={shift.id}
-                                            className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                                              selectedCounterShift === shift.id
-                                                ? 'bg-blue-100 border-blue-300'
-                                                : 'bg-white border-gray-200 hover:bg-gray-50'
-                                            }`}
-                                            onClick={() => setSelectedCounterShift(shift.id)}
+                                            disabled={!shift.canSelect}
+                                            className={counterOfferCardClass(shift.matchKind, selected)}
+                                            onClick={() => {
+                                              if (shift.canSelect) setSelectedCounterShift(shift.id)
+                                            }}
                                           >
-                                            <div className="text-center">
-                                              <div className="text-sm font-medium text-gray-900">
-                                                {(() => {
-                                                  // Parse date (handles both YYYY-MM-DD and DD/MM/YYYY)
-                                                  const dateStr = shift.date;
-                                                  let dateObj: Date;
-                                                  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                                                    // YYYY-MM-DD format
-                                                    const [y, m, d] = dateStr.split('-').map(Number);
-                                                    dateObj = new Date(y, m - 1, d);
-                                                  } else {
-                                                    // DD/MM/YYYY format
-                                                    const [d, m, y] = dateStr.split('/').map(Number);
-                                                    dateObj = new Date(y, m - 1, d);
-                                                  }
-                                                  return dateObj.toLocaleDateString('en-GB', { 
-                                                    month: 'short', 
-                                                    day: 'numeric' 
-                                                  });
-                                                })()}
+                                            <div className="flex items-start justify-between gap-2 mb-2">
+                                              <div className="text-left">
+                                                <div className="text-sm font-semibold text-gray-900">
+                                                  {formatDateGB(shift.date, { weekday: 'short', day: 'numeric', month: 'short' })}
                                                 </div>
-                                              <div className="text-xs text-gray-500">
-                                                {(() => {
-                                                  // Parse date (handles both YYYY-MM-DD and DD/MM/YYYY)
-                                                  const dateStr = shift.date;
-                                                  let dateObj: Date;
-                                                  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                                                    // YYYY-MM-DD format
-                                                    const [y, m, d] = dateStr.split('-').map(Number);
-                                                    dateObj = new Date(y, m - 1, d);
-                                                  } else {
-                                                    // DD/MM/YYYY format
-                                                    const [d, m, y] = dateStr.split('/').map(Number);
-                                                    dateObj = new Date(y, m - 1, d);
-                                                  }
-                                                  return dateObj.toLocaleDateString('en-GB', { 
-                                                    weekday: 'short' 
-                                                  });
-                                                })()}
-                                                </div>
+                                                <div className="text-xs font-medium mt-0.5 opacity-90">{kindLabel}</div>
+                                              </div>
+                                              {shift.matchKind === 'double' && (
+                                                <Badge className="bg-green-700 text-white shrink-0 text-[10px]">Double</Badge>
+                                              )}
                                             </div>
-                                          </div>
-                                        ))}
+                                            <div className="space-y-1 text-xs text-left">
+                                              <p>
+                                                <span className="font-semibold">Your shift:</span>{' '}
+                                                {formatShiftTimeLabel(shift.userShiftTime)}
+                                              </p>
+                                              <p>
+                                                <span className="font-semibold">Their shift:</span>{' '}
+                                                {formatShiftTimeLabel(shift.requesterShiftTime)}
+                                              </p>
+                                              <p className="text-[11px] opacity-80 pt-1 border-t border-current/10">
+                                                You cover them on {formatDateGB(shift.swapShiftDate)} ·{' '}
+                                                {formatShiftTimeLabel(shift.swapShiftTime)}
+                                              </p>
+                                            </div>
+                                          </button>
+                                        )})}
                                       </div>
                                       </div>
                                     ) : (
@@ -1375,7 +1156,7 @@ const ManageSwaps = () => {
                                   onClick={() => handleAcceptSwap(request.id)}
                                   className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                                     >
-                                      Accept Swap
+                                      Counter-Offer
                                     </Button>
                                     <Button 
                                       variant="outline"
@@ -1452,19 +1233,41 @@ const ManageSwaps = () => {
                           
                           <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-lg mt-3">
                             <h4 className="font-medium text-sm mb-2">COUNTER-OFFER RECEIVED</h4>
-                            <div className="flex items-center gap-4">
-                              <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4" />
-                                <span>{request.counter_offer_date}</span>
+                            <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                              <div className="rounded-md bg-white/80 p-2 border border-orange-200">
+                                <p className="text-xs font-semibold text-orange-800 mb-1">You work (their day)</p>
+                                <p className="font-medium">
+                                  {formatDateGB(request.counter_offer_date ?? '')}
+                                </p>
+                                <p className="text-gray-700 flex items-center gap-1 mt-1">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  {formatShiftTimeLabel(counterOfferTimes[request.id] || null)}
+                                </p>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-600 dark:text-gray-400">
-                                  Available for swap
-                                </span>
+                              <div className="rounded-md bg-white/80 p-2 border border-orange-200">
+                                <p className="text-xs font-semibold text-orange-800 mb-1">They work (your day)</p>
+                                <p className="font-medium">
+                                  {request.requester_shift?.date
+                                    ? formatDateGB(request.requester_shift.date)
+                                    : '—'}
+                                </p>
+                                <p className="text-gray-700 flex items-center gap-1 mt-1">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  {formatShiftTimeLabel(request.requester_shift?.time ?? null)}
+                                </p>
                               </div>
                             </div>
                             <p className="text-xs text-orange-700 dark:text-orange-300 mt-2">
-                              {request.accepter_staff?.staff_number} is offering to work your shift on {request.requester_shift?.date} in exchange for you working their shift on {request.counter_offer_date}
+                              {request.accepter_staff?.staff_number} covers your{' '}
+                              {formatShiftTimeLabel(request.requester_shift?.time ?? null)} on{' '}
+                              {request.requester_shift?.date
+                                ? formatDateGB(request.requester_shift.date)
+                                : 'your shift day'}{' '}
+                              if you cover their shift on{' '}
+                              {request.counter_offer_date
+                                ? formatDateGB(request.counter_offer_date)
+                                : 'the offered day'}
+                              .
                             </p>
                             
                             <div className="flex gap-2 mt-3">

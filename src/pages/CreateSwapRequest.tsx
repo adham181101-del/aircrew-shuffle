@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ArrowRightLeft, Calendar, Clock, MapPin, Users, RotateCcw } from "lucide-react";
 import { getUserShifts, validateWHL, type Shift } from "@/lib/shifts";
+import { compareDatabaseDates, formatDateGB, getTodayDatabaseDate } from "@/lib/dates";
 import { getCurrentUser, type Staff } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -35,6 +36,13 @@ const CreateSwapRequest = () => {
   const { data: user } = useCurrentUser()
   const { data: shiftsData } = useShifts()
   const userShifts = useMemo(() => shiftsData?.shifts || [], [shiftsData])
+
+  const swappableShifts = useMemo(() => {
+    const today = getTodayDatabaseDate()
+    return userShifts
+      .filter((s) => compareDatabaseDates(s.date, today) >= 0)
+      .sort((a, b) => compareDatabaseDates(a.date, b.date))
+  }, [userShifts])
   
   // Get selected shift data
   const selectedShiftData = useMemo(() => 
@@ -486,12 +494,12 @@ const CreateSwapRequest = () => {
                           <SelectValue placeholder="Choose a shift you want to swap..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {userShifts.length === 0 ? (
+                          {swappableShifts.length === 0 ? (
                             <SelectItem value="no-shifts" disabled>No future shifts available</SelectItem>
                           ) : (
-                            userShifts.map((shift) => (
+                            swappableShifts.map((shift) => (
                               <SelectItem key={shift.id} value={shift.id}>
-                                {new Date(shift.date).toLocaleDateString('en-GB')} - {shift.time}
+                                {formatDateGB(shift.date)} - {shift.time}
                               </SelectItem>
                             ))
                           )}
@@ -513,7 +521,7 @@ const CreateSwapRequest = () => {
                                 <Calendar className="h-5 w-5 text-green-600" />
                                 <div>
                                   <p className="text-sm text-green-600 font-medium">Date</p>
-                                  <p className="text-green-800 font-semibold">{new Date(selectedShiftData.date).toLocaleDateString('en-GB')}</p>
+                                  <p className="text-green-800 font-semibold">{formatDateGB(selectedShiftData.date)}</p>
                                 </div>
                               </div>
                               <div className="flex items-center space-x-3 bg-white p-4 rounded-lg border border-green-200">
@@ -670,12 +678,12 @@ const CreateSwapRequest = () => {
                           <SelectValue placeholder="Choose a shift you want to change the time for..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {userShifts.length === 0 ? (
+                          {swappableShifts.length === 0 ? (
                             <SelectItem value="no-shifts" disabled>No future shifts available</SelectItem>
                           ) : (
-                            userShifts.map((shift) => (
+                            swappableShifts.map((shift) => (
                               <SelectItem key={shift.id} value={shift.id}>
-                                {new Date(shift.date).toLocaleDateString('en-GB')} - {shift.time}
+                                {formatDateGB(shift.date)} - {shift.time}
                               </SelectItem>
                             ))
                           )}
@@ -717,7 +725,7 @@ const CreateSwapRequest = () => {
                                 <Calendar className="h-5 w-5 text-purple-600" />
                                 <div>
                                   <p className="text-sm text-purple-600 font-medium">Date</p>
-                                  <p className="text-purple-800 font-semibold">{new Date(selectedTimeChangeShiftData.date).toLocaleDateString('en-GB')}</p>
+                                  <p className="text-purple-800 font-semibold">{formatDateGB(selectedTimeChangeShiftData.date)}</p>
                                 </div>
                               </div>
                               <div className="flex items-center space-x-3 bg-white p-4 rounded-lg border border-purple-200">
@@ -877,12 +885,12 @@ const CreateSwapRequest = () => {
                           <SelectValue placeholder="Select the date you want off (outside allowed period)..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {userShifts.length === 0 ? (
+                          {swappableShifts.length === 0 ? (
                             <SelectItem value="no-shifts" disabled>No future shifts available</SelectItem>
                           ) : (
-                            userShifts.map((shift) => (
+                            swappableShifts.map((shift) => (
                               <SelectItem key={shift.id} value={shift.id}>
-                                {new Date(shift.date).toLocaleDateString('en-GB')} - {shift.time}
+                                {formatDateGB(shift.date)} - {shift.time}
                               </SelectItem>
                             ))
                           )}
