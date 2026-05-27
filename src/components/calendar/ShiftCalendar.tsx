@@ -14,7 +14,7 @@ import { useMatchMedia } from '@/hooks/useMatchMedia'
 import { useToast } from '@/hooks/use-toast'
 import { useShifts, useInvalidateShifts } from '@/hooks/useShifts'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
-import { useLeaveDays } from '@/hooks/useLeaveDays'
+import { useLeaveDays, useAddLeaveDay, useRemoveLeaveDay } from '@/hooks/useLeaveDays'
 import { profiler } from '@/lib/performance'
 import { normalizeToDatabaseDate } from '@/lib/dates'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -76,6 +76,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   const [shiftPendingNote, setShiftPendingNote] = useState<Shift | null>(null)
   const [noteDraft, setNoteDraft] = useState('')
   const [savingNote, setSavingNote] = useState(false)
+  const [savingLeave, setSavingLeave] = useState(false)
   const { toast } = useToast()
   const showMobileCalendar = useMatchMedia('(max-width: 768px)')
   const weekDays = [...WEEKDAY_LABELS]
@@ -89,7 +90,9 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   // Use React Query hooks
   const { data: user } = useCurrentUser()
   const { data: shiftsData, isLoading: loading } = useShifts()
-  const { data: leaveDays = [] } = useLeaveDays()
+  const { data: leaveDays = [], isLoading: leaveLoading } = useLeaveDays()
+  const addLeaveDayMutation = useAddLeaveDay()
+  const removeLeaveDayMutation = useRemoveLeaveDay()
   const invalidateShifts = useInvalidateShifts()
 
   // Extract shifts from query result
@@ -156,6 +159,48 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
     setSelectedDate(cellDate)
     setFocusedShiftIndex(0)
     setDayActionsOpen(true)
+  }
+
+  const selectedDateIso = selectedDate ? formatDateStr(selectedDate) : null
+  const isLeaveOnSelectedDate =
+    !!selectedDateIso && leaveDatesSet.has(selectedDateIso)
+
+  const handleMarkLeave = async () => {
+    if (!selectedDateIso) return
+    setSavingLeave(true)
+    try {
+      const result = await addLeaveDayMutation.mutateAsync(selectedDateIso)
+      if (!result.ok) {
+        toast({
+          title: 'Could not mark leave',
+          description: result.error ?? 'Try again.',
+          variant: 'destructive',
+        })
+        return
+      }
+      toast({ title: 'Leave added', description: 'This day is marked as leave on your calendar.' })
+    } finally {
+      setSavingLeave(false)
+    }
+  }
+
+  const handleRevokeLeave = async () => {
+    if (!selectedDateIso) return
+    setSavingLeave(true)
+    try {
+      const result = await removeLeaveDayMutation.mutateAsync(selectedDateIso)
+      if (!result.ok) {
+        toast({
+          title: 'Could not remove leave',
+          description: result.error ?? 'Try again.',
+          variant: 'destructive',
+        })
+        return
+      }
+      toast({ title: 'Leave removed', description: 'This day is no longer marked as leave.' })
+    } finally {
+      setSavingLeave(false)
+    }
   }
 
   return (
@@ -276,7 +321,13 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                         className={`calendar-day-cell ${selected ? 'is-selected' : ''} ${todayCell ? 'is-today' : ''}`}
                       >
                         <div className="calendar-tile-content">
-                          {primaryShift && !isLeaveDay ? (
+                          {isLeaveDay ? (
+                            <div className="calendar-leave-card">
+                              <span className="calendar-day-number">{cellDate.getDate()}</span>
+                              <Plane className="calendar-leave-plane" />
+                              <span className="calendar-leave-word">Leave</span>
+                            </div>
+                          ) : primaryShift ? (
                             <div
                               className={`calendar-shift-card ${getShiftPaletteClass(getShiftTimeOfDay(primaryShift.time), primaryShift.is_swapped, primaryShift.time)}`}
                             >
@@ -303,12 +354,6 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                                   </span>
                                 )}
                               </div>
-                            </div>
-                          ) : isLeaveDay ? (
-                            <div className="calendar-leave-card">
-                              <span className="calendar-day-number">{cellDate.getDate()}</span>
-                              <Plane className="calendar-leave-plane" />
-                              <span className="calendar-leave-word">Leave</span>
                             </div>
                           ) : (
                             <div className="calendar-off-card">
@@ -428,11 +473,64 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
             <DialogDescription>
               {selectedDateShifts.length > 0
                 ? selectedDateShifts.length === 1
-                  ? 'Choose an action for this shift.'
+                  ? 'Choose an action for this shift, or manage leave for this day.'
                   : 'Multiple shifts this day — pick one, then choose an action.'
-                : 'No shift on this date. Add one from the toolbar or upload a roster.'}
+                : isLeaveOnSelectedDate
+                  ? 'You are on leave this day.'
+                  : 'No shift on this date. Mark leave, add a shift, or upload a roster.'}
             </DialogDescription>
           </DialogHeader>
+
+          {selectedDate && (
+            <div
+              className={`rounded-xl border px-4 py-3 ${
+                isLeaveOnSelectedDate
+                  ? 'border-purple-200 bg-purple-50'
+                  : 'border-slate-200 bg-slate-50'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <Plane
+                  className={`h-5 w-5 shrink-0 mt-0.5 ${
+                    isLeaveOnSelectedDate ? 'text-purple-700' : 'text-slate-400'
+                  }`}
+                />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <p className="text-sm font-semibold text-slate-900">
+                    {isLeaveOnSelectedDate ? 'On leave' : 'Not on leave'}
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    {isLeaveOnSelectedDate
+                      ? 'Swap requests will treat this as a leave day. Remove it if your roster changed.'
+                      : 'Mark this day as leave (same as LV LEAVE on your BA roster).'}
+                  </p>
+                  {isLeaveOnSelectedDate ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-purple-300 text-purple-800 hover:bg-purple-100"
+                      disabled={savingLeave || leaveLoading}
+                      onClick={handleRevokeLeave}
+                    >
+                      {savingLeave ? 'Updating…' : 'Remove leave'}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-purple-300 text-purple-800 hover:bg-purple-100"
+                      disabled={savingLeave || leaveLoading}
+                      onClick={handleMarkLeave}
+                    >
+                      {savingLeave ? 'Updating…' : 'Mark as leave'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {selectedDateShifts.length > 1 && (
             <div className="flex flex-wrap gap-2">

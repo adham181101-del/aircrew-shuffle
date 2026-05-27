@@ -115,7 +115,9 @@ export function MobileShiftCalendar({
               >
                 <p className="msc-date">{cellDate.getDate()}</p>
 
-                {primaryShift && timeParts && (
+                {isLeave ? (
+                  <p className="msc-shift msc-shift--solo">LV</p>
+                ) : primaryShift && timeParts ? (
                   <>
                     <div className="msc-day-primary">
                       <p className="msc-shift">{getMobileShiftAbbrevLine(primaryShift)}</p>
@@ -137,11 +139,9 @@ export function MobileShiftCalendar({
                     </div>
                     {primaryShift.note ? <span className="msc-note" aria-label="Has note" title="Note" /> : null}
                   </>
+                ) : (
+                  <p className="msc-shift msc-shift--solo">OFF</p>
                 )}
-
-                {!primaryShift && isLeave && <p className="msc-shift msc-shift--solo">LV</p>}
-
-                {!primaryShift && !isLeave && <p className="msc-shift msc-shift--solo">OFF</p>}
               </div>
             </button>
           )

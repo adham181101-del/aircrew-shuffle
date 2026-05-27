@@ -35,11 +35,12 @@ export const useAddLeaveDay = () => {
   return useMutation({
     mutationFn: async (dateIso: string) => {
       profiler.mark(`add leave day ${dateIso}`, 'fetch')
-      const success = await addLeaveDay(dateIso)
-      if (success) {
+      const result = await addLeaveDay(dateIso)
+      if (result.ok) {
         await queryClient.invalidateQueries({ queryKey: leaveDaysKeys.all })
+        await queryClient.refetchQueries({ queryKey: leaveDaysKeys.mine, type: 'active' })
       }
-      return success
+      return result
     },
   })
 }
@@ -53,11 +54,12 @@ export const useRemoveLeaveDay = () => {
   return useMutation({
     mutationFn: async (dateIso: string) => {
       profiler.mark(`remove leave day ${dateIso}`, 'fetch')
-      const success = await removeLeaveDay(dateIso)
-      if (success) {
+      const result = await removeLeaveDay(dateIso)
+      if (result.ok) {
         await queryClient.invalidateQueries({ queryKey: leaveDaysKeys.all })
+        await queryClient.refetchQueries({ queryKey: leaveDaysKeys.mine, type: 'active' })
       }
-      return success
+      return result
     },
   })
 }

@@ -19,7 +19,7 @@ export const getMyLeaveDays = async (): Promise<LeaveDay[]> => {
     .eq('staff_id', user.id)
     .order('date', { ascending: true })
   if (error) {
-    console.error('Error fetching leave days:', error)
+    console.error('Error fetching leave days:', error, { staffId: user.id })
     return []
   }
   return (data || []).map((row) => ({
@@ -28,25 +28,28 @@ export const getMyLeaveDays = async (): Promise<LeaveDay[]> => {
   }))
 }
 
-export const addLeaveDay = async (dateIso: string): Promise<boolean> => {
+export const addLeaveDay = async (
+  dateIso: string
+): Promise<{ ok: boolean; error?: string }> => {
   const user = await getCurrentUser()
-  if (!user) return false
+  if (!user) return { ok: false, error: 'Not signed in' }
   const date = normalizeToDatabaseDate(dateIso)
-  const { error } = await supabase
-    .from('leave_days')
-    .insert({ staff_id: user.id, date })
+  const { error } = await supabase.from('leave_days').insert({ staff_id: user.id, date })
   if (error) {
-    if ((error as { code?: string }).code !== '23505') {
-      console.error('Error adding leave day:', error)
-      return false
+    if ((error as { code?: string }).code === '23505') {
+      return { ok: true }
     }
+    console.error('Error adding leave day:', error, { date, staffId: user.id })
+    return { ok: false, error: error.message }
   }
-  return true
+  return { ok: true }
 }
 
-export const removeLeaveDay = async (dateIso: string): Promise<boolean> => {
+export const removeLeaveDay = async (
+  dateIso: string
+): Promise<{ ok: boolean; error?: string }> => {
   const user = await getCurrentUser()
-  if (!user) return false
+  if (!user) return { ok: false, error: 'Not signed in' }
   const date = normalizeToDatabaseDate(dateIso)
   const { error } = await supabase
     .from('leave_days')
@@ -54,10 +57,10 @@ export const removeLeaveDay = async (dateIso: string): Promise<boolean> => {
     .eq('staff_id', user.id)
     .eq('date', date)
   if (error) {
-    console.error('Error removing leave day:', error)
-    return false
+    console.error('Error removing leave day:', error, { date, staffId: user.id })
+    return { ok: false, error: error.message }
   }
-  return true
+  return { ok: true }
 }
 
 export const parseLeaveDaysFromText = (text: string): string[] => {

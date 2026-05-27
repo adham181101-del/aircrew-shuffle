@@ -6,6 +6,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { useLeaveDays, useAddLeaveDay, useRemoveLeaveDay } from '@/hooks/useLeaveDays'
+import { normalizeToDatabaseDate } from '@/lib/dates'
 
 const toIso = (d: Date) => {
   const year = d.getFullYear()
@@ -22,7 +23,10 @@ const Leave = () => {
   const [selected, setSelected] = useState<Date[] | undefined>([])
 
   const selectedIsoSet = useMemo(() => new Set((selected || []).map(toIso)), [selected])
-  const leaveIsoSet = useMemo(() => new Set(leaveDays.map(l => l.date)), [leaveDays])
+  const leaveIsoSet = useMemo(
+    () => new Set(leaveDays.map((l) => normalizeToDatabaseDate(l.date))),
+    [leaveDays]
+  )
 
   // Update selected dates when leave days change
   useEffect(() => {
@@ -39,18 +43,26 @@ const Leave = () => {
     // Additions: in next but not in existing leave
     for (const iso of nextIso) {
       if (!leaveIsoSet.has(iso)) {
-        const success = await addLeaveDay.mutateAsync(iso)
-        if (!success) {
-          toast({ title: 'Failed to add leave day', variant: 'destructive' })
+        const result = await addLeaveDay.mutateAsync(iso)
+        if (!result.ok) {
+          toast({
+            title: 'Failed to add leave day',
+            description: result.error,
+            variant: 'destructive',
+          })
         }
       }
     }
     // Removals: in existing leave but not in next
     for (const iso of leaveIsoSet) {
       if (!nextIso.has(iso)) {
-        const success = await removeLeaveDay.mutateAsync(iso)
-        if (!success) {
-          toast({ title: 'Failed to remove leave day', variant: 'destructive' })
+        const result = await removeLeaveDay.mutateAsync(iso)
+        if (!result.ok) {
+          toast({
+            title: 'Failed to remove leave day',
+            description: result.error,
+            variant: 'destructive',
+          })
         }
       }
     }
@@ -59,9 +71,13 @@ const Leave = () => {
   }
 
   const removeSingle = async (iso: string) => {
-    const success = await removeLeaveDay.mutateAsync(iso)
-    if (!success) {
-      toast({ title: 'Failed to remove leave day', variant: 'destructive' })
+    const result = await removeLeaveDay.mutateAsync(iso)
+    if (!result.ok) {
+      toast({
+        title: 'Failed to remove leave day',
+        description: result.error,
+        variant: 'destructive',
+      })
       return
     }
     toast({ title: 'Leave day removed' })
