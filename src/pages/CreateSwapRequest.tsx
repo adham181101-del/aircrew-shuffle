@@ -6,11 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ArrowRightLeft, Calendar, Clock, MapPin, Users, RotateCcw } from "lucide-react";
 import { getUserShifts, validateWHL, type Shift } from "@/lib/shifts";
-import { compareDatabaseDates, formatDateGB, getTodayDatabaseDate } from "@/lib/dates";
+import { compareDatabaseDates, formatDateGB, getTodayDatabaseDate, normalizeToDatabaseDate } from "@/lib/dates";
 import { getCurrentUser, type Staff } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const CreateSwapRequest = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [selectedShift, setSelectedShift] = useState<string>("");
@@ -43,6 +44,24 @@ const CreateSwapRequest = () => {
       .filter((s) => compareDatabaseDates(s.date, today) >= 0)
       .sort((a, b) => compareDatabaseDates(a.date, b.date))
   }, [userShifts])
+
+  useEffect(() => {
+    const shiftIdParam = searchParams.get("shift_id");
+    const dateParam = searchParams.get("date");
+
+    if (shiftIdParam && swappableShifts.some((s) => s.id === shiftIdParam)) {
+      setSelectedShift(shiftIdParam);
+      return;
+    }
+
+    if (dateParam) {
+      const normalizedDate = normalizeToDatabaseDate(dateParam);
+      const match = swappableShifts.find(
+        (s) => normalizeToDatabaseDate(s.date) === normalizedDate
+      );
+      if (match) setSelectedShift(match.id);
+    }
+  }, [searchParams, swappableShifts]);
   
   // Get selected shift data
   const selectedShiftData = useMemo(() => 

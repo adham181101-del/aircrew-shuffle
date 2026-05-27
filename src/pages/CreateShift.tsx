@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { normalizeToDatabaseDate } from "@/lib/dates";
 import { useToast } from "@/hooks/use-toast";
 import { createShift } from "@/lib/shifts";
 import { getCurrentUser } from "@/lib/auth";
@@ -13,6 +14,7 @@ import { Calendar, Clock, ArrowLeft } from "lucide-react";
 
 const CreateShift = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const invalidateShifts = useInvalidateShifts();
   const [loading, setLoading] = useState(false);
@@ -22,6 +24,13 @@ const CreateShift = () => {
     endTime: "",
     note: ""
   });
+
+  useEffect(() => {
+    const dateParam = searchParams.get("date");
+    if (!dateParam) return;
+    const normalized = normalizeToDatabaseDate(dateParam);
+    setFormData((prev) => (prev.date === normalized ? prev : { ...prev, date: normalized }));
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

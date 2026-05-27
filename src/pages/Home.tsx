@@ -8,7 +8,15 @@ export default function Home() {
   const navigate = useNavigate()
 
   const handleShiftClick = (shift: Shift) => {
-    navigate(`/swaps/manage?shift_id=${shift.id}&shift_date=${shift.date}`)
+    navigate(`/swaps/create?shift_id=${shift.id}`)
+  }
+
+  const handleCreateShift = (dateIso: string | null) => {
+    if (dateIso) {
+      navigate(`/shifts/create?date=${encodeURIComponent(dateIso)}`)
+      return
+    }
+    navigate('/shifts/create')
   }
 
   const uploadCard = (
@@ -45,7 +53,7 @@ export default function Home() {
         <div className="min-w-0">
           <ShiftCalendar
             onShiftClick={handleShiftClick}
-            onCreateShift={() => navigate('/shifts/create')}
+            onCreateShift={handleCreateShift}
           />
         </div>
         <aside className="lg:sticky lg:top-4">{uploadCard}</aside>

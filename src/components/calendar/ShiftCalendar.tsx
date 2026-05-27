@@ -50,7 +50,8 @@ import {
 
 interface ShiftCalendarProps {
   onShiftClick?: (shift: Shift) => void
-  onCreateShift?: () => void
+  /** Called with the selected calendar day (YYYY-MM-DD), or null if none selected. */
+  onCreateShift?: (dateIso: string | null) => void
 }
 
 export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProps) => {
@@ -219,7 +220,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
             </div>
             {onCreateShift && (
               <Button 
-                onClick={onCreateShift} 
+                onClick={() => onCreateShift(selectedDateIso)} 
                 size="lg" 
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
               >
@@ -646,7 +647,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                 onClick={() => {
                   setDayActionsOpen(false)
-                  onCreateShift()
+                  onCreateShift(selectedDateIso)
                 }}
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -737,7 +738,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                   You don't have any shifts in your calendar yet. Add shifts by uploading a roster PDF or creating them manually.
                 </p>
                 {onCreateShift && (
-                  <Button onClick={onCreateShift} variant="outline">
+                  <Button onClick={() => onCreateShift(null)} variant="outline">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Your First Shift
                   </Button>
