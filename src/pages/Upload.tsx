@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Upload, FileText, AlertCircle, CheckCircle, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useInvalidateShifts } from "@/hooks/useShifts";
+import { useInvalidateLeaveDays } from "@/hooks/useLeaveDays";
+import { normalizeToDatabaseDate } from "@/lib/dates";
 import { CircularProgress } from "@/components/ui/circular-progress";
 import { upsertShift, parseShiftsFromText, clearAllShiftsForUser, getUserShifts } from "@/lib/shifts";
 import { parseLeaveDaysFromText, replaceAllLeaveDaysForUser, getMyLeaveDays } from "@/lib/leave";
@@ -24,6 +26,7 @@ const UploadPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const invalidateShifts = useInvalidateShifts();
+  const invalidateLeaveDays = useInvalidateLeaveDays();
   const [uploadProgress, setUploadProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
@@ -146,7 +149,10 @@ const UploadPage = () => {
       setProgressLabel('Parsing shifts…');
       const shifts = parseShiftsFromText(pdfText);
       const leaveDates = parseLeaveDaysFromText(pdfText);
-      const uniquePdfShifts = dedupeShiftsByDate(shifts);
+      const leaveDateSet = new Set(leaveDates.map((d) => normalizeToDatabaseDate(d)));
+      const uniquePdfShifts = dedupeShiftsByDate(shifts).filter(
+        (s) => !leaveDateSet.has(normalizeToDatabaseDate(s.date))
+      );
 
       if (uniquePdfShifts.length === 0 && leaveDates.length === 0) {
         toast({
@@ -231,7 +237,10 @@ const UploadPage = () => {
 
       setUploadProgress(98);
       setProgressLabel('Refreshing calendar…');
-      await invalidateShifts.mutateAsync();
+      await Promise.all([
+        invalidateShifts.mutateAsync(),
+        invalidateLeaveDays.mutateAsync(),
+      ]);
 
       setProcessingStep('complete');
       setUploadProgress(100);

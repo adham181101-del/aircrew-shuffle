@@ -16,6 +16,7 @@ import { useShifts, useInvalidateShifts } from '@/hooks/useShifts'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useLeaveDays } from '@/hooks/useLeaveDays'
 import { profiler } from '@/lib/performance'
+import { normalizeToDatabaseDate } from '@/lib/dates'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Calendar as CalendarIcon, Plus, Plane, StickyNote, ChevronLeft, ChevronRight, ChevronDown, ChevronsLeft, ChevronsRight, X, Pencil, Trash2 } from 'lucide-react'
 import {
@@ -95,8 +96,8 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   const shifts = useMemo(() => shiftsData?.shifts || [], [shiftsData])
   
   // Create a set of leave dates for quick lookup
-  const leaveDatesSet = useMemo(() => 
-    new Set(leaveDays.map(ld => ld.date)),
+  const leaveDatesSet = useMemo(
+    () => new Set(leaveDays.map((ld) => normalizeToDatabaseDate(ld.date))),
     [leaveDays]
   )
 
@@ -117,13 +118,8 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   }, [invalidateShifts])
 
   const getShiftsForDate = (date: Date): Shift[] => {
-    // Convert date to YYYY-MM-DD format to match database format
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const dateStr = `${year}-${month}-${day}`
-    
-    return shifts.filter(shift => shift.date === dateStr)
+    const dateStr = formatDateStr(date)
+    return shifts.filter((shift) => normalizeToDatabaseDate(shift.date) === dateStr)
   }
 
   const monthGrid = useMemo(() => buildMonthGrid(currentMonth), [currentMonth])
@@ -280,7 +276,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                         className={`calendar-day-cell ${selected ? 'is-selected' : ''} ${todayCell ? 'is-today' : ''}`}
                       >
                         <div className="calendar-tile-content">
-                          {primaryShift ? (
+                          {primaryShift && !isLeaveDay ? (
                             <div
                               className={`calendar-shift-card ${getShiftPaletteClass(getShiftTimeOfDay(primaryShift.time), primaryShift.is_swapped, primaryShift.time)}`}
                             >

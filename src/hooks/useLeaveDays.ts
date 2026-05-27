@@ -19,10 +19,10 @@ export const useLeaveDays = () => {
       const leaveDays = await getMyLeaveDays()
       return leaveDays
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes cache
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    staleTime: 30 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 }
 
@@ -58,6 +58,19 @@ export const useRemoveLeaveDay = () => {
         await queryClient.invalidateQueries({ queryKey: leaveDaysKeys.all })
       }
       return success
+    },
+  })
+}
+
+/** Invalidate and refetch leave days (e.g. after roster upload). */
+export const useInvalidateLeaveDays = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async () => {
+      await queryClient.invalidateQueries({ queryKey: leaveDaysKeys.all })
+      await queryClient.refetchQueries({ queryKey: leaveDaysKeys.mine, type: 'active' })
+      profiler.mark('leave days cache invalidated and refetched', 'fetch')
     },
   })
 }

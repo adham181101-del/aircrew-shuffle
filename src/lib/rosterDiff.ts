@@ -1,3 +1,4 @@
+import { normalizeToDatabaseDate } from '@/lib/dates'
 import { normalizeTimeRange } from '@/lib/shifts'
 
 export type RosterShiftEntry = { date: string; time: string }
@@ -69,10 +70,16 @@ export function computeRosterDiff(
     }
   }
 
-  const existingLeave = new Set(existingLeaveDates)
-  const incomingLeave = new Set(incomingLeaveDates)
-  const leaveAdded = incomingLeaveDates.filter((d) => !existingLeave.has(d)).sort()
-  const leaveRemoved = existingLeaveDates.filter((d) => !incomingLeave.has(d)).sort()
+  const existingLeave = new Set(existingLeaveDates.map((d) => normalizeToDatabaseDate(d)))
+  const incomingLeave = new Set(incomingLeaveDates.map((d) => normalizeToDatabaseDate(d)))
+  const leaveAdded = incomingLeaveDates
+    .map((d) => normalizeToDatabaseDate(d))
+    .filter((d) => !existingLeave.has(d))
+    .sort()
+  const leaveRemoved = existingLeaveDates
+    .map((d) => normalizeToDatabaseDate(d))
+    .filter((d) => !incomingLeave.has(d))
+    .sort()
 
   return {
     added: added.sort((a, b) => a.date.localeCompare(b.date)),
