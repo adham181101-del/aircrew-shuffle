@@ -3,6 +3,8 @@
 export interface OvertimeRates {
   normalRate: string
   sundayBankHolidayRate: string
+  /** Basic hourly wage, used for unpaid-leave deductions. */
+  hourlyWage: string
 }
 
 export type OvertimeExtraKind = 'short' | 'full'
@@ -37,7 +39,7 @@ export interface PeriodOvertimeHours {
 const RATES_KEY = 'aircrew_overtime_rates_v1'
 const PERIOD_PREFIX = 'aircrew_payroll_period_v1_'
 
-const defaultRates: OvertimeRates = { normalRate: '', sundayBankHolidayRate: '' }
+const defaultRates: OvertimeRates = { normalRate: '', sundayBankHolidayRate: '', hourlyWage: '' }
 const defaultHours: PeriodOvertimeHours = {
   normalHours: '',
   sundayBankHolidayHours: '',
@@ -132,8 +134,22 @@ export function loadOvertimeRates(): OvertimeRates {
   return readJson(RATES_KEY, defaultRates)
 }
 
-export function saveOvertimeRates(rates: OvertimeRates): void {
-  writeJson(RATES_KEY, rates)
+export function saveOvertimeRates(rates: Partial<OvertimeRates>): void {
+  writeJson(RATES_KEY, { ...loadOvertimeRates(), ...rates })
+}
+
+export function loadPeriodUnpaidLeaveHours(periodId: string): string {
+  if (!periodId) return ''
+  return readJson(`${PERIOD_PREFIX}${periodId}_unpaid_leave`, { hours: '' }).hours ?? ''
+}
+
+export function savePeriodUnpaidLeaveHours(periodId: string, hours: string): void {
+  if (!periodId) return
+  writeJson(`${PERIOD_PREFIX}${periodId}_unpaid_leave`, { hours })
+}
+
+export function unpaidLeaveDeduction(hourlyWage: string, unpaidHours: string): number {
+  return parsePositive(hourlyWage) * parsePositive(unpaidHours)
 }
 
 export function loadPeriodOvertimeHours(periodId: string): PeriodOvertimeHours {

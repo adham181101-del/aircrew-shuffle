@@ -48,7 +48,7 @@ export const OvertimeCalculator = ({ summary, onOvertimeChange }: OvertimeCalcul
     const rates = loadOvertimeRates()
     setNormalRate(rates.normalRate)
     setSundayBankHolidayRate(rates.sundayBankHolidayRate)
-  }, [])
+  }, [periodId])
 
   useEffect(() => {
     reloadPeriod()
@@ -128,9 +128,9 @@ export const OvertimeCalculator = ({ summary, onOvertimeChange }: OvertimeCalcul
           )}
 
           <p className="text-sm text-slate-600">
-            Enter your overtime rates. Each extra is paid on top of rostered salary. Weekday extras use
-            the normal rate; Sundays and bank holidays use the Sunday rate automatically. Paid hours are
-            the shift length minus the unpaid break: 30 minutes at 6 hours or under, 1 hour when longer.
+            Overtime rates come from your profile and are reused every month. Weekday extras use the
+            normal rate; Sundays and bank holidays use the Sunday rate automatically. Paid hours are the
+            shift length minus the unpaid break: 30 minutes at 6 hours or under, 1 hour when longer.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -147,7 +147,7 @@ export const OvertimeCalculator = ({ summary, onOvertimeChange }: OvertimeCalcul
                   setNormalRate(e.target.value)
                   persistRates(e.target.value, sundayBankHolidayRate)
                 }}
-                placeholder="e.g. 22.50"
+                placeholder="From your profile"
               />
             </div>
             <div>
@@ -163,7 +163,7 @@ export const OvertimeCalculator = ({ summary, onOvertimeChange }: OvertimeCalcul
                   setSundayBankHolidayRate(e.target.value)
                   persistRates(normalRate, e.target.value)
                 }}
-                placeholder="e.g. 30.00"
+                placeholder="From your profile"
               />
             </div>
           </div>

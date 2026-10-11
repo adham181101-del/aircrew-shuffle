@@ -40,6 +40,7 @@ const Profile = ({ embedded = false }: ProfileProps) => {
     pension_deduction_percent: String(DEFAULT_PENSION_DEDUCTION_PERCENT),
     overtime_normal_rate: '',
     overtime_sunday_rate: '',
+    hourly_wage: '',
   });
   
   // Password change state
@@ -70,6 +71,7 @@ const Profile = ({ embedded = false }: ProfileProps) => {
         pension_deduction_percent: loadPensionDeductionPercent(currentUser.id),
         overtime_normal_rate: loadOvertimeRates().normalRate,
         overtime_sunday_rate: loadOvertimeRates().sundayBankHolidayRate,
+        hourly_wage: loadOvertimeRates().hourlyWage,
       });
     } catch (error) {
       toast({
@@ -107,6 +109,7 @@ const Profile = ({ embedded = false }: ProfileProps) => {
       saveOvertimeRates({
         normalRate: formData.overtime_normal_rate,
         sundayBankHolidayRate: formData.overtime_sunday_rate,
+        hourlyWage: formData.hourly_wage,
       })
 
       const { error: metaError } = await supabase.auth.updateUser({
@@ -340,6 +343,20 @@ const Profile = ({ embedded = false }: ProfileProps) => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
+                      <Label htmlFor="hourly_wage">Hourly wage (£/hour)</Label>
+                      <Input
+                        id="hourly_wage"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.hourly_wage}
+                        onChange={(e) =>
+                          setFormData({ ...formData, hourly_wage: e.target.value })
+                        }
+                        placeholder="e.g. 15.44"
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="overtime_normal_rate">Normal overtime rate (£/hour)</Label>
                       <Input
                         id="overtime_normal_rate"
@@ -369,7 +386,8 @@ const Profile = ({ embedded = false }: ProfileProps) => {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Used on Pay → Overtime. Each extra is calculated automatically (weekday vs Sunday).
+                    Saved once and filled in on Pay. Hourly wage deducts unpaid leave. Overtime rates are
+                    used for every month.
                   </p>
 
                   <div className="flex gap-2">
@@ -416,7 +434,13 @@ const Profile = ({ embedded = false }: ProfileProps) => {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-sm font-medium text-muted-foreground">Hourly wage</Label>
+                      <p className="text-sm">
+                        {formData.hourly_wage ? `£${formData.hourly_wage} / hour` : 'Not set'}
+                      </p>
+                    </div>
                     <div className="space-y-1">
                       <Label className="text-sm font-medium text-muted-foreground">Normal OT rate</Label>
                       <p className="text-sm">

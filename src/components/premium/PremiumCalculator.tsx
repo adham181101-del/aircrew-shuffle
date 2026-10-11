@@ -26,9 +26,13 @@ import {
   loadOvertimeRates,
   loadPeriodBaseSalary,
   loadPeriodOvertimeHours,
+  loadPeriodUnpaidLeaveHours,
   loadPensionDeductionPercent,
   overtimeExtraShiftIds,
+  saveOvertimeRates,
   savePeriodBaseSalary,
+  savePeriodUnpaidLeaveHours,
+  unpaidLeaveDeduction,
 } from '@/lib/payrollStorage'
 import { PREMIUM_PERIODS_2026, getDefaultPayPeriod, getPayMonthLabel, type PayPeriod } from '@/lib/payPeriods'
 
@@ -38,6 +42,8 @@ export interface PremiumTotalsSummary {
   baseSalary: number
   premiumAmount: number
   leavePremium: number
+  unpaidLeaveHours: number
+  unpaidLeaveDeduction: number
   pensionDeduction: number
   netBaseSalary: number
   overtimePay: number
@@ -90,6 +96,8 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
   const [selectedPremium, setSelectedPremium] = useState<PremiumTally | null>(null)
   // Base salary input (using string to allow empty values)
   const [baseSalary, setBaseSalary] = useState<string>('')
+  const [hourlyWage, setHourlyWage] = useState('')
+  const [unpaidLeaveHours, setUnpaidLeaveHours] = useState('')
   
   // Fetch leave days automatically
   const { data: leaveDaysData = [] } = useLeaveDays()
@@ -129,6 +137,15 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
     if (!selectedPeriodId) return
     savePeriodBaseSalary(selectedPeriodId, baseSalary)
   }, [selectedPeriodId, baseSalary])
+
+  useEffect(() => {
+    setHourlyWage(loadOvertimeRates().hourlyWage)
+  }, [])
+
+  useEffect(() => {
+    if (!selectedPeriodId) return
+    setUnpaidLeaveHours(loadPeriodUnpaidLeaveHours(selectedPeriodId))
+  }, [selectedPeriodId])
 
   const calculateShiftHours = (timeRange: string): number => {
     const [start, end] = timeRange.split('-')
@@ -396,6 +413,15 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
     return leaveDaysInPeriod * LEAVE_DAY_PREMIUM_GBP
   }, [leaveDaysInPeriod])
 
+  const unpaidHoursNum = useMemo(() => {
+    const parsed = parseFloat(unpaidLeaveHours)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
+  }, [unpaidLeaveHours])
+
+  const unpaidDeduction = useMemo(() => {
+    return unpaidLeaveDeduction(hourlyWage, unpaidLeaveHours)
+  }, [hourlyWage, unpaidLeaveHours])
+
   const pensionDeduction = useMemo(() => {
     return baseSalaryNum * (pensionPercent / 100)
   }, [baseSalaryNum, pensionPercent])
@@ -405,8 +431,8 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
   }, [baseSalaryNum, pensionDeduction])
 
   const totalWithoutOvertime = useMemo(() => {
-    return netBaseSalary + totals.totalPremiumAmount + leavePremium
-  }, [netBaseSalary, totals.totalPremiumAmount, leavePremium])
+    return netBaseSalary + totals.totalPremiumAmount + leavePremium - unpaidDeduction
+  }, [netBaseSalary, totals.totalPremiumAmount, leavePremium, unpaidDeduction])
 
   const overtimePay = useMemo(() => {
     if (!selectedPeriodId) return 0
@@ -427,6 +453,8 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
       baseSalary: baseSalaryNum,
       premiumAmount: totals.totalPremiumAmount,
       leavePremium,
+      unpaidLeaveHours: unpaidHoursNum,
+      unpaidLeaveDeduction: unpaidDeduction,
       pensionDeduction,
       netBaseSalary,
       overtimePay,
@@ -441,6 +469,8 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
     totals.totalPremiumAmount,
     totals.totalHours,
     leavePremium,
+    unpaidHoursNum,
+    unpaidDeduction,
     pensionDeduction,
     netBaseSalary,
     totalWithoutOvertime,
@@ -548,6 +578,44 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
                 </p>
               )}
             </div>
+            <div className="flex-1">
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">Hourly wage (£/hour)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={hourlyWage}
+                onChange={(e) => {
+                  setHourlyWage(e.target.value)
+                  saveOvertimeRates({ hourlyWage: e.target.value })
+                }}
+                className="h-12 w-full rounded-xl border-2 border-gray-200 px-4 text-base hover:border-green-300 focus:border-green-500 focus:outline-none transition-all duration-300"
+                placeholder="£ e.g. 15.44"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Saved on your profile and used for unpaid leave. One hour at £15.44 deducts £15.44.
+              </p>
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">Unpaid leave (hours)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.25"
+                value={unpaidLeaveHours}
+                onChange={(e) => {
+                  setUnpaidLeaveHours(e.target.value)
+                  if (selectedPeriodId) savePeriodUnpaidLeaveHours(selectedPeriodId, e.target.value)
+                }}
+                className="h-12 w-full rounded-xl border-2 border-gray-200 px-4 text-base hover:border-green-300 focus:border-green-500 focus:outline-none transition-all duration-300"
+                placeholder="e.g. 1"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {unpaidDeduction > 0
+                  ? `Deducts £${unpaidDeduction.toFixed(2)} this period (${unpaidHoursNum}h × £${parseFloat(hourlyWage || '0').toFixed(2)}).`
+                  : 'Hours of unpaid leave in this pay period. Deducted from expected salary.'}
+              </p>
+            </div>
           </div>
           {periodDateRange && selectedPeriod && (
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -595,7 +663,8 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
                   Base £{baseSalaryNum.toFixed(2)}
                   {pensionDeduction > 0 ? ` − Pension (${pensionPercent}%) £${pensionDeduction.toFixed(2)}` : ''} + Rostered premiums £
                   {totals.totalPremiumAmount.toFixed(2)} + Leave £{leavePremium.toFixed(2)}
-                  {overtimePay > 0 ? ` + Overtime £${overtimePay.toFixed(2)} (no early-hour premium on extras)` : ''}
+                  {unpaidDeduction > 0 ? ` − Unpaid leave £${unpaidDeduction.toFixed(2)}` : ''}
+                  {overtimePay > 0 ? ` + Overtime £${overtimePay.toFixed(2)}` : ''}
                 </p>
               </>
             </CardContent>
