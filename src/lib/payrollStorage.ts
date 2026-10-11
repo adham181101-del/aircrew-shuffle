@@ -183,31 +183,25 @@ export function paidHoursForOvertimeKind(kind: OvertimeExtraKind): number {
   return kind === 'short' ? OT_SHORT_PAID_HOURS : OT_FULL_PAID_HOURS
 }
 
+/** Unpaid break taken off duty length. 30 min at 6h or under; 1h when longer. */
+export const OT_SHORT_UNPAID_HOURS = 0.5
+export const OT_FULL_UNPAID_HOURS = 1
+
 /**
- * Paid hours for a single overtime extra from rostered/duty length.
- * Under 6 hours: 5.5 paid (30 min unpaid break).
- * Over 6 hours: 8 paid (1h unpaid break on a 9h extra).
+ * Paid hours for one overtime extra: clock time minus the unpaid break.
+ * 6 hours or under: deduct 30 minutes (a 6h duty pays 5.5h).
+ * Over 6 hours: deduct 1 hour (04:15–12:30 is 8.25h duty → 7.25h paid).
  */
 export function overtimePaidHoursForDuty(dutyHours: number): number {
   if (!Number.isFinite(dutyHours) || dutyHours <= 0) return 0
-  if (dutyHours <= OT_SHORT_DUTY_MAX_HOURS) return OT_SHORT_PAID_HOURS
-  return OT_FULL_PAID_HOURS
+  const unpaid = dutyHours <= OT_SHORT_DUTY_MAX_HOURS ? OT_SHORT_UNPAID_HOURS : OT_FULL_UNPAID_HOURS
+  const paidMinutes = Math.round((dutyHours - unpaid) * 60)
+  return Math.max(0, paidMinutes / 60)
 }
 
-/**
- * Convert a lump of duty hours into paid OT hours using extra-duty blocks
- * (9h extras first, leftover ≤ 6h as a short extra).
- */
+/** Same break rule when a period only has a lump of duty hours. */
 export function overtimePaidHoursFromDutyTotal(dutyHours: number): number {
-  if (!Number.isFinite(dutyHours) || dutyHours <= 0) return 0
-  let remaining = dutyHours
-  let paid = 0
-  while (remaining > OT_SHORT_DUTY_MAX_HOURS) {
-    paid += OT_FULL_PAID_HOURS
-    remaining -= remaining >= OT_FULL_DUTY_HOURS ? OT_FULL_DUTY_HOURS : remaining
-  }
-  if (remaining > 0) paid += OT_SHORT_PAID_HOURS
-  return paid
+  return overtimePaidHoursForDuty(dutyHours)
 }
 
 export function overtimeExtraDates(hours: PeriodOvertimeHours): Set<string> {

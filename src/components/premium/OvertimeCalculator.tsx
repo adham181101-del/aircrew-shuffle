@@ -6,8 +6,6 @@ import { Input } from '@/components/ui/input'
 import { PremiumTotalsSummary } from './PremiumCalculator'
 import { AddOvertimeShiftDialog } from './AddOvertimeShiftDialog'
 import {
-  OT_FULL_PAID_HOURS,
-  OT_SHORT_PAID_HOURS,
   computeOvertimeBreakdown,
   extraOvertimePay,
   extraPaidHours,
@@ -131,8 +129,8 @@ export const OvertimeCalculator = ({ summary, onOvertimeChange }: OvertimeCalcul
 
           <p className="text-sm text-slate-600">
             Enter your overtime rates. Each extra is paid on top of rostered salary. Weekday extras use
-            the normal rate; Sundays and bank holidays use the Sunday rate automatically. Under 6 hours
-            duty pays {OT_SHORT_PAID_HOURS}h; over 6 hours pays {OT_FULL_PAID_HOURS}h.
+            the normal rate; Sundays and bank holidays use the Sunday rate automatically. Paid hours are
+            the shift length minus the unpaid break: 30 minutes at 6 hours or under, 1 hour when longer.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -212,7 +210,7 @@ export const OvertimeCalculator = ({ summary, onOvertimeChange }: OvertimeCalcul
                         : 'No date'}
                     </p>
                     <p className="text-sm text-slate-600">
-                      {range} · {hours.toFixed(1)}h paid · {sunday ? 'Sunday / BH' : 'Normal'} rate
+                      {range} · {hours.toFixed(2)}h paid · {sunday ? 'Sunday / BH' : 'Normal'} rate
                     </p>
                     <p className="text-xs text-slate-500">
                       No shift premium on this extra

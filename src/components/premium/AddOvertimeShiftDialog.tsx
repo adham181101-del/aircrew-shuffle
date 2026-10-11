@@ -13,8 +13,8 @@ import { createShift, getShiftDurationHours, normalizeTimeRange } from '@/lib/sh
 import { useShifts } from '@/hooks/useShifts'
 import { findWorkPeriodForDate } from '@/lib/payPeriods'
 import {
-  OT_FULL_PAID_HOURS,
-  OT_SHORT_PAID_HOURS,
+  OT_FULL_UNPAID_HOURS,
+  OT_SHORT_UNPAID_HOURS,
   appendOvertimeExtra,
   extraKindFromDutyHours,
   extraOvertimePay,
@@ -182,15 +182,15 @@ export function AddOvertimeShiftDialog({
         {preview && (
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 space-y-1">
             <p>
-              {sunday ? 'Sunday / bank holiday' : 'Normal weekday'} rate · {preview.paid.toFixed(1)}h paid
+              {sunday ? 'Sunday / bank holiday' : 'Normal weekday'} rate · {preview.paid.toFixed(2)}h paid
               {preview.duty <= 6
-                ? ` (${OT_SHORT_PAID_HOURS}h after unpaid break)`
-                : ` (${OT_FULL_PAID_HOURS}h after unpaid break)`}
+                ? ` (${OT_SHORT_UNPAID_HOURS}h unpaid break)`
+                : ` (${OT_FULL_UNPAID_HOURS}h unpaid break)`}
             </p>
             <p className="font-semibold text-slate-900">£{preview.pay.toFixed(2)}</p>
             <p className="text-xs text-slate-500">
-              Set your overtime rates on Pay → Overtime or Profile. Under 6h duty pays {OT_SHORT_PAID_HOURS}h;
-              over 6h pays {OT_FULL_PAID_HOURS}h.
+              Set your overtime rates on Pay → Overtime or Profile. Paid hours are the shift length minus
+              30 minutes at 6 hours or under, or minus 1 hour when the shift is longer.
             </p>
           </div>
         )}
