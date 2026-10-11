@@ -27,6 +27,7 @@ import {
   loadPeriodBaseSalary,
   loadPeriodOvertimeHours,
   loadPensionDeductionPercent,
+  overtimeExtraShiftIds,
   savePeriodBaseSalary,
 } from '@/lib/payrollStorage'
 import { PREMIUM_PERIODS_2026, getDefaultPayPeriod, getPayMonthLabel, type PayPeriod } from '@/lib/payPeriods'
@@ -246,9 +247,18 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
     return { labels, amount, items }
   }
 
+  const overtimePeriod = useMemo(() => {
+    if (!selectedPeriodId) return loadPeriodOvertimeHours('')
+    return loadPeriodOvertimeHours(selectedPeriodId)
+  }, [selectedPeriodId, overtimeRefresh])
+
+  const overtimeShiftIds = useMemo(() => {
+    return overtimeExtraShiftIds(overtimePeriod.extras ?? [], shifts)
+  }, [overtimePeriod, shifts])
+
   // Memoize premium calculations - define function first
   const calculatePremiumsMemoized = useMemo(() => {
-    return (period: PayPeriod, shifts: Shift[]) => {
+    return (period: PayPeriod, shifts: Shift[], overtimeShiftIds: Set<string>) => {
       const startDate = new Date(period.start)
       startDate.setHours(0, 0, 0, 0)
     const endDate = new Date(period.end)
@@ -260,18 +270,6 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
       return shiftDate >= startDate && shiftDate <= endDate
     })
 
-    // Determine which dates are double-shift days (2+ shifts on the same date)
-    // Use ALL user shifts to avoid missing doubles at pay-period edges
-    const dateCounts: Record<string, number> = {}
-    for (const s of shifts) {
-      dateCounts[s.date] = (dateCounts[s.date] || 0) + 1
-    }
-    const doubleDates = new Set<string>(
-      Object.entries(dateCounts)
-        .filter(([, count]) => count >= 2)
-        .map(([date]) => date)
-    )
-
     const premiumShiftsData: PremiumShift[] = []
     let totalPremiumAmount = 0
     let totalHours = 0
@@ -280,16 +278,20 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
     periodShifts.forEach(shift => {
       const baseHours = calculateShiftHours(shift.time)
       totalHours += baseHours
-      
-      const shiftDate = new Date(`${shift.date}T00:00:00`)
-      const dayOfWeek = shiftDate.getDay()
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-      const isDoubleDay = doubleDates.has(shift.date)
-      // Apply time premiums to ALL shifts (not just weekends/doubles) as per aviation rules
+
+      if (overtimeShiftIds.has(shift.id)) {
+        premiumShiftsData.push({
+          shift,
+          premiumLabels: ['Overtime extra'],
+          baseHours,
+          premiumAmount: 0,
+          lineItems: [],
+        })
+        return
+      }
+
       const allowances = determineShiftAllowances(shift, { applyTimePremiums: true })
       const premiumAmount = allowances.amount
-      
-      // All shifts are premium shifts for British Airways
       premiumShiftsData.push({
         shift,
         premiumLabels: allowances.labels,
@@ -382,8 +384,8 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
       }
     }
     
-    return calculatePremiumsMemoized(selectedPeriod, shifts)
-  }, [selectedPeriod, shifts, calculatePremiumsMemoized])
+    return calculatePremiumsMemoized(selectedPeriod, shifts, overtimeShiftIds)
+  }, [selectedPeriod, shifts, calculatePremiumsMemoized, overtimeShiftIds])
 
   const baseSalaryNum = useMemo(() => {
     const parsed = parseFloat(baseSalary)
@@ -408,15 +410,8 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
 
   const overtimePay = useMemo(() => {
     if (!selectedPeriodId) return 0
-    const hours = loadPeriodOvertimeHours(selectedPeriodId)
-    const rates = loadOvertimeRates()
-    return computeOvertimeBreakdown(
-      hours.normalHours,
-      hours.sundayBankHolidayHours,
-      rates.normalRate,
-      rates.sundayBankHolidayRate
-    ).overtimePay
-  }, [selectedPeriodId, overtimeRefresh])
+    return computeOvertimeBreakdown(overtimePeriod, loadOvertimeRates()).overtimePay
+  }, [selectedPeriodId, overtimePeriod])
 
   const totalWithOvertime = useMemo(() => {
     return totalWithoutOvertime + overtimePay
@@ -485,13 +480,13 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
               <DollarSign className="h-6 w-6 text-white" />
             </div>
             <div>
-              <CardTitle className="text-2xl text-gray-900">Premium Pay Calculator</CardTitle>
-              <p className="text-gray-600">Calculate your shift premiums and allowances - All British Airways shifts are premium shifts</p>
+              <CardTitle className="text-xl xl:text-2xl text-gray-900">Premium Pay Calculator</CardTitle>
+              <p className="text-gray-600 text-sm xl:text-base">Rostered premiums plus overtime extras. Overtime extras are paid on top and do not include shift premium.</p>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className="p-4 lg:p-5 xl:p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             <div className="flex-1">
               <label className="text-sm font-semibold text-gray-700 mb-2 block">Pay Period</label>
               <Select value={selectedPeriodId} onValueChange={setSelectedPeriodId}>
@@ -572,8 +567,8 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
 
       {/* Summary Stats */}
       {selectedPeriod && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xl:gap-6">
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-semibold text-orange-800">Total Hours</CardTitle>
               <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
@@ -586,7 +581,7 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-semibold text-emerald-800">Expected Salary</CardTitle>
               <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
@@ -598,9 +593,9 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
                 <div className="text-3xl font-bold text-emerald-900">£{totalWithOvertime.toFixed(2)}</div>
                 <p className="text-xs text-emerald-700 mt-1">
                   Base £{baseSalaryNum.toFixed(2)}
-                  {pensionDeduction > 0 ? ` − Pension (${pensionPercent}%) £${pensionDeduction.toFixed(2)}` : ''} + Premiums £
+                  {pensionDeduction > 0 ? ` − Pension (${pensionPercent}%) £${pensionDeduction.toFixed(2)}` : ''} + Rostered premiums £
                   {totals.totalPremiumAmount.toFixed(2)} + Leave £{leavePremium.toFixed(2)}
-                  {overtimePay > 0 ? ` + Overtime £${overtimePay.toFixed(2)}` : ''}
+                  {overtimePay > 0 ? ` + Overtime £${overtimePay.toFixed(2)} (no early-hour premium on extras)` : ''}
                 </p>
               </>
             </CardContent>
@@ -621,7 +616,7 @@ export const PremiumCalculator = memo(({ onTotalsChange, overtimeRefresh = 0 }: 
             </div>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {premiumTally.map((tally, index) => (
                 <Card
                   key={index}

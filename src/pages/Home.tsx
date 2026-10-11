@@ -32,9 +32,9 @@ export default function Home() {
         }
       }}
     >
-      <CardContent className="flex items-center gap-3 py-4 px-4 lg:flex-col lg:items-start lg:gap-4 lg:py-5">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700 lg:h-12 lg:w-12">
-          <Upload className="h-5 w-5 lg:h-6 lg:w-6" />
+      <CardContent className="flex items-center gap-3 py-4 px-4 lg:flex-col lg:items-start lg:gap-3 lg:py-4 xl:gap-4 xl:py-5">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700 xl:h-12 xl:w-12">
+          <Upload className="h-5 w-5 xl:h-6 xl:w-6" />
         </div>
         <div className="flex-1 min-w-0 text-left">
           <p className="font-semibold text-slate-900">Upload Roster</p>
@@ -48,15 +48,15 @@ export default function Home() {
   )
 
   return (
-    <div className="w-full max-w-3xl mx-auto lg:max-w-none">
-      <div className="space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-6 lg:items-start xl:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="w-full max-w-3xl mx-auto lg:max-w-none min-w-0">
+      <div className="space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_13.5rem] lg:gap-4 lg:items-start xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-6 2xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
           <ShiftCalendar
             onShiftClick={handleShiftClick}
             onCreateShift={handleCreateShift}
           />
         </div>
-        <aside className="lg:sticky lg:top-4">{uploadCard}</aside>
+        <aside className="lg:sticky lg:top-3">{uploadCard}</aside>
       </div>
     </div>
   )

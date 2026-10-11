@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ArrowRightLeft, Calendar, Clock, MapPin, Users, RotateCcw } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, Calendar, Clock, Users, RotateCcw } from "lucide-react";
 import { getUserShifts, validateWHL, type Shift } from "@/lib/shifts";
 import { compareDatabaseDates, formatDateGB, getTodayDatabaseDate, normalizeToDatabaseDate } from "@/lib/dates";
 import { getCurrentUser, type Staff } from "@/lib/auth";
@@ -525,43 +525,6 @@ const CreateSwapRequest = () => {
                         </SelectContent>
                       </Select>
                     </div>
-
-                    {/* Selected Shift Details */}
-                    {selectedShiftData && (
-                      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-lg">
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <h4 className="font-semibold text-green-800 text-lg flex items-center">
-                              <span className="w-3 h-3 bg-green-500 rounded-full mr-3"></span>
-                              Selected Shift Details
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div className="flex items-center space-x-3 bg-white p-4 rounded-lg border border-green-200">
-                                <Calendar className="h-5 w-5 text-green-600" />
-                                <div>
-                                  <p className="text-sm text-green-600 font-medium">Date</p>
-                                  <p className="text-green-800 font-semibold">{formatDateGB(selectedShiftData.date)}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center space-x-3 bg-white p-4 rounded-lg border border-green-200">
-                                <Clock className="h-5 w-5 text-green-600" />
-                                <div>
-                                  <p className="text-sm text-green-600 font-medium">Time</p>
-                                  <p className="text-green-800 font-semibold">{selectedShiftData.time}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center space-x-3 bg-white p-4 rounded-lg border border-green-200">
-                                <MapPin className="h-5 w-5 text-green-600" />
-                                <div>
-                                  <p className="text-sm text-green-600 font-medium">Location</p>
-                                  <p className="text-green-800 font-semibold">{user?.base_location}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
 
                     {/* Eligible Staff */}
                     {selectedShift && (

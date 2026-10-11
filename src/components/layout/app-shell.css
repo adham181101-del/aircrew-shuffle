@@ -97,6 +97,36 @@
   }
 }
 
+/* Laptop / small desktop: keep sidebar + calendar on one screen */
+@media (min-width: 1024px) and (max-width: 1365px) {
+  .app-side-nav {
+    width: 10.5rem;
+    padding: 0.6rem 0.4rem;
+    max-height: calc(100dvh - 3.75rem);
+    top: 0;
+  }
+
+  .app-side-tab {
+    padding: 0.5rem 0.55rem;
+    gap: 0.45rem;
+  }
+
+  .app-side-tab-sub {
+    display: none;
+  }
+
+  .app-side-tab-label {
+    font-size: 0.8rem;
+  }
+
+  .app-shell-main {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    padding-top: 0.6rem;
+    padding-bottom: 0.75rem;
+  }
+}
+
 @media (max-width: 1023px) {
   .app-side-nav {
     display: none;

@@ -35,11 +35,11 @@ export function AppHeader() {
               <span className="text-blue-900 font-bold text-sm md:text-lg">B</span>
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-white truncate leading-tight">
+              <h1 className="text-lg md:text-xl xl:text-2xl font-bold text-white truncate leading-tight">
                 <span className="hidden sm:inline">{user?.company?.name || 'British Airways'}</span>
                 <span className="sm:hidden">BA</span>
               </h1>
-              <p className="hidden lg:block text-blue-100 text-sm truncate">
+              <p className="hidden xl:block text-blue-100 text-sm truncate">
                 Welcome back,{' '}
                 <span className="font-semibold text-white">{getDisplayName(user?.email)}</span>
               </p>
@@ -76,7 +76,7 @@ export function AppHeader() {
           </div>
         </div>
 
-        <div className="mt-3 text-center lg:hidden">
+        <div className="mt-3 text-center md:hidden">
           <p className="text-white text-base md:text-lg">
             Welcome back,{' '}
             <span className="font-semibold">{getDisplayName(user?.email)}</span>

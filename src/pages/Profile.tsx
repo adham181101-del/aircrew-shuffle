@@ -11,7 +11,12 @@ import { Badge } from '@/components/ui/badge';
 import { User, Lock, MapPin, Building, Hash, Mail } from 'lucide-react';
 import { getCurrentUser, type Staff } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
-import { loadPensionDeductionPercent, savePensionDeductionPercent } from '@/lib/payrollStorage';
+import {
+  loadPensionDeductionPercent,
+  savePensionDeductionPercent,
+  loadOvertimeRates,
+  saveOvertimeRates,
+} from '@/lib/payrollStorage';
 import { DEFAULT_PENSION_DEDUCTION_PERCENT } from '@/lib/payrollConstants';
 
 type ProfileProps = {
@@ -33,6 +38,8 @@ const Profile = ({ embedded = false }: ProfileProps) => {
     can_work_doubles: false,
     email: '',
     pension_deduction_percent: String(DEFAULT_PENSION_DEDUCTION_PERCENT),
+    overtime_normal_rate: '',
+    overtime_sunday_rate: '',
   });
   
   // Password change state
@@ -61,6 +68,8 @@ const Profile = ({ embedded = false }: ProfileProps) => {
         can_work_doubles: currentUser.can_work_doubles || false,
         email: currentUser.email || '',
         pension_deduction_percent: loadPensionDeductionPercent(currentUser.id),
+        overtime_normal_rate: loadOvertimeRates().normalRate,
+        overtime_sunday_rate: loadOvertimeRates().sundayBankHolidayRate,
       });
     } catch (error) {
       toast({
@@ -95,6 +104,10 @@ const Profile = ({ embedded = false }: ProfileProps) => {
       }
 
       savePensionDeductionPercent(user.id, formData.pension_deduction_percent)
+      saveOvertimeRates({
+        normalRate: formData.overtime_normal_rate,
+        sundayBankHolidayRate: formData.overtime_sunday_rate,
+      })
 
       const { error: metaError } = await supabase.auth.updateUser({
         data: { pension_deduction_percent: formData.pension_deduction_percent },
@@ -325,6 +338,40 @@ const Profile = ({ embedded = false }: ProfileProps) => {
                     </p>
                   </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="overtime_normal_rate">Normal overtime rate (£/hour)</Label>
+                      <Input
+                        id="overtime_normal_rate"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.overtime_normal_rate}
+                        onChange={(e) =>
+                          setFormData({ ...formData, overtime_normal_rate: e.target.value })
+                        }
+                        placeholder="e.g. 22.50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="overtime_sunday_rate">Sunday / bank holiday OT rate (£/hour)</Label>
+                      <Input
+                        id="overtime_sunday_rate"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.overtime_sunday_rate}
+                        onChange={(e) =>
+                          setFormData({ ...formData, overtime_sunday_rate: e.target.value })
+                        }
+                        placeholder="e.g. 30.00"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Used on Pay → Overtime. Each extra is calculated automatically (weekday vs Sunday).
+                  </p>
+
                   <div className="flex gap-2">
                     <Button onClick={handleSaveProfile} disabled={saving}>
                       {saving ? 'Saving...' : 'Save Changes'}
@@ -367,6 +414,25 @@ const Profile = ({ embedded = false }: ProfileProps) => {
                       {formData.pension_deduction_percent || String(DEFAULT_PENSION_DEDUCTION_PERCENT)}% of base
                       salary (Premiums tab)
                     </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-sm font-medium text-muted-foreground">Normal OT rate</Label>
+                      <p className="text-sm">
+                        {formData.overtime_normal_rate
+                          ? `£${formData.overtime_normal_rate} / hour`
+                          : 'Not set'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-sm font-medium text-muted-foreground">Sunday / BH OT rate</Label>
+                      <p className="text-sm">
+                        {formData.overtime_sunday_rate
+                          ? `£${formData.overtime_sunday_rate} / hour`
+                          : 'Not set'}
+                      </p>
+                    </div>
                   </div>
 
                   <div className="space-y-1">

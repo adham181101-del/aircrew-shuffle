@@ -68,7 +68,7 @@ export function AppLayout() {
       <AppHeader />
       <div className="app-shell-body">
         <AppSideNav />
-        <main className="app-shell-main container mx-auto px-4 max-md:px-3 py-4 lg:max-w-none lg:w-full app-main-with-tabs">
+        <main className="app-shell-main container mx-auto px-4 max-md:px-3 py-4 lg:max-w-none lg:w-full lg:px-3 lg:py-3 xl:px-8 xl:py-4 app-main-with-tabs min-w-0">
           <Outlet />
         </main>
       </div>

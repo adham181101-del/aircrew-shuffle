@@ -34,6 +34,7 @@ export interface MobileShiftCalendarProps {
   onPrevMonth: () => void
   onNextMonth: () => void
   onOpenMonthPicker: () => void
+  overtimeShiftIds?: Set<string>
 }
 
 export function MobileShiftCalendar({
@@ -47,6 +48,7 @@ export function MobileShiftCalendar({
   onPrevMonth,
   onNextMonth,
   onOpenMonthPicker,
+  overtimeShiftIds,
 }: MobileShiftCalendarProps) {
   return (
     <div className="msc-calendar-container">
@@ -120,7 +122,15 @@ export function MobileShiftCalendar({
                 ) : primaryShift && timeParts ? (
                   <>
                     <div className="msc-day-primary">
-                      <p className="msc-shift">{getMobileShiftAbbrevLine(primaryShift)}</p>
+                      <p className="msc-shift">
+                        {dayShifts.length > 1
+                          ? dayShifts.some((shift) => overtimeShiftIds?.has(shift.id))
+                            ? 'DBL+OT'
+                            : 'DBL'
+                          : overtimeShiftIds?.has(primaryShift.id)
+                            ? 'OT'
+                            : getMobileShiftAbbrevLine(primaryShift)}
+                      </p>
                     </div>
                     <div className="msc-time-stack">
                       {timeParts.end ? (

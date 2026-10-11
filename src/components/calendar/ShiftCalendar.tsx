@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {
   getShiftTimeOfDay,
+  getShiftDurationHours,
   deleteShift,
   normalizeTimeRange,
   updateShiftNote,
@@ -18,7 +19,7 @@ import { useLeaveDays, useAddLeaveDay, useRemoveLeaveDay } from '@/hooks/useLeav
 import { profiler } from '@/lib/performance'
 import { normalizeToDatabaseDate } from '@/lib/dates'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Calendar as CalendarIcon, Plus, Plane, StickyNote, ChevronLeft, ChevronRight, ChevronDown, ChevronsLeft, ChevronsRight, X, Pencil, Trash2 } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, Plane, StickyNote, ChevronLeft, ChevronRight, ChevronDown, ChevronsLeft, ChevronsRight, X, Pencil, Trash2, Clock } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +39,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { MobileShiftCalendar } from './MobileShiftCalendar'
+import { AddOvertimeShiftDialog } from '@/components/premium/AddOvertimeShiftDialog'
+import { PREMIUM_PERIODS_2026, findWorkPeriodForDate } from '@/lib/payPeriods'
+import {
+  appendOvertimeExtra,
+  extraKindFromDutyHours,
+  loadAllOvertimeExtras,
+  loadPeriodOvertimeHours,
+  newOvertimeExtraId,
+  overtimeExtraShiftIds,
+  removeOvertimeExtra,
+} from '@/lib/payrollStorage'
 import {
   buildMonthGrid,
   formatDateStr,
@@ -78,6 +90,8 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   const [noteDraft, setNoteDraft] = useState('')
   const [savingNote, setSavingNote] = useState(false)
   const [savingLeave, setSavingLeave] = useState(false)
+  const [otVersion, setOtVersion] = useState(0)
+  const [otDialogOpen, setOtDialogOpen] = useState(false)
   const { toast } = useToast()
   const showMobileCalendar = useMatchMedia('(max-width: 768px)')
   const weekDays = [...WEEKDAY_LABELS]
@@ -98,6 +112,14 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
 
   // Extract shifts from query result
   const shifts = useMemo(() => shiftsData?.shifts || [], [shiftsData])
+  const overtimeExtras = useMemo(
+    () => loadAllOvertimeExtras(PREMIUM_PERIODS_2026.map((period) => period.id)),
+    [otVersion, shifts]
+  )
+  const overtimeShiftIds = useMemo(
+    () => overtimeExtraShiftIds(overtimeExtras, shifts),
+    [overtimeExtras, shifts]
+  )
   
   // Create a set of leave dates for quick lookup
   const leaveDatesSet = useMemo(
@@ -205,24 +227,24 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-3 xl:space-y-6">
       <Card className="bg-white shadow-xl border border-slate-200 max-md:rounded-none max-md:border-x-0 max-md:shadow-md">
-        <CardHeader className="bg-white border-b border-slate-200 rounded-t-2xl max-md:rounded-none max-md:px-3 max-md:pt-4 max-md:pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <CalendarIcon className="h-6 w-6 text-white" />
+        <CardHeader className="bg-white border-b border-slate-200 rounded-t-2xl max-md:rounded-none max-md:px-3 max-md:pt-4 max-md:pb-3 lg:px-3 lg:py-2.5 xl:px-6 xl:py-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 lg:gap-2">
+            <div className="flex items-center space-x-3 min-w-0">
+              <div className="w-10 h-10 xl:w-12 xl:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                <CalendarIcon className="h-5 w-5 xl:h-6 xl:w-6 text-white" />
               </div>
-              <div>
-                <CardTitle className="text-2xl text-slate-900">Shift Calendar</CardTitle>
-                <p className="text-gray-600">View and manage your scheduled shifts</p>
+              <div className="min-w-0">
+                <CardTitle className="text-xl xl:text-2xl text-slate-900">Shift Calendar</CardTitle>
+                <p className="text-gray-600 text-sm xl:text-base hidden sm:block">View and manage your scheduled shifts</p>
               </div>
             </div>
             {onCreateShift && (
               <Button 
                 onClick={() => onCreateShift(selectedDateIso)} 
                 size="lg" 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-4 py-2 xl:px-6 xl:py-3 rounded-xl shadow-lg shrink-0"
               >
                 <Plus className="h-5 w-5 mr-2" />
                 Add Shift
@@ -258,6 +280,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                   setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
                 }
                 onOpenMonthPicker={openMonthPicker}
+                overtimeShiftIds={overtimeShiftIds}
               />
             ) : (
               <div className="calendar-shell">
@@ -335,7 +358,13 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                               <div className="calendar-shift-stack">
                                 <span className="calendar-day-number">{cellDate.getDate()}</span>
                                 <span className="calendar-shift-label">
-                                  {getDesktopShiftTileLabel(primaryShift)}
+                                  {dayShifts.length > 1
+                                    ? dayShifts.some((shift) => overtimeShiftIds.has(shift.id))
+                                      ? 'DOUBLE + OT'
+                                      : 'DOUBLE'
+                                    : overtimeShiftIds.has(primaryShift.id)
+                                      ? 'OVERTIME'
+                                      : getDesktopShiftTileLabel(primaryShift)}
                                 </span>
                                 {(() => {
                                   const { start, end } = splitShiftTimeRange(primaryShift.time)
@@ -623,6 +652,83 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                   </span>
                 </Button>
 
+                {overtimeShiftIds.has(focusedShift.id) ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-auto min-h-[3rem] py-3 justify-start gap-3 border-amber-200"
+                    onClick={() => {
+                      for (const period of PREMIUM_PERIODS_2026) {
+                        const extra = loadPeriodOvertimeHours(period.id).extras.find(
+                          (item) => item.shiftId === focusedShift.id
+                        )
+                        if (extra) {
+                          removeOvertimeExtra(period.id, extra.id)
+                          break
+                        }
+                      }
+                      setOtVersion((n) => n + 1)
+                      toast({
+                        title: 'Overtime removed',
+                        description: 'This duty is treated as a rostered shift again.',
+                      })
+                    }}
+                  >
+                    <Clock className="h-4 w-4 shrink-0 text-amber-700" />
+                    <span className="text-left">
+                      <span className="block font-semibold">Remove overtime mark</span>
+                      <span className="block text-xs font-normal text-muted-foreground">
+                        Shift premiums will count again
+                      </span>
+                    </span>
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-auto min-h-[3rem] py-3 justify-start gap-3 border-amber-200"
+                    onClick={() => {
+                      const period = findWorkPeriodForDate(
+                        new Date(`${normalizeToDatabaseDate(focusedShift.date)}T00:00:00`)
+                      )
+                      if (!period) {
+                        toast({
+                          title: 'Outside pay calendar',
+                          description: 'This date is not in a known pay period.',
+                          variant: 'destructive',
+                        })
+                        return
+                      }
+                      appendOvertimeExtra(period.id, {
+                        id: newOvertimeExtraId(),
+                        date: normalizeToDatabaseDate(focusedShift.date),
+                        kind: extraKindFromDutyHours(getShiftDurationHours(focusedShift.time)),
+                        time: focusedShift.time,
+                        shiftId: focusedShift.id,
+                        createdShift: false,
+                      })
+                      setOtVersion((n) => n + 1)
+                      toast({
+                        title: 'Marked as overtime extra',
+                        description:
+                          selectedDateShifts.length > 1
+                            ? 'Paid on top of the rostered shift. This extra’s premium will not count.'
+                            : 'Paid at your overtime rate. Shift premium is not included.',
+                      })
+                    }}
+                  >
+                    <Clock className="h-4 w-4 shrink-0 text-amber-700" />
+                    <span className="text-left">
+                      <span className="block font-semibold">Mark as overtime extra</span>
+                      <span className="block text-xs font-normal text-muted-foreground">
+                        {selectedDateShifts.length > 1
+                          ? 'Keep rostered premiums; this extra pays OT only'
+                          : 'Pay OT rate on top, without shift premium'}
+                      </span>
+                    </span>
+                  </Button>
+                )}
+
                 {onShiftClick && (
                   <Button
                     type="button"
@@ -654,6 +760,30 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
                 Add shift
               </Button>
             </div>
+          )}
+
+          {selectedDateIso && (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-auto min-h-[3rem] py-3 justify-start gap-3 border-amber-200 bg-amber-50"
+              onClick={() => {
+                setDayActionsOpen(false)
+                setOtDialogOpen(true)
+              }}
+            >
+              <Clock className="h-4 w-4 shrink-0 text-amber-700" />
+              <span className="text-left">
+                <span className="block font-semibold">
+                  {selectedDateShifts.length === 0 ? 'Add overtime shift' : 'Add overtime extra'}
+                </span>
+                <span className="block text-xs font-normal text-muted-foreground">
+                  {selectedDateShifts.length === 0
+                    ? 'Day off extra — paid at your overtime rate, no shift premium'
+                    : 'On top of your rostered shift. This extra’s premium will not count'}
+                </span>
+              </span>
+            </Button>
           )}
         </DialogContent>
       </Dialog>
@@ -987,11 +1117,72 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
         .legend-leave { background: #f3e8ff; }
         .legend-off { background: #e2e8f0; }
 
+        @media (min-width: 769px) and (max-width: 1365px) {
+          .calendar-container {
+            padding: 8px 10px 10px;
+          }
+
+          .calendar-nav {
+            padding: 0 0 4px;
+            gap: 4px;
+          }
+
+          .calendar-weekday-cell {
+            padding: 4px 2px;
+            font-size: 0.7rem;
+          }
+
+          .calendar-weekdays,
+          .calendar-grid {
+            gap: 4px;
+          }
+
+          .calendar-day-cell,
+          .calendar-empty-cell {
+            min-height: 0;
+            height: clamp(52px, calc((100dvh - 15.5rem) / 6), 82px);
+          }
+
+          .calendar-day-cell {
+            padding: 3px;
+            border-radius: 10px;
+          }
+
+          .calendar-shift-card,
+          .calendar-leave-card,
+          .calendar-off-card {
+            padding: 4px;
+            gap: 2px;
+            border-radius: 8px;
+          }
+
+          .calendar-shift-stack {
+            gap: 2px;
+            padding: 1px;
+          }
+
+          .calendar-shift-stack .calendar-day-number {
+            font-size: 0.85rem;
+          }
+
+          .calendar-shift-stack .calendar-shift-label {
+            font-size: 0.62rem;
+            line-height: 1.1;
+          }
+
+          .calendar-shift-time-start,
+          .calendar-shift-time-end {
+            font-size: 0.6rem;
+          }
+        }
+
         @media (min-width: 1024px) {
           .calendar-schedule-intro {
             display: none;
           }
+        }
 
+        @media (min-width: 1366px) {
           .calendar-weekdays,
           .calendar-grid {
             gap: 10px;
@@ -1021,7 +1212,7 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           }
         }
 
-        @media (min-width: 1280px) {
+        @media (min-width: 1536px) {
           .calendar-day-cell,
           .calendar-empty-cell {
             min-height: 124px;
@@ -1107,6 +1298,18 @@ export const ShiftCalendar = ({ onShiftClick, onCreateShift }: ShiftCalendarProp
           }
         }
       `}</style>
+
+      <AddOvertimeShiftDialog
+        open={otDialogOpen}
+        onOpenChange={setOtDialogOpen}
+        dateIso={selectedDateIso ?? ''}
+        staffId={user?.id}
+        existingShiftCount={selectedDateShifts.length}
+        onSaved={async () => {
+          setOtVersion((n) => n + 1)
+          await invalidateShifts.mutateAsync()
+        }}
+      />
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
