@@ -54,12 +54,12 @@ interface PremiumCalculatorProps {
 
 // Aviation shift fixed allowances (£) based on provided table
 const AVIATION_PREMIUMS = {
-  shift_premium_1: { amount: 26.99, description: 'Shift Premium 1: start before 04:59 or end 00:00–02:59' },
-  shift_premium_2: { amount: 15.43, description: 'Shift Premium 2: start 05:00–05:59 or end 22:30–23:59' },
-  shift_premium_3: { amount: 7.70, description: 'Shift Premium 3: start 06:00–06:59 or end 21:00–22:29' },
+  shift_premium_1: { amount: 27.74, description: 'Shift Premium 1: start before 04:59 or end 00:00–02:59' },
+  shift_premium_2: { amount: 15.86, description: 'Shift Premium 2: start 05:00–05:59 or end 22:30–23:59' },
+  shift_premium_3: { amount: 7.92, description: 'Shift Premium 3: start 06:00–06:59 or end 21:00–22:29' },
   night_shift: { amount: 36.26, description: 'Night Shift: ≥3 continuous hours between 00:00–05:00' },
-  saturday: { amount: 9.0, description: 'Saturday: any shift starting on Saturday' },
-  sunday: { amount: 17.99, description: 'Sunday: any shift starting on Sunday' },
+  saturday: { amount: 9.25, description: 'Saturday: any shift starting on Saturday' },
+  sunday: { amount: 18.49, description: 'Sunday: any shift starting on Sunday' },
   day_shift: { amount: 0.0, description: 'Day Shift: start/end between 07:00–20:59' },
   average_shift_pay: { amount: 16.77, description: 'Average Shift Pay (annual leave/training anomaly)' }
 }
